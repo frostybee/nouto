@@ -51,7 +51,13 @@
         <label>
           <span class="label">Request Name</span>
           <!-- svelte-ignore a11y_autofocus -->
-          <input type="text" bind:value={name} placeholder="Request name" spellcheck="false" autofocus />
+          <input
+            type="text"
+            bind:value={name}
+            placeholder="Request name"
+            spellcheck="false"
+            autofocus
+          />
         </label>
 
         <label>
@@ -66,7 +72,11 @@
 
       <div class="dialog-actions">
         <button class="btn btn-secondary" onclick={oncancel}>Cancel</button>
-        <button class="btn btn-primary" disabled={!selectedCollectionId || !name.trim()} onclick={handleConfirm}>Save</button>
+        <button
+          class="btn btn-primary"
+          disabled={!selectedCollectionId || !name.trim()}
+          onclick={handleConfirm}>Save</button
+        >
       </div>
     </div>
   </div>
@@ -94,8 +104,14 @@
   }
 
   @keyframes dialogIn {
-    from { opacity: 0; transform: scale(0.95); }
-    to { opacity: 1; transform: scale(1); }
+    from {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
   }
 
   .dialog-header {
@@ -175,18 +191,25 @@
     font-weight: 600;
   }
 
-  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
 
   .btn-primary {
     background: var(--hf-button-background);
     color: var(--hf-button-foreground);
   }
-  .btn-primary:hover:not(:disabled) { background: var(--hf-button-hoverBackground); }
+  .btn-primary:hover:not(:disabled) {
+    background: var(--hf-button-hoverBackground);
+  }
 
   .btn-secondary {
     background: var(--hf-button-secondaryBackground, transparent);
     color: var(--hf-button-secondaryForeground, var(--hf-foreground));
     border-color: var(--hf-panel-border);
   }
-  .btn-secondary:hover:not(:disabled) { background: var(--hf-toolbar-hoverBackground, rgba(127, 127, 127, 0.18)); }
+  .btn-secondary:hover:not(:disabled) {
+    background: var(--hf-toolbar-hoverBackground, rgba(127, 127, 127, 0.18));
+  }
 </style>

@@ -68,7 +68,7 @@ export class TauriCookieJarService {
       this.activeJarId = defaultJar.id;
     }
 
-    if (!this.activeJarId || !this.jars.find(j => j.id === this.activeJarId)) {
+    if (!this.activeJarId || !this.jars.find((j) => j.id === this.activeJarId)) {
       this.activeJarId = this.jars[0].id;
     }
 
@@ -90,7 +90,7 @@ export class TauriCookieJarService {
 
   private getActiveJar(): CookieJar | null {
     if (!this.activeJarId) return null;
-    return this.jars.find(j => j.id === this.activeJarId) ?? null;
+    return this.jars.find((j) => j.id === this.activeJarId) ?? null;
   }
 
   // --- Jar CRUD ---
@@ -105,7 +105,7 @@ export class TauriCookieJarService {
 
   renameJar(id: string, name: string): void {
     this.ensureLoaded();
-    const jar = this.jars.find(j => j.id === id);
+    const jar = this.jars.find((j) => j.id === id);
     if (jar) {
       jar.name = name;
       this.save();
@@ -115,7 +115,7 @@ export class TauriCookieJarService {
   deleteJar(id: string): void {
     this.ensureLoaded();
     if (this.jars.length <= 1) return;
-    this.jars = this.jars.filter(j => j.id !== id);
+    this.jars = this.jars.filter((j) => j.id !== id);
     if (this.activeJarId === id) {
       this.activeJarId = this.jars[0]?.id ?? null;
     }
@@ -124,7 +124,7 @@ export class TauriCookieJarService {
 
   listJars(): CookieJarInfo[] {
     this.ensureLoaded();
-    return this.jars.map(j => ({ id: j.id, name: j.name, cookieCount: j.cookies.length }));
+    return this.jars.map((j) => ({ id: j.id, name: j.name, cookieCount: j.cookies.length }));
   }
 
   getActiveJarId(): string | null {
@@ -134,7 +134,7 @@ export class TauriCookieJarService {
 
   setActiveJar(id: string | null): void {
     this.ensureLoaded();
-    if (id === null || this.jars.find(j => j.id === id)) {
+    if (id === null || this.jars.find((j) => j.id === id)) {
       this.activeJarId = id;
       this.save();
     }
@@ -147,7 +147,7 @@ export class TauriCookieJarService {
     const jar = this.getActiveJar();
     if (!jar) return;
     jar.cookies = jar.cookies.filter(
-      c => !(c.name === cookie.name && c.domain === cookie.domain && c.path === cookie.path)
+      (c) => !(c.name === cookie.name && c.domain === cookie.domain && c.path === cookie.path),
     );
     jar.cookies.push(cookie);
     this.save();
@@ -158,7 +158,7 @@ export class TauriCookieJarService {
     const jar = this.getActiveJar();
     if (!jar) return;
     const idx = jar.cookies.findIndex(
-      c => c.name === oldName && c.domain === oldDomain && c.path === oldPath
+      (c) => c.name === oldName && c.domain === oldDomain && c.path === oldPath,
     );
     if (idx >= 0) {
       jar.cookies[idx] = cookie;
@@ -187,7 +187,7 @@ export class TauriCookieJarService {
       const cookie = this.parseSetCookie(header, urlObj);
       if (cookie) {
         jar.cookies = jar.cookies.filter(
-          c => !(c.name === cookie.name && c.domain === cookie.domain && c.path === cookie.path)
+          (c) => !(c.name === cookie.name && c.domain === cookie.domain && c.path === cookie.path),
         );
         jar.cookies.push(cookie);
       }
@@ -195,7 +195,7 @@ export class TauriCookieJarService {
 
     // Remove expired cookies
     const now = Date.now();
-    jar.cookies = jar.cookies.filter(c => !c.expires || c.expires > now);
+    jar.cookies = jar.cookies.filter((c) => !c.expires || c.expires > now);
     this.save();
   }
 
@@ -212,7 +212,7 @@ export class TauriCookieJarService {
     }
 
     const now = Date.now();
-    return jar.cookies.filter(c => {
+    return jar.cookies.filter((c) => {
       if (c.expires && c.expires <= now) return false;
       if (!this.domainMatch(urlObj.hostname, c.domain)) return false;
       if (!urlObj.pathname.startsWith(c.path)) return false;
@@ -224,7 +224,7 @@ export class TauriCookieJarService {
   buildCookieHeader(url: string): string {
     const cookies = this.getCookiesForUrl(url);
     if (cookies.length === 0) return '';
-    return cookies.map(c => `${c.name}=${c.value}`).join('; ');
+    return cookies.map((c) => `${c.name}=${c.value}`).join('; ');
   }
 
   getAllByDomain(): Record<string, Cookie[]> {
@@ -244,7 +244,7 @@ export class TauriCookieJarService {
     const jar = this.getActiveJar();
     if (!jar) return;
     jar.cookies = jar.cookies.filter(
-      c => !(c.name === name && c.domain === domain && c.path === cookiePath)
+      (c) => !(c.name === name && c.domain === domain && c.path === cookiePath),
     );
     this.save();
   }
@@ -253,7 +253,7 @@ export class TauriCookieJarService {
     this.ensureLoaded();
     const jar = this.getActiveJar();
     if (!jar) return;
-    jar.cookies = jar.cookies.filter(c => c.domain !== domain);
+    jar.cookies = jar.cookies.filter((c) => c.domain !== domain);
     this.save();
   }
 
@@ -273,14 +273,14 @@ export class TauriCookieJarService {
       if (key.toLowerCase() === 'set-cookie') {
         // Could be comma-separated (multiple Set-Cookie values merged)
         const cookies = value.split(/,(?=\s*\w+=)/);
-        result.push(...cookies.map(c => c.trim()));
+        result.push(...cookies.map((c) => c.trim()));
       }
     }
     return result;
   }
 
   private parseSetCookie(header: string, requestUrl: URL): Cookie | null {
-    const parts = header.split(';').map(p => p.trim());
+    const parts = header.split(';').map((p) => p.trim());
     if (parts.length === 0) return null;
 
     const firstPart = parts[0];

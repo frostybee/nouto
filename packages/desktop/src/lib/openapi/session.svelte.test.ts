@@ -119,7 +119,11 @@ describe('openApiSession registry', () => {
 
   it('publishes async schema diagnostics that finish while the content is unchanged', async () => {
     let resolveValidate: (value: unknown) => void = () => {};
-    tauriMocks.invoke.mockReturnValue(new Promise((resolve) => { resolveValidate = resolve; }));
+    tauriMocks.invoke.mockReturnValue(
+      new Promise((resolve) => {
+        resolveValidate = resolve;
+      }),
+    );
     openSession('/tmp/api.yaml', VALID_YAML, 'yaml');
 
     resolveValidate([{ pointer: '/info', message: 'schema says no' }]);
@@ -129,7 +133,11 @@ describe('openApiSession registry', () => {
 
   it('drops in-flight async diagnostics when an edit lands before they resolve', async () => {
     let resolveValidate: (value: unknown) => void = () => {};
-    tauriMocks.invoke.mockReturnValue(new Promise((resolve) => { resolveValidate = resolve; }));
+    tauriMocks.invoke.mockReturnValue(
+      new Promise((resolve) => {
+        resolveValidate = resolve;
+      }),
+    );
     openSession('/tmp/api.yaml', VALID_YAML, 'yaml');
 
     // The edit invalidates the pass launched by openSession: its diagnostics
@@ -179,10 +187,15 @@ describe('openApiSession registry', () => {
       expect(getSession(b)?.version).toBe('3.1');
     });
 
-    it('an edit in one tab does not invalidate another tab\'s in-flight schema fetch', async () => {
+    it("an edit in one tab does not invalidate another tab's in-flight schema fetch", async () => {
       let resolveA!: (value: unknown) => void;
       tauriMocks.invoke
-        .mockImplementationOnce(() => new Promise((resolve) => { resolveA = resolve; }))
+        .mockImplementationOnce(
+          () =>
+            new Promise((resolve) => {
+              resolveA = resolve;
+            }),
+        )
         .mockResolvedValue([]);
       const a = openSession('/tmp/a.yaml', VALID_YAML, 'yaml'); // A's invoke held open
       const b = openSession('/tmp/b.yaml', VALID_YAML, 'yaml');
@@ -215,7 +228,7 @@ describe('openApiSession registry', () => {
       expect(activeSessionId()).toBe(b);
     });
 
-    it('closeSession cancels the session\'s pending analysis', () => {
+    it("closeSession cancels the session's pending analysis", () => {
       const a = openSession('/tmp/a.yaml', VALID_YAML, 'yaml');
       setContentFor(a, VALID_YAML.replace('3.1.0', '3.0.3'));
       closeSession(a);
@@ -291,23 +304,26 @@ describe('openApiSession registry', () => {
 
   describe('diagnostics pipeline', () => {
     it('populates sync diagnostics on open and merges the schema pass', async () => {
-      tauriMocks.invoke.mockResolvedValue([
-        { pointer: '/info', message: 'schema issue' },
-      ]);
+      tauriMocks.invoke.mockResolvedValue([{ pointer: '/info', message: 'schema issue' }]);
       openSession('/tmp/api.yaml', VALID_YAML, 'yaml');
       expect(openApiSession.diagnostics.length).toBeGreaterThan(0);
       expect(openApiSession.diagnostics.some((d) => d.source === 'schema')).toBe(false);
       await vi.advanceTimersByTimeAsync(0);
-      expect(openApiSession.diagnostics.some(
-        (d) => d.source === 'schema' && d.message === 'schema issue'
-      )).toBe(true);
+      expect(
+        openApiSession.diagnostics.some(
+          (d) => d.source === 'schema' && d.message === 'schema issue',
+        ),
+      ).toBe(true);
     });
 
     it('discards a stale schema resolution superseded by a newer edit in the same session', async () => {
       let resolveFirst!: (value: unknown) => void;
       tauriMocks.invoke
         .mockImplementationOnce(
-          () => new Promise((resolve) => { resolveFirst = resolve; })
+          () =>
+            new Promise((resolve) => {
+              resolveFirst = resolve;
+            }),
         )
         .mockResolvedValueOnce([{ pointer: '/info', message: 'fresh' }]);
 
@@ -326,7 +342,10 @@ describe('openApiSession registry', () => {
     it('resetAllSessions clears the registry and invalidates in-flight schema fetches', async () => {
       let resolveInvoke!: (value: unknown) => void;
       tauriMocks.invoke.mockImplementationOnce(
-        () => new Promise((resolve) => { resolveInvoke = resolve; })
+        () =>
+          new Promise((resolve) => {
+            resolveInvoke = resolve;
+          }),
       );
       openSession('/tmp/api.yaml', VALID_YAML, 'yaml');
       resetAllSessions();
@@ -336,10 +355,13 @@ describe('openApiSession registry', () => {
       expect(openApiSession.diagnostics).toEqual([]);
     });
 
-    it('closeSession invalidates that session\'s in-flight schema fetch', async () => {
+    it("closeSession invalidates that session's in-flight schema fetch", async () => {
       let resolveInvoke!: (value: unknown) => void;
       tauriMocks.invoke.mockImplementationOnce(
-        () => new Promise((resolve) => { resolveInvoke = resolve; })
+        () =>
+          new Promise((resolve) => {
+            resolveInvoke = resolve;
+          }),
       );
       const id = openSession('/tmp/api.yaml', VALID_YAML, 'yaml');
       const session = getSession(id)!;
@@ -384,7 +406,9 @@ describe('openApiSession registry', () => {
           throw new Error('missing'); // read_openapi_ref_file → file not found
         });
         const id = openSession('C:\\specs\\api.yaml', EXT_YAML, 'yaml');
-        expect(getSession(id)!.diagnostics.some((d) => d.code === 'external-ref-unsupported')).toBe(true);
+        expect(getSession(id)!.diagnostics.some((d) => d.code === 'external-ref-unsupported')).toBe(
+          true,
+        );
         await vi.advanceTimersByTimeAsync(0);
         const diags = getSession(id)!.diagnostics;
         expect(diags.some((d) => d.code === 'external-ref-unsupported')).toBe(false);
@@ -396,13 +420,17 @@ describe('openApiSession registry', () => {
         let resolveSchema!: (value: unknown) => void;
         tauriMocks.invoke.mockImplementation((command: string) => {
           if (command === 'validate_openapi_schema') {
-            return new Promise((resolve) => { resolveSchema = resolve; });
+            return new Promise((resolve) => {
+              resolveSchema = resolve;
+            });
           }
           return Promise.reject(new Error('missing'));
         });
         const id = openSession('C:\\specs\\api.yaml', EXT_YAML, 'yaml');
         await vi.advanceTimersByTimeAsync(0);
-        expect(getSession(id)!.diagnostics.some((d) => d.code === 'external-file-not-found')).toBe(true);
+        expect(getSession(id)!.diagnostics.some((d) => d.code === 'external-file-not-found')).toBe(
+          true,
+        );
 
         resolveSchema([{ pointer: '/info', message: 'schema-slow' }]);
         await vi.advanceTimersByTimeAsync(0);
@@ -417,12 +445,16 @@ describe('openApiSession registry', () => {
           if (command === 'validate_openapi_schema') {
             return Promise.resolve([{ pointer: '/info', message: 'schema-fast' }]);
           }
-          return new Promise((_resolve, reject) => { rejectRead = reject; });
+          return new Promise((_resolve, reject) => {
+            rejectRead = reject;
+          });
         });
         const id = openSession('C:\\specs\\api.yaml', EXT_YAML, 'yaml');
         await vi.advanceTimersByTimeAsync(0);
         expect(getSession(id)!.diagnostics.some((d) => d.message === 'schema-fast')).toBe(true);
-        expect(getSession(id)!.diagnostics.some((d) => d.code === 'external-file-not-found')).toBe(false);
+        expect(getSession(id)!.diagnostics.some((d) => d.code === 'external-file-not-found')).toBe(
+          false,
+        );
 
         rejectRead(new Error('missing'));
         await vi.advanceTimersByTimeAsync(0);
@@ -440,9 +472,11 @@ describe('openApiSession registry', () => {
         await vi.advanceTimersByTimeAsync(0);
         expect(getSession(id)!.externalAnalysis).toBeNull();
         // Placeholder stays — nothing definitive to swap in.
-        expect(getSession(id)!.diagnostics.some((d) => d.code === 'external-ref-unsupported')).toBe(true);
+        expect(getSession(id)!.diagnostics.some((d) => d.code === 'external-ref-unsupported')).toBe(
+          true,
+        );
         expect(
-          tauriMocks.invoke.mock.calls.some(([command]) => command === 'read_openapi_ref_file')
+          tauriMocks.invoke.mock.calls.some(([command]) => command === 'read_openapi_ref_file'),
         ).toBe(false);
       });
     });

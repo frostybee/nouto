@@ -1,9 +1,6 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
-  import {
-    workspace,
-    currentWorkspaceName,
-  } from '@nouto/ui/stores/workspace.svelte';
+  import { workspace, currentWorkspaceName } from '@nouto/ui/stores/workspace.svelte';
 
   interface Props {
     onOpenFolder: () => void;
@@ -80,7 +77,11 @@
 
   function portal(node: HTMLElement) {
     document.body.appendChild(node);
-    return { destroy() { node.remove(); } };
+    return {
+      destroy() {
+        node.remove();
+      },
+    };
   }
 </script>
 
@@ -90,12 +91,22 @@
   <button
     bind:this={buttonEl}
     class="ws-button"
-    onclick={(e) => { e.stopPropagation(); toggleDropdown(); }}
+    onclick={(e) => {
+      e.stopPropagation();
+      toggleDropdown();
+    }}
     title="Workspace"
   >
     <i class="codicon codicon-folder"></i>
     <span class="ws-name">{name ?? 'No workspace'}</span>
-    <svg class="arrow" class:open={showDropdown} width="10" height="10" viewBox="0 0 16 16" fill="currentColor"><path d="M8 10.5L2.5 5h11L8 10.5z"/></svg>
+    <svg
+      class="arrow"
+      class:open={showDropdown}
+      width="10"
+      height="10"
+      viewBox="0 0 16 16"
+      fill="currentColor"><path d="M8 10.5L2.5 5h11L8 10.5z" /></svg
+    >
   </button>
 
   {#if showDropdown}
@@ -119,17 +130,20 @@
             onclick={() => pickRecent(r.path)}
             title={r.path}
           >
-            <span class="check-mark">{#if isCurrent}<i class="codicon codicon-check"></i>{/if}</span>
+            <span class="check-mark"
+              >{#if isCurrent}<i class="codicon codicon-check"></i>{/if}</span
+            >
             <span class="option-name">{r.name}</span>
             {#if !isCurrent}
-              <!-- svelte-ignore a11y_no_static_element_interactions -->
               <span
                 class="remove-btn"
                 role="button"
                 tabindex="-1"
                 title="Remove from list"
                 onclick={(e) => removeRecent(e, r.path)}
-                onkeydown={(e) => { if (e.key === 'Enter') removeRecent(e, r.path); }}
+                onkeydown={(e) => {
+                  if (e.key === 'Enter') removeRecent(e, r.path);
+                }}
               >
                 <i class="codicon codicon-close"></i>
               </span>
@@ -140,12 +154,24 @@
 
       <div class="divider"></div>
 
-      <button class="ws-action" onclick={() => { close(); onNewProject(); }}>
+      <button
+        class="ws-action"
+        onclick={() => {
+          close();
+          onNewProject();
+        }}
+      >
         <i class="codicon codicon-add"></i>
         <span class="option-name">New Workspace</span>
       </button>
 
-      <button class="ws-action" onclick={() => { close(); onOpenFolder(); }}>
+      <button
+        class="ws-action"
+        onclick={() => {
+          close();
+          onOpenFolder();
+        }}
+      >
         <i class="codicon codicon-folder-opened"></i>
         <span class="option-name">Open Folder…</span>
       </button>
@@ -155,7 +181,10 @@
       <button
         class="ws-action"
         disabled={!hasWorkspace}
-        onclick={() => { close(); onOpenSettings(); }}
+        onclick={() => {
+          close();
+          onOpenSettings();
+        }}
       >
         <i class="codicon codicon-settings-gear"></i>
         <span class="option-name">Workspace Settings…</span>
@@ -164,7 +193,10 @@
       <button
         class="ws-action"
         disabled={!hasWorkspace}
-        onclick={() => { close(); onCloseProject(); }}
+        onclick={() => {
+          close();
+          onCloseProject();
+        }}
       >
         <i class="codicon codicon-close"></i>
         <span class="option-name">Close Workspace</span>
@@ -215,7 +247,9 @@
     transition: transform 0.15s;
     flex-shrink: 0;
   }
-  .arrow.open { transform: rotate(180deg); }
+  .arrow.open {
+    transform: rotate(180deg);
+  }
 
   .ws-dropdown {
     position: fixed;
@@ -269,7 +303,9 @@
     cursor: not-allowed;
   }
 
-  .ws-option.selected { font-weight: 500; }
+  .ws-option.selected {
+    font-weight: 500;
+  }
 
   .check-mark {
     width: 1.231rem;
@@ -278,7 +314,9 @@
     justify-content: center;
     flex-shrink: 0;
   }
-  .check-mark .codicon { font-size: 1.077rem; }
+  .check-mark .codicon {
+    font-size: 1.077rem;
+  }
 
   .option-name {
     flex: 1;
@@ -287,7 +325,11 @@
     white-space: nowrap;
   }
 
-  .ws-action .codicon { font-size: 1.077rem; width: 16px; text-align: center; }
+  .ws-action .codicon {
+    font-size: 1.077rem;
+    width: 16px;
+    text-align: center;
+  }
 
   .remove-btn {
     width: 1.385rem;
@@ -303,14 +345,19 @@
     opacity: 0;
     transition: opacity 0.15s;
   }
-  .ws-option:hover .remove-btn { opacity: 1; }
-  .remove-btn:hover { background: var(--hf-toolbar-hoverBackground, rgba(127, 127, 127, 0.25)); }
-  .remove-btn .codicon { font-size: 0.923rem; }
+  .ws-option:hover .remove-btn {
+    opacity: 1;
+  }
+  .remove-btn:hover {
+    background: var(--hf-toolbar-hoverBackground, rgba(127, 127, 127, 0.25));
+  }
+  .remove-btn .codicon {
+    font-size: 0.923rem;
+  }
 
   .divider {
     height: 0.077rem;
     background: var(--hf-panel-border);
     margin: 0.308rem 0;
   }
-
 </style>

@@ -9,11 +9,7 @@
     monaco,
     updateMonacoYaml,
   } from './monacoSetup';
-  import {
-    offsetsToRange,
-    registerOpenApiProviders,
-    sessionIdFromModel,
-  } from './monacoProviders';
+  import { offsetsToRange, registerOpenApiProviders, sessionIdFromModel } from './monacoProviders';
   import { isAnchoredDiagnostic } from '@nouto/core/services/openapi/types';
   import type { OpenApiDiagnostic, OpenApiFormat } from '@nouto/core/services/openapi/types';
   import {
@@ -24,7 +20,6 @@
   import type { SpecTextEdit } from '@nouto/core/services/openapi/specEdit';
   import { settings } from '@nouto/ui/stores/settings.svelte';
 
-  export type { RevealAndSelect } from './monacoProviders';
   import type { RevealAndSelect } from './monacoProviders';
 </script>
 
@@ -101,7 +96,9 @@
   }
 
   function editorFontFamily(): string | undefined {
-    const family = getComputedStyle(document.body).getPropertyValue('--hf-editor-font-family').trim();
+    const family = getComputedStyle(document.body)
+      .getPropertyValue('--hf-editor-font-family')
+      .trim();
     return family || undefined;
   }
 
@@ -126,7 +123,7 @@
       next = monaco.editor.createModel(
         nextContent,
         nextFormat,
-        monaco.Uri.parse(`file:///nouto/openapi/${id}.${ext}`)
+        monaco.Uri.parse(`file:///nouto/openapi/${id}.${ext}`),
       );
       modelsById.set(id, next);
       const created = next;
@@ -139,9 +136,13 @@
           if (updatingFromProp || created !== model) return;
           onchange?.(created.getValue());
           onedits?.(
-            event.changes.map((c) => ({ from: c.rangeOffset, to: c.rangeOffset + c.rangeLength, insert: c.text }))
+            event.changes.map((c) => ({
+              from: c.rangeOffset,
+              to: c.rangeOffset + c.rangeLength,
+              insert: c.text,
+            })),
           );
-        })
+        }),
       );
     }
     editor.setModel(next);
@@ -197,7 +198,7 @@
           column: event.position.column,
           offset: current.getOffsetAt(event.position),
         });
-      })
+      }),
     );
 
     editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => onsave?.());
@@ -205,7 +206,10 @@
     // Desktop toggles data-theme on <html>; watch it (not body's VS Code
     // webview attributes) and re-derive the Monaco theme from computed styles.
     themeObserver = new MutationObserver(() => applyTheme());
-    themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'class'] });
+    themeObserver.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['data-theme', 'class'],
+    });
     window.addEventListener('nouto-font-change', handleFontChange);
   });
 
@@ -253,10 +257,9 @@
     } else if (pointerMap) {
       // Absence-type findings (missing property, no security, no 5xx...) have
       // no text of their own: underline the owning key, not the whole value.
-      const range =
-        isAnchoredDiagnostic(diagnostic)
-          ? pointerToAnchorOffsetRange(pointerMap, diagnostic.pointer ?? '')
-          : pointerToOffsetRange(pointerMap, diagnostic.pointer ?? '');
+      const range = isAnchoredDiagnostic(diagnostic)
+        ? pointerToAnchorOffsetRange(pointerMap, diagnostic.pointer ?? '')
+        : pointerToOffsetRange(pointerMap, diagnostic.pointer ?? '');
       if (range) {
         from = range.from;
         to = range.to;
@@ -290,7 +293,7 @@
     monaco.editor.setModelMarkers(
       model,
       'nouto-openapi',
-      (diagnostics ?? []).map(diagnosticToMarker)
+      (diagnostics ?? []).map(diagnosticToMarker),
     );
   });
 
@@ -332,10 +335,10 @@
       const start = model.getPositionAt(range.from);
       const end = model.getPositionAt(range.to);
       editor.setSelection(
-        new monaco.Selection(start.lineNumber, start.column, end.lineNumber, end.column)
+        new monaco.Selection(start.lineNumber, start.column, end.lineNumber, end.column),
       );
       editor.revealRangeInCenterIfOutsideViewport(
-        new monaco.Range(start.lineNumber, start.column, end.lineNumber, end.column)
+        new monaco.Range(start.lineNumber, start.column, end.lineNumber, end.column),
       );
     }
     editor.focus();

@@ -45,20 +45,22 @@
   });
 
   function handleDblClick(e: MouseEvent) {
-    if ((e.target as HTMLElement).closest('button, .dropdown, .search-field, [data-no-drag]')) return;
+    if ((e.target as HTMLElement).closest('button, .dropdown, .search-field, [data-no-drag]'))
+      return;
     getCurrentWindow().toggleMaximize();
   }
 </script>
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
-<header class="top-toolbar" class:macos={isMacOS()} data-tauri-drag-region ondblclick={handleDblClick}>
+<header
+  class="top-toolbar"
+  class:macos={isMacOS()}
+  data-tauri-drag-region
+  ondblclick={handleDblClick}
+>
   <div class="left" data-tauri-drag-region>
     <Tooltip text={sidebarTooltip}>
-      <button
-        class="icon-btn"
-        onclick={toggleSidebar}
-        aria-label="Toggle sidebar"
-      >
+      <button class="icon-btn" onclick={toggleSidebar} aria-label="Toggle sidebar">
         <span class="codicon codicon-layout-sidebar-left"></span>
       </button>
     </Tooltip>
@@ -85,7 +87,12 @@
   </div>
 
   <div class="center" data-tauri-drag-region>
-    <button class="search-field" onclick={onSearch} title="Search ({searchShortcutLabel})" aria-label="Search">
+    <button
+      class="search-field"
+      onclick={onSearch}
+      title="Search ({searchShortcutLabel})"
+      aria-label="Search"
+    >
       <span class="codicon codicon-search"></span>
       <span class="search-placeholder">Search</span>
       <span class="search-shortcut">{searchShortcutLabel}</span>
@@ -165,8 +172,12 @@
     cursor: pointer;
     padding: 0;
   }
-  .icon-btn:hover { background: var(--hf-toolbar-hoverBackground, rgba(127, 127, 127, 0.18)); }
-  .icon-btn .codicon { font-size: 1.231rem; }
+  .icon-btn:hover {
+    background: var(--hf-toolbar-hoverBackground, rgba(127, 127, 127, 0.18));
+  }
+  .icon-btn .codicon {
+    font-size: 1.231rem;
+  }
 
   .brand {
     display: inline-flex;
@@ -174,8 +185,14 @@
     gap: 0.462rem;
     padding: 0 0.308rem;
   }
-  .brand-icon { width: 1.231rem; height: 1.231rem; display: block; }
-  .brand-name { font-weight: 600; }
+  .brand-icon {
+    width: 1.231rem;
+    height: 1.231rem;
+    display: block;
+  }
+  .brand-name {
+    font-weight: 600;
+  }
 
   .sep {
     opacity: 0.5;
@@ -198,7 +215,9 @@
     font-size: 0.923rem;
     font-family: inherit;
     text-align: left;
-    transition: border-color 0.15s, color 0.15s;
+    transition:
+      border-color 0.15s,
+      color 0.15s;
   }
   .search-field:hover,
   .search-field:focus-visible {
@@ -206,7 +225,9 @@
     color: var(--hf-foreground);
     outline: none;
   }
-  .search-field .codicon { font-size: 1.077rem; }
+  .search-field .codicon {
+    font-size: 1.077rem;
+  }
 
   .search-placeholder {
     flex: 1;

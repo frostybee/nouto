@@ -81,7 +81,10 @@ describe('openFile', () => {
     dialogMocks.open.mockResolvedValue('/notes/todo.yaml');
     fsMocks.readTextFile.mockResolvedValue('hello: world\n');
     expect(await openFile()).toBe(true);
-    expect(notificationMocks.showNotification).toHaveBeenCalledWith('warning', expect.stringContaining('OpenAPI'));
+    expect(notificationMocks.showNotification).toHaveBeenCalledWith(
+      'warning',
+      expect.stringContaining('OpenAPI'),
+    );
     expect(openApiSession.content).toBe('hello: world\n');
   });
 
@@ -89,7 +92,10 @@ describe('openFile', () => {
     dialogMocks.open.mockResolvedValue('/specs/api.yaml');
     fsMocks.readTextFile.mockRejectedValue(new Error('denied'));
     expect(await openFile()).toBe(false);
-    expect(notificationMocks.showNotification).toHaveBeenCalledWith('error', expect.stringContaining('denied'));
+    expect(notificationMocks.showNotification).toHaveBeenCalledWith(
+      'error',
+      expect.stringContaining('denied'),
+    );
     expect(sessionList()).toHaveLength(0);
   });
 
@@ -215,7 +221,10 @@ describe('saveDocument / saveDocumentAs', () => {
     dialogMocks.save.mockResolvedValue('/ro/new.yaml');
     fsMocks.writeTextFile.mockRejectedValue(new Error('readonly'));
     expect(await saveDocumentAs()).toBe(false);
-    expect(notificationMocks.showNotification).toHaveBeenCalledWith('error', expect.stringContaining('readonly'));
+    expect(notificationMocks.showNotification).toHaveBeenCalledWith(
+      'error',
+      expect.stringContaining('readonly'),
+    );
   });
 
   it('returns false with no sessions open', async () => {
@@ -234,11 +243,11 @@ describe('saveDocument / saveDocumentAs', () => {
     expect(fsMocks.writeTextFile).not.toHaveBeenCalled();
     expect(notificationMocks.showNotification).toHaveBeenCalledWith(
       'error',
-      expect.stringContaining('already open')
+      expect.stringContaining('already open'),
     );
   });
 
-  it('save-as onto the session\'s own current path is not a collision', async () => {
+  it("save-as onto the session's own current path is not a collision", async () => {
     dialogMocks.open.mockResolvedValue('/specs/api.yaml');
     fsMocks.readTextFile.mockResolvedValue(VALID_YAML);
     await openFile();
@@ -341,9 +350,7 @@ describe('confirmDiscardAllDirty', () => {
     setContentFor(b, getSession(b)!.content + '# b\n');
 
     modalMocks.showLocalSaveDiscardCancel.mockResolvedValue('save');
-    dialogMocks.save
-      .mockResolvedValueOnce('/specs/a.yaml')
-      .mockResolvedValueOnce('/specs/b.yaml');
+    dialogMocks.save.mockResolvedValueOnce('/specs/a.yaml').mockResolvedValueOnce('/specs/b.yaml');
     fsMocks.writeTextFile.mockResolvedValue(undefined);
     expect(await confirmDiscardAllDirty('The OpenAPI document')).toBe(true);
     expect(getSession(a)?.dirty).toBe(false);

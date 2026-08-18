@@ -52,9 +52,8 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 function unusedMethods(analysis: OpenApiAnalysis | null, pointer: string | undefined): string[] {
   if (!analysis?.parsedSpec || pointer === undefined) return [...OPENAPI_OPERATION_METHODS];
   const lookup = getByPointer(analysis.parsedSpec, pointer);
-  const existing = lookup.found && isRecord(lookup.value)
-    ? new Set(Object.keys(lookup.value))
-    : new Set<string>();
+  const existing =
+    lookup.found && isRecord(lookup.value) ? new Set(Object.keys(lookup.value)) : new Set<string>();
   return OPENAPI_OPERATION_METHODS.filter((method) => !existing.has(method));
 }
 
@@ -88,7 +87,7 @@ const DIVIDER: OutlineMenuEntry = { id: 'copyJsonPointer', label: '', divider: t
 export function buildOutlineMenu(
   node: OutlineNode,
   analysis: OpenApiAnalysis | null,
-  hasErrors: boolean
+  hasErrors: boolean,
 ): OutlineMenuEntry[] {
   const context = node.contextValue;
   const adds: OutlineMenuEntry[] = [];

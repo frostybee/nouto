@@ -39,7 +39,7 @@ function keyCtx(kind: string, containerPointer = ''): Extract<DetectedContext, {
 function valueCtx(
   parentKind: string,
   propertyName: string,
-  inQuotes = false
+  inQuotes = false,
 ): Extract<DetectedContext, { mode: 'value' }> {
   return { mode: 'value', parentKind: parentKind as never, propertyName, inQuotes };
 }
@@ -55,12 +55,9 @@ describe('buildKeySuggestions — full (JSON)', () => {
   });
 
   it('filters out sibling keys that already exist', () => {
-    const items = buildKeySuggestions(
-      keyCtx('Operation', '/paths/~1pets/get'),
-      '3.1',
-      analysis,
-      { full: true }
-    );
+    const items = buildKeySuggestions(keyCtx('Operation', '/paths/~1pets/get'), '3.1', analysis, {
+      full: true,
+    });
     expect(items.map((item) => item.name)).not.toContain('operationId');
   });
 
@@ -102,7 +99,7 @@ describe('buildKeySuggestions — gap-only (YAML)', () => {
       keyCtx('SecurityRequirement', '/security/0'),
       '3.1',
       analysis,
-      { full: false }
+      { full: false },
     );
     expect(items).toEqual([]);
   });
@@ -135,15 +132,15 @@ describe('buildValueSuggestions — $ref targets (both formats)', () => {
   it('returns [] when the document has no parsed spec', () => {
     const broken = analyzeOpenApi('openapi: [', 'yaml');
     expect(
-      buildValueSuggestions(valueCtx('Schema', '$ref'), '3.1', broken, { full: false })
+      buildValueSuggestions(valueCtx('Schema', '$ref'), '3.1', broken, { full: false }),
     ).toEqual([]);
   });
 
   it('never offers top-level fallback targets for component-less documents', () => {
     const bare = analyzeOpenApi('openapi: 3.1.0\ninfo:\n  title: X\n  version: 1.0.0\n', 'yaml');
-    expect(
-      buildValueSuggestions(valueCtx('Schema', '$ref'), '3.1', bare, { full: false })
-    ).toEqual([]);
+    expect(buildValueSuggestions(valueCtx('Schema', '$ref'), '3.1', bare, { full: false })).toEqual(
+      [],
+    );
   });
 });
 
@@ -158,13 +155,13 @@ describe('buildValueSuggestions — enum values', () => {
 
   it('offers NO enum values for YAML (monaco-yaml owns those)', () => {
     expect(
-      buildValueSuggestions(valueCtx('Parameter', 'in'), '3.1', analysis, { full: false })
+      buildValueSuggestions(valueCtx('Parameter', 'in'), '3.1', analysis, { full: false }),
     ).toEqual([]);
   });
 
   it('returns [] for non-enum properties', () => {
     expect(
-      buildValueSuggestions(valueCtx('Operation', 'summary'), '3.1', analysis, { full: true })
+      buildValueSuggestions(valueCtx('Operation', 'summary'), '3.1', analysis, { full: true }),
     ).toEqual([]);
   });
 });

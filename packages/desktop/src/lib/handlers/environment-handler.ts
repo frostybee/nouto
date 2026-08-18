@@ -7,7 +7,11 @@ import { logger } from '../logger';
 
 const ENVIRONMENTS_KEY = 'nouto_environments';
 
-export function loadStoredEnvironments(): { environments: any[]; activeId: string | null; globalVariables?: any[] } {
+export function loadStoredEnvironments(): {
+  environments: any[];
+  activeId: string | null;
+  globalVariables?: any[];
+} {
   try {
     const raw = localStorage.getItem(ENVIRONMENTS_KEY);
     return raw ? JSON.parse(raw) : { environments: [], activeId: null };
@@ -16,7 +20,11 @@ export function loadStoredEnvironments(): { environments: any[]; activeId: strin
   }
 }
 
-export function saveEnvironmentData(data: { environments: any[]; activeId: string | null; globalVariables?: any[] }): void {
+export function saveEnvironmentData(data: {
+  environments: any[];
+  activeId: string | null;
+  globalVariables?: any[];
+}): void {
   try {
     localStorage.setItem(ENVIRONMENTS_KEY, JSON.stringify(data));
   } catch (error) {
@@ -35,10 +43,15 @@ export function emitStoredEnvironments(notify: NotifyFn): void {
 export function cacheEnvironmentEvent(payload: any): void {
   try {
     localStorage.setItem(ENVIRONMENTS_KEY, JSON.stringify(payload));
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
 }
 
-export async function handleEnvironmentMessage(message: OutgoingMessage, notify: NotifyFn): Promise<void> {
+export async function handleEnvironmentMessage(
+  message: OutgoingMessage,
+  notify: NotifyFn,
+): Promise<void> {
   const data = 'data' in message ? (message as any).data : undefined;
   const envData = loadStoredEnvironments();
 
@@ -108,7 +121,10 @@ export async function handleEnvironmentMessage(message: OutgoingMessage, notify:
       });
       if (filePath) {
         await writeTextFile(filePath, JSON.stringify(exportPayload, null, 2));
-        notify({ type: 'showNotification', data: { level: 'info', message: `Environment "${env.name}" exported successfully.` } } as any);
+        notify({
+          type: 'showNotification',
+          data: { level: 'info', message: `Environment "${env.name}" exported successfully.` },
+        } as any);
       }
       break;
     }
@@ -129,7 +145,10 @@ export async function handleEnvironmentMessage(message: OutgoingMessage, notify:
       });
       if (filePath) {
         await writeTextFile(filePath, JSON.stringify(exportPayload, null, 2));
-        notify({ type: 'showNotification', data: { level: 'info', message: 'All environments exported successfully.' } } as any);
+        notify({
+          type: 'showNotification',
+          data: { level: 'info', message: 'All environments exported successfully.' },
+        } as any);
       }
       break;
     }
@@ -145,7 +164,10 @@ export async function handleEnvironmentMessage(message: OutgoingMessage, notify:
       });
       if (filePath) {
         await writeTextFile(filePath, JSON.stringify(exportPayload, null, 2));
-        notify({ type: 'showNotification', data: { level: 'info', message: 'Global variables exported successfully.' } } as any);
+        notify({
+          type: 'showNotification',
+          data: { level: 'info', message: 'Global variables exported successfully.' },
+        } as any);
       }
       break;
     }
@@ -169,7 +191,14 @@ export async function handleEnvironmentMessage(message: OutgoingMessage, notify:
           };
         }
         if (importData._type !== 'nouto-globals') {
-          notify({ type: 'showNotification', data: { level: 'error', message: 'Unrecognized format. Supported: Nouto globals export, Postman environment/globals file.' } } as any);
+          notify({
+            type: 'showNotification',
+            data: {
+              level: 'error',
+              message:
+                'Unrecognized format. Supported: Nouto globals export, Postman environment/globals file.',
+            },
+          } as any);
           break;
         }
         const incoming: any[] = importData.globalVariables || [];
@@ -177,14 +206,24 @@ export async function handleEnvironmentMessage(message: OutgoingMessage, notify:
         envData.globalVariables = envData.globalVariables || [];
         for (const v of incoming) {
           if (!existingKeys.has(v.key)) {
-            envData.globalVariables.push({ key: v.key ?? '', value: v.value ?? '', enabled: v.enabled ?? true });
+            envData.globalVariables.push({
+              key: v.key ?? '',
+              value: v.value ?? '',
+              enabled: v.enabled ?? true,
+            });
           }
         }
         saveEnvironmentData(envData);
         notify({ type: 'loadEnvironments', data: envData } as any);
-        notify({ type: 'showNotification', data: { level: 'info', message: 'Global variables imported successfully.' } } as any);
+        notify({
+          type: 'showNotification',
+          data: { level: 'info', message: 'Global variables imported successfully.' },
+        } as any);
       } catch (e) {
-        notify({ type: 'showNotification', data: { level: 'error', message: `Failed to import global variables: ${e}` } } as any);
+        notify({
+          type: 'showNotification',
+          data: { level: 'error', message: `Failed to import global variables: ${e}` },
+        } as any);
       }
       break;
     }
@@ -201,7 +240,9 @@ export async function handleEnvironmentMessage(message: OutgoingMessage, notify:
         const existingNames = new Set(envData.environments.map((e: any) => e.name));
 
         if (importData._type === 'nouto-environment') {
-          const name = existingNames.has(importData.name) ? `${importData.name} (imported)` : importData.name;
+          const name = existingNames.has(importData.name)
+            ? `${importData.name} (imported)`
+            : importData.name;
           envData.environments.push({
             id: genId(),
             name,
@@ -209,7 +250,7 @@ export async function handleEnvironmentMessage(message: OutgoingMessage, notify:
             ...(importData.color ? { color: importData.color } : {}),
           });
         } else if (importData._type === 'nouto-environments') {
-          for (const env of (importData.environments || [])) {
+          for (const env of importData.environments || []) {
             const name = existingNames.has(env.name) ? `${env.name} (imported)` : env.name;
             existingNames.add(name);
             envData.environments.push({
@@ -220,8 +261,11 @@ export async function handleEnvironmentMessage(message: OutgoingMessage, notify:
             });
           }
         } else if (Array.isArray(importData.values)) {
-          const fileName = (selected as string).split(/[\\/]/).pop()?.replace('.json', '') || 'Imported';
-          const envName = importData.name || fileName.replace('.postman_environment', '').replace('.postman_globals', '');
+          const fileName =
+            (selected as string).split(/[\\/]/).pop()?.replace('.json', '') || 'Imported';
+          const envName =
+            importData.name ||
+            fileName.replace('.postman_environment', '').replace('.postman_globals', '');
           const name = existingNames.has(envName) ? `${envName} (imported)` : envName;
           envData.environments.push({
             id: genId(),
@@ -233,15 +277,28 @@ export async function handleEnvironmentMessage(message: OutgoingMessage, notify:
             })),
           });
         } else {
-          notify({ type: 'showNotification', data: { level: 'error', message: 'Unrecognized format. Supported: Nouto environment export, Postman environment/globals file.' } } as any);
+          notify({
+            type: 'showNotification',
+            data: {
+              level: 'error',
+              message:
+                'Unrecognized format. Supported: Nouto environment export, Postman environment/globals file.',
+            },
+          } as any);
           break;
         }
 
         saveEnvironmentData(envData);
         notify({ type: 'loadEnvironments', data: envData } as any);
-        notify({ type: 'showNotification', data: { level: 'info', message: 'Environments imported successfully.' } } as any);
+        notify({
+          type: 'showNotification',
+          data: { level: 'info', message: 'Environments imported successfully.' },
+        } as any);
       } catch (e) {
-        notify({ type: 'showNotification', data: { level: 'error', message: `Failed to import environments: ${e}` } } as any);
+        notify({
+          type: 'showNotification',
+          data: { level: 'error', message: `Failed to import environments: ${e}` },
+        } as any);
       }
       break;
     }

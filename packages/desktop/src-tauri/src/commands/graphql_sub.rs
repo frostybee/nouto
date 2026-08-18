@@ -34,8 +34,11 @@ pub async fn gql_sub_subscribe(
 ) -> Result<(), AppError> {
     let url = data["url"].as_str().unwrap_or("").to_string();
     if url.is_empty() {
-        app.emit("gqlSubStatus", json!({ "data": { "status": "error", "error": "URL is required" } }))
-            .map_err(|e| AppError::Other(e.to_string()))?;
+        app.emit(
+            "gqlSubStatus",
+            json!({ "data": { "status": "error", "error": "URL is required" } }),
+        )
+        .map_err(|e| AppError::Other(e.to_string()))?;
         return Ok(());
     }
 
@@ -120,10 +123,14 @@ pub async fn gql_sub_subscribe(
 
             for h in &headers_arr {
                 let enabled = h["enabled"].as_bool().unwrap_or(true);
-                if !enabled { continue; }
+                if !enabled {
+                    continue;
+                }
                 let key = h["key"].as_str().unwrap_or("");
                 let value = h["value"].as_str().unwrap_or("");
-                if key.is_empty() { continue; }
+                if key.is_empty() {
+                    continue;
+                }
                 request_builder = request_builder.header(key, value);
             }
 
@@ -146,7 +153,9 @@ pub async fn gql_sub_subscribe(
                         "gqlSubStatus",
                         json!({ "data": { "status": "error", "error": format!("Connection failed: {}", e), "subscriptionId": sub_id } }),
                     );
-                    if !auto_reconnect { break 'reconnect; }
+                    if !auto_reconnect {
+                        break 'reconnect;
+                    }
                     reconnect_count += 1;
                     if reconnect_count >= max_reconnect_attempts {
                         let _ = app.emit("gqlSubStatus", json!({
@@ -157,7 +166,10 @@ pub async fn gql_sub_subscribe(
                     let _ = app.emit("gqlSubStatus", json!({
                         "data": { "status": "reconnecting", "attempt": reconnect_count, "subscriptionId": sub_id }
                     }));
-                    tokio::time::sleep(tokio::time::Duration::from_millis(reconnect_interval_ms.min(30_000))).await;
+                    tokio::time::sleep(tokio::time::Duration::from_millis(
+                        reconnect_interval_ms.min(30_000),
+                    ))
+                    .await;
                     continue 'reconnect;
                 }
             };
@@ -180,7 +192,7 @@ pub async fn gql_sub_subscribe(
                 "payload": if connection_params.is_null() { json!({}) } else { connection_params.clone() }
             });
 
-            if let Err(e) = write.send(Message::Text(init_payload.to_string().into())).await {
+            if let Err(e) = write.send(Message::Text(init_payload.to_string())).await {
                 let _ = app.emit("gqlSubStatus", json!({
                     "data": { "status": "error", "error": format!("Failed to send connection_init: {}", e), "subscriptionId": sub_id }
                 }));
@@ -207,20 +219,26 @@ pub async fn gql_sub_subscribe(
                                 }
                             }
                         }
-                        Ok(Message::Close(_)) => return Err("Connection closed before ack".to_string()),
+                        Ok(Message::Close(_)) => {
+                            return Err("Connection closed before ack".to_string())
+                        }
                         Err(e) => return Err(format!("WebSocket error: {}", e)),
                         _ => continue,
                     }
                 }
                 Err("Connection closed before ack".to_string())
-            }).await;
+            })
+            .await;
 
             match ack_timeout {
                 Ok(Ok(())) => {}
                 Ok(Err(e)) => {
-                    let _ = app.emit("gqlSubStatus", json!({
-                        "data": { "status": "error", "error": e, "subscriptionId": sub_id }
-                    }));
+                    let _ = app.emit(
+                        "gqlSubStatus",
+                        json!({
+                            "data": { "status": "error", "error": e, "subscriptionId": sub_id }
+                        }),
+                    );
                     cleanup_registry(&registry_clone, &sub_id).await;
                     break 'reconnect;
                 }
@@ -233,9 +251,12 @@ pub async fn gql_sub_subscribe(
                 }
             }
 
-            let _ = app.emit("gqlSubStatus", json!({
-                "data": { "status": "connected", "subscriptionId": sub_id }
-            }));
+            let _ = app.emit(
+                "gqlSubStatus",
+                json!({
+                    "data": { "status": "connected", "subscriptionId": sub_id }
+                }),
+            );
 
             // Send subscribe message
             let operation_id = uuid::Uuid::new_v4().to_string();
@@ -245,7 +266,7 @@ pub async fn gql_sub_subscribe(
                 json!({ "id": operation_id, "type": "subscribe", "payload": { "query": query, "variables": if variables.is_null() { json!({}) } else { variables.clone() } } })
             };
 
-            if let Err(e) = write.send(Message::Text(subscribe_msg.to_string().into())).await {
+            if let Err(e) = write.send(Message::Text(subscribe_msg.to_string())).await {
                 let _ = app.emit("gqlSubStatus", json!({
                     "data": { "status": "error", "error": format!("Failed to send subscribe: {}", e), "subscriptionId": sub_id }
                 }));
@@ -275,7 +296,7 @@ pub async fn gql_sub_subscribe(
                                         "complete" => { break; }
                                         "ka" | "ping" => {
                                             if msg_type == "ping" {
-                                                let _ = write.send(Message::Text(json!({ "type": "pong" }).to_string().into())).await;
+                                                let _ = write.send(Message::Text(json!({ "type": "pong" }).to_string())).await;
                                             }
                                         }
                                         "pong" => {}
@@ -292,7 +313,7 @@ pub async fn gql_sub_subscribe(
                             }
                             Some(Ok(Message::Close(_))) => { break; }
                             Some(Ok(Message::Ping(_))) => {
-                                let _ = write.send(Message::Pong(vec![].into())).await;
+                                let _ = write.send(Message::Pong(vec![])).await;
                             }
                             Some(Err(e)) => {
                                 let _ = app.emit("gqlSubStatus", json!({
@@ -313,7 +334,7 @@ pub async fn gql_sub_subscribe(
                                 } else {
                                     json!({ "id": operation_id, "type": "complete" })
                                 };
-                                let _ = write.send(Message::Text(stop_msg.to_string().into())).await;
+                                let _ = write.send(Message::Text(stop_msg.to_string())).await;
                                 let _ = write.send(Message::Close(None)).await;
                                 explicit_disconnect = true;
                                 break;
@@ -341,14 +362,20 @@ pub async fn gql_sub_subscribe(
             let _ = app.emit("gqlSubStatus", json!({
                 "data": { "status": "reconnecting", "attempt": reconnect_count, "subscriptionId": sub_id }
             }));
-            tokio::time::sleep(tokio::time::Duration::from_millis(reconnect_interval_ms.min(30_000))).await;
+            tokio::time::sleep(tokio::time::Duration::from_millis(
+                reconnect_interval_ms.min(30_000),
+            ))
+            .await;
         }
 
         // Final cleanup
         cleanup_registry(&registry_clone, &sub_id).await;
-        let _ = app.emit("gqlSubStatus", json!({
-            "data": { "status": "disconnected", "subscriptionId": sub_id }
-        }));
+        let _ = app.emit(
+            "gqlSubStatus",
+            json!({
+                "data": { "status": "disconnected", "subscriptionId": sub_id }
+            }),
+        );
     });
 
     Ok(())

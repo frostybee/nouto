@@ -1,0 +1,30 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  // Scoped to the desktop package for now: `pnpm knip` runs with
+  // `--workspace packages/desktop`. Other packages have not been triaged.
+  "workspaces": {
+    ".": {
+      "entry": ["scripts/*.{js,mjs}"],
+      "project": ["scripts/**"]
+    },
+    "packages/desktop": {
+      "entry": ["src/settings-main.ts", "src/**/*.test.ts"],
+      "project": ["src/**/*.{ts,svelte}"],
+      "ignoreDependencies": [
+        // Imported from src/app.css (knip does not follow CSS @import).
+        "@fontsource/jetbrains-mono",
+        "@vscode/codicons",
+        // Used by @nouto/core sources, which desktop resolves through the
+        // tsconfig path alias (../core/src), so it must stay installed here.
+        "jsonc-parser"
+      ]
+    }
+  },
+  "ignoreExportsUsedInFile": true,
+  // Unused exports are reported but do not fail the run: a few are deliberate
+  // API surface (compat re-exports, platform helper set).
+  "rules": {
+    "exports": "warn",
+    "types": "warn"
+  }
+}

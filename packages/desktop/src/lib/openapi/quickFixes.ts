@@ -8,7 +8,10 @@
  * simple range-overlap filter against the requested range.
  */
 import { buildPointer, parsePointer } from '@nouto/core/services/openapi/pointer';
-import { LINT_FIXABLE_CODES, planLintQuickFixes } from '@nouto/core/services/openapi/lint/quickFixes';
+import {
+  LINT_FIXABLE_CODES,
+  planLintQuickFixes,
+} from '@nouto/core/services/openapi/lint/quickFixes';
 import { asString } from '@nouto/core/services/openapi/quickFixUtils';
 import {
   pointerToAnchorOffsetRange,
@@ -44,7 +47,7 @@ export interface QuickFixCandidate extends QuickFix {
 type FixBuilder = (
   doc: SpecDocument,
   diagnostic: OpenApiDiagnostic,
-  analysis: OpenApiAnalysis
+  analysis: OpenApiAnalysis,
 ) => QuickFix | undefined;
 
 /**
@@ -99,13 +102,10 @@ export const QUICK_FIX_BUILDERS: Record<string, FixBuilder> = {
     if (!segments || segments.length !== 3 || segments[0] !== 'components') return undefined;
     const [, section, name] = segments;
     const preset = COMPONENT_PRESETS[section] ?? {};
-    const result = planInsertObjectMember(
-      doc,
-      buildPointer(['components', section]),
-      name,
-      preset
-    );
-    return result ? { title: `Create missing component "${name}"`, edits: result.edits } : undefined;
+    const result = planInsertObjectMember(doc, buildPointer(['components', section]), name, preset);
+    return result
+      ? { title: `Create missing component "${name}"`, edits: result.edits }
+      : undefined;
   },
 };
 
@@ -116,12 +116,11 @@ export const QUICK_FIX_BUILDERS: Record<string, FixBuilder> = {
  */
 export function diagnosticMarkerRange(
   diagnostic: OpenApiDiagnostic,
-  map: OpenApiPointerMap
+  map: OpenApiPointerMap,
 ): OffsetRange | undefined {
-  const range =
-    isAnchoredDiagnostic(diagnostic)
-      ? pointerToAnchorOffsetRange(map, diagnostic.pointer ?? '')
-      : pointerToOffsetRange(map, diagnostic.pointer ?? '');
+  const range = isAnchoredDiagnostic(diagnostic)
+    ? pointerToAnchorOffsetRange(map, diagnostic.pointer ?? '')
+    : pointerToOffsetRange(map, diagnostic.pointer ?? '');
   if (!range) return undefined;
   return { from: range.from, to: Math.max(range.to, range.from + 1) };
 }
@@ -139,7 +138,7 @@ export function buildQuickFixes(
   diagnostics: OpenApiDiagnostic[],
   analysis: OpenApiAnalysis,
   map: OpenApiPointerMap,
-  requestedRange: OffsetRange
+  requestedRange: OffsetRange,
 ): QuickFixCandidate[] {
   if (!analysis.parsedSpec) return [];
   const candidates: QuickFixCandidate[] = [];

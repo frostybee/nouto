@@ -25,12 +25,18 @@ pub async fn sse_connect(
 ) -> Result<(), AppError> {
     let url = data["url"].as_str().unwrap_or("").to_string();
     if url.is_empty() {
-        app.emit("sseStatus", json!({ "data": { "status": "error", "error": "URL is required" } }))
-            .map_err(|e| AppError::Other(e.to_string()))?;
+        app.emit(
+            "sseStatus",
+            json!({ "data": { "status": "error", "error": "URL is required" } }),
+        )
+        .map_err(|e| AppError::Other(e.to_string()))?;
         return Ok(());
     }
 
-    let connection_id = data["connectionId"].as_str().unwrap_or("default").to_string();
+    let connection_id = data["connectionId"]
+        .as_str()
+        .unwrap_or("default")
+        .to_string();
     let auto_reconnect = data["autoReconnect"].as_bool().unwrap_or(false);
     let reconnect_interval_ms = data["reconnectIntervalMs"].as_u64().unwrap_or(3000);
     let headers_json = data["headers"].clone();
@@ -78,10 +84,14 @@ pub async fn sse_connect(
             if let Some(headers) = headers_json.as_array() {
                 for h in headers {
                     let enabled = h["enabled"].as_bool().unwrap_or(true);
-                    if !enabled { continue; }
+                    if !enabled {
+                        continue;
+                    }
                     let key = h["key"].as_str().unwrap_or("");
                     let value = h["value"].as_str().unwrap_or("");
-                    if key.is_empty() { continue; }
+                    if key.is_empty() {
+                        continue;
+                    }
                     if let (Ok(name), Ok(val)) = (
                         reqwest::header::HeaderName::from_bytes(key.as_bytes()),
                         reqwest::header::HeaderValue::from_str(value),
@@ -253,8 +263,15 @@ pub async fn sse_disconnect(
     data: serde_json::Value,
     registry: tauri::State<'_, SseRegistry>,
 ) -> Result<(), AppError> {
-    let connection_id = data["connectionId"].as_str().unwrap_or("default").to_string();
-    log::debug!("SSE disconnect requested for connection: '{}', data: {}", connection_id, data);
+    let connection_id = data["connectionId"]
+        .as_str()
+        .unwrap_or("default")
+        .to_string();
+    log::debug!(
+        "SSE disconnect requested for connection: '{}', data: {}",
+        connection_id,
+        data
+    );
 
     let mut reg = registry.lock().await;
     let keys: Vec<String> = reg.keys().cloned().collect();

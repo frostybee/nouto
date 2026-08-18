@@ -31,5 +31,8 @@ pub async fn list_fonts() -> Result<FontList, crate::error::AppError> {
     ui_fonts.sort();
     editor_fonts.sort();
 
-    Ok(FontList { ui_fonts, editor_fonts })
+    Ok(FontList {
+        ui_fonts,
+        editor_fonts,
+    })
 }

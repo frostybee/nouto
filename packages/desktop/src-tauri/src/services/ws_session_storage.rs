@@ -171,14 +171,8 @@ pub fn normalize_session(data: serde_json::Value) -> Result<WsSession, String> {
 
 /// Migrate a legacy-format session (flat url, absolute timestamps, ISO dates) to canonical format
 fn migrate_legacy_session(raw: &serde_json::Value) -> Result<WsSession, String> {
-    let id = raw["id"]
-        .as_str()
-        .unwrap_or("unknown")
-        .to_string();
-    let name = raw["name"]
-        .as_str()
-        .unwrap_or("Unknown")
-        .to_string();
+    let id = raw["id"].as_str().unwrap_or("unknown").to_string();
+    let name = raw["name"].as_str().unwrap_or("Unknown").to_string();
 
     // Handle flat url/protocols -> nested config
     let url = raw
@@ -219,18 +213,13 @@ fn migrate_legacy_session(raw: &serde_json::Value) -> Result<WsSession, String> 
 
         for msg in arr {
             // Use relativeTimeMs if present, otherwise compute from absolute timestamp
-            let relative_time_ms = msg["relativeTimeMs"]
-                .as_f64()
-                .unwrap_or_else(|| {
-                    let ts = msg["timestamp"].as_i64().unwrap_or(0);
-                    (ts - base_time) as f64
-                });
+            let relative_time_ms = msg["relativeTimeMs"].as_f64().unwrap_or_else(|| {
+                let ts = msg["timestamp"].as_i64().unwrap_or(0);
+                (ts - base_time) as f64
+            });
 
             messages.push(WsSessionMessage {
-                direction: msg["direction"]
-                    .as_str()
-                    .unwrap_or("received")
-                    .to_string(),
+                direction: msg["direction"].as_str().unwrap_or("received").to_string(),
                 msg_type: msg["type"].as_str().unwrap_or("text").to_string(),
                 data: msg["data"].as_str().unwrap_or("").to_string(),
                 size: msg["size"].as_u64().unwrap_or(0) as usize,

@@ -1,6 +1,6 @@
 <script lang="ts">
   // Desktop App - Single-window SPA merging sidebar + main/runner/mock/benchmark views
-  import { onMount, tick } from 'svelte';
+  import { onMount } from 'svelte';
   import { getCurrentWindow } from '@tauri-apps/api/window';
   import { isLinux, getPlatform } from './lib/platform';
   import { logger } from './lib/logger';
@@ -23,7 +23,15 @@
   import CollectionRunnerPanel from '@nouto/ui/components/runner/CollectionRunnerPanel.svelte';
   import MockServerPanel from '@nouto/ui/components/mock/MockServerPanel.svelte';
   import BenchmarkPanel from '@nouto/ui/components/benchmark/BenchmarkPanel.svelte';
-  import { JsonExplorerPanel, initJsonExplorer, updateJsonData, restorePersistedState as restoreJsonExplorerState, setComparisonJson, parseJsonOrJsonl, type JsonExplorerInitData } from '@nouto/json-explorer';
+  import {
+    JsonExplorerPanel,
+    initJsonExplorer,
+    updateJsonData,
+    restorePersistedState as restoreJsonExplorerState,
+    setComparisonJson,
+    parseJsonOrJsonl,
+    type JsonExplorerInitData,
+  } from '@nouto/json-explorer';
   import { open as openFileDialog } from '@tauri-apps/plugin-dialog';
   import { readTextFile } from '@tauri-apps/plugin-fs';
   import Tooltip from '@nouto/ui/components/shared/Tooltip.svelte';
@@ -40,28 +48,123 @@
   import TopToolbar from './components/TopToolbar.svelte';
   import WorkspaceSettingsDialog from './components/WorkspaceSettingsDialog.svelte';
   import SaveToCollectionDialog from './components/SaveToCollectionDialog.svelte';
-  import { loadOnboardingState, isFirstRun, completeOnboarding, markSampleLoaded, isSampleLoaded, trackRequest } from '@nouto/ui/stores/onboarding.svelte';
-  import { checkForUpdates, showUpdateBanner, updateVersion, downloading, downloadProgress, installUpdate, dismissUpdate, preDownloaded } from './lib/updater.svelte';
-  import { createSampleCollection, createSampleEnvironment } from '@nouto/core/data/sample-collection';
+  import {
+    loadOnboardingState,
+    isFirstRun,
+    completeOnboarding,
+    markSampleLoaded,
+    isSampleLoaded,
+    trackRequest,
+  } from '@nouto/ui/stores/onboarding.svelte';
+  import {
+    checkForUpdates,
+    showUpdateBanner,
+    updateVersion,
+    downloading,
+    downloadProgress,
+    installUpdate,
+    dismissUpdate,
+    preDownloaded,
+  } from './lib/updater.svelte';
+  import {
+    createSampleCollection,
+    createSampleEnvironment,
+  } from '@nouto/core/data/sample-collection';
 
   // Import stores from @nouto/ui
-  import { collections as collectionsStore, initCollections, addRequestToCollection, addCollection, setCollections, findItemRecursive, updateRequest, selectRequest, revealActiveRequest } from '@nouto/ui/stores/collections.svelte';
-  import { loadEnvironments, loadEnvFileVariables, updateCollectionScopedVariables, environments as environmentsList, activeEnvironmentId, activeEnvironment, globalVariables, updateGlobalVariables, updateEnvironmentVariables, addEnvironment, setEnvironments, setActiveEnvironment, substituteVariables, setProjectPath } from '@nouto/ui/stores/environment.svelte';
-  import { setResponse, setLoading, clearResponse, setMethod, setUrl, setParams, setHeaders, setAuth, setBody, setAssertions, setAuthInheritance, setScriptInheritance, setScripts, setDescription, setUrlAndParams, setDownloadProgress, setSsl, setProxy, setTimeout as setRequestTimeout, setRedirects, setPathParams, setGrpc, patchGrpc, request as requestStore, setOriginalSnapshot } from '@nouto/ui/stores';
+  import {
+    collections as collectionsStore,
+    initCollections,
+    addRequestToCollection,
+    addCollection,
+    setCollections,
+    findItemRecursive,
+    updateRequest,
+    selectRequest,
+    revealActiveRequest,
+  } from '@nouto/ui/stores/collections.svelte';
+  import {
+    loadEnvironments,
+    loadEnvFileVariables,
+    updateCollectionScopedVariables,
+    environments as environmentsList,
+    activeEnvironmentId,
+    activeEnvironment,
+    globalVariables,
+    updateGlobalVariables,
+    updateEnvironmentVariables,
+    setEnvironments,
+    setActiveEnvironment,
+    substituteVariables,
+    setProjectPath,
+  } from '@nouto/ui/stores/environment.svelte';
+  import {
+    setResponse,
+    setLoading,
+    clearResponse,
+    setMethod,
+    setHeaders,
+    setAuth,
+    setBody,
+    setAssertions,
+    setAuthInheritance,
+    setScriptInheritance,
+    setScripts,
+    setDescription,
+    setUrlAndParams,
+    setDownloadProgress,
+    setSsl,
+    setProxy,
+    setTimeout as setRequestTimeout,
+    setRedirects,
+    setPathParams,
+    setGrpc,
+    patchGrpc,
+    request as requestStore,
+    setOriginalSnapshot,
+  } from '@nouto/ui/stores';
   import { storeResponse } from '@nouto/ui/stores/responseContext.svelte';
   import { setAssertionResults, clearAssertionResults } from '@nouto/ui/stores/assertions.svelte';
   import { setScriptOutput, clearScriptOutput } from '@nouto/ui/stores/scripts.svelte';
   import { setWsStatus, addWsMessage } from '@nouto/ui/stores/websocket.svelte';
   import { setSSEStatus, addSSEEvent } from '@nouto/ui/stores/sse.svelte';
   import { setConnectionMode, toggleSidebar, ui } from '@nouto/ui/stores/ui.svelte';
-  import { settings, loadSettings, resolvedShortcuts, setAppVersion, setIconUrl } from '@nouto/ui/stores/settings.svelte';
+  import {
+    settings,
+    loadSettings,
+    resolvedShortcuts,
+    setAppVersion,
+    setIconUrl,
+  } from '@nouto/ui/stores/settings.svelte';
   import { initTrash, autoPurgeTrash, trashCount } from '@nouto/ui/stores/trash.svelte';
-  import { initHistory, setHistoryStats, setHistoryStatsLoading } from '@nouto/ui/stores/history.svelte';
+  import {
+    initHistory,
+    setHistoryStats,
+    setHistoryStatsLoading,
+  } from '@nouto/ui/stores/history.svelte';
   import { matchesBinding } from '@nouto/ui/lib/shortcuts';
-  import { undoRequest, redoRequest, canUndoRequest, canRedoRequest, initRequestUndo, lastUndoScope, clearRequestUndoStack } from '@nouto/ui/stores/requestUndo.svelte';
-  import { undoCollection, redoCollection, canUndoCollection, canRedoCollection, initCollectionUndo } from '@nouto/ui/stores/collectionUndo.svelte';
-  import { setCookieJarData, loadCookieJars, activeCookieJar } from '@nouto/ui/stores/cookieJar.svelte';
-  import { showNotification, setPendingInput, clearPendingInput, pendingInput } from '@nouto/ui/stores/notifications.svelte';
+  import {
+    undoRequest,
+    redoRequest,
+    canUndoRequest,
+    canRedoRequest,
+    initRequestUndo,
+    lastUndoScope,
+  } from '@nouto/ui/stores/requestUndo.svelte';
+  import {
+    undoCollection,
+    redoCollection,
+    canUndoCollection,
+    canRedoCollection,
+    initCollectionUndo,
+  } from '@nouto/ui/stores/collectionUndo.svelte';
+  import { setCookieJarData, loadCookieJars } from '@nouto/ui/stores/cookieJar.svelte';
+  import {
+    showNotification,
+    setPendingInput,
+    clearPendingInput,
+    pendingInput,
+  } from '@nouto/ui/stores/notifications.svelte';
   import { initRunner } from '@nouto/ui/stores/collectionRunner.svelte';
   import TabBar from '@nouto/ui/components/shared/TabBar.svelte';
   import TabSwitcher from '@nouto/ui/components/shared/TabSwitcher.svelte';
@@ -69,56 +172,138 @@
   import CollectionSettingsDialog from '@nouto/ui/components/settings/CollectionSettingsDialog.svelte';
   import { type SettingsInitData } from '@nouto/ui/stores/collectionSettings.svelte';
   import {
-    tabs as tabsList, activeTabId as activeTabIdFn, activeTab as activeTabFn,
-    openTab, closeTab, switchTab as switchTabFn, updateTabLabel, setTabDirty, setTabIcon,
-    setTabRequestId, findTabByRequestId, findSingletonTab,
+    tabs as tabsList,
+    activeTabId as activeTabIdFn,
+    activeTab as activeTabFn,
+    openTab,
+    closeTab,
+    switchTab as switchTabFn,
+    updateTabLabel,
+    setTabRequestId,
+    findTabByRequestId,
+    findSingletonTab,
     saveCurrentSnapshot,
-    createRequestTab, createSingletonTab, loadFromStorage as loadTabsFromStorage,
-    tabSearchOpen, openTabSearch, closeTabSearch,
+    createRequestTab,
+    createSingletonTab,
+    loadFromStorage as loadTabsFromStorage,
+    tabSearchOpen,
+    openTabSearch,
+    closeTabSearch,
   } from '@nouto/ui/stores/tabs.svelte';
   import { setMockStatus, addLog as addMockLog } from '@nouto/ui/stores/mockServer.svelte';
-  import { benchmarkState, updateProgress as updateBenchmarkProgress, addIteration as addBenchmarkIteration, setCompleted as setBenchmarkCompleted, setCancelled as setBenchmarkCancelled } from '@nouto/ui/stores/benchmark.svelte';
-  import { setGrpcProtoLoaded, setGrpcProtoError, setGrpcConnectionStart, addGrpcEvent, setGrpcConnectionEnd, setScannedDirFiles, grpcMethodType } from '@nouto/ui/stores/grpc.svelte';
+  import {
+    benchmarkState,
+    updateProgress as updateBenchmarkProgress,
+    addIteration as addBenchmarkIteration,
+    setCompleted as setBenchmarkCompleted,
+    setCancelled as setBenchmarkCancelled,
+  } from '@nouto/ui/stores/benchmark.svelte';
+  import {
+    setGrpcProtoLoaded,
+    setGrpcProtoError,
+    setGrpcConnectionStart,
+    addGrpcEvent,
+    setGrpcConnectionEnd,
+    grpcMethodType,
+  } from '@nouto/ui/stores/grpc.svelte';
   import { setGqlSubStatus, addGqlSubEvent } from '@nouto/ui/stores/graphqlSubscription.svelte';
-  import { setCurrentSession, setSavedSessions, setRecordingState, setReplayProgress } from '@nouto/ui/stores/wsRecording.svelte';
+  import {
+    setCurrentSession,
+    setSavedSessions,
+    setRecordingState,
+    setReplayProgress,
+  } from '@nouto/ui/stores/wsRecording.svelte';
 
   // Sidebar split ratio from ui store
   const sidebarSplitRatio = $derived(ui.sidebarSplitRatio || 0.2);
   const sidebarCollapsed = $derived(ui.sidebarCollapsed);
   const gridColumns = $derived(
-    sidebarCollapsed
-      ? '0fr 0px 1fr'
-      : `${sidebarSplitRatio}fr 4px ${1 - sidebarSplitRatio}fr`
+    sidebarCollapsed ? '0fr 0px 1fr' : `${sidebarSplitRatio}fr 4px ${1 - sidebarSplitRatio}fr`,
   );
 
-  import { getDefaultsForRequestKind, isFolder, isRequest, generateId, deriveNameFromUrl, type SavedRequest, type Collection, type ConnectionMode } from '@nouto/core';
+  import {
+    getDefaultsForRequestKind,
+    isFolder,
+    isRequest,
+    generateId,
+    deriveNameFromUrl,
+    type SavedRequest,
+    type Collection,
+    type ConnectionMode,
+  } from '@nouto/core';
   import { DraftsCollectionService } from '@nouto/core/services/RecentCollectionService';
   import type { IncomingMessage } from '@nouto/transport';
 
-  import { initTheme, applyAppearance, currentTheme, type AppearanceSettings } from '@nouto/ui/stores/theme.svelte';
+  import {
+    initTheme,
+    applyAppearance,
+    currentTheme,
+    type AppearanceSettings,
+  } from '@nouto/ui/stores/theme.svelte';
   import { open as shellOpen } from '@tauri-apps/plugin-shell';
 
   // Extracted modules
-  import { showDraftRecovery, pendingDrafts, saveDraftDebounced, clearDraftForTab, initDraftRecovery, recoverDrafts, dismissDraftRecovery } from './lib/draft-store.svelte';
+  import {
+    showDraftRecovery,
+    saveDraftDebounced,
+    clearDraftForTab,
+    initDraftRecovery,
+    recoverDrafts,
+    dismissDraftRecovery,
+  } from './lib/draft-store.svelte';
   import OpenApiEditorView from './components/openapi/OpenApiEditorView.svelte';
   import { confirmDiscardAllDirty } from './lib/openapi/documentAdapter';
   import { initTryIt } from './lib/openapi/tryIt';
-  import { resolveLocalConfirm, resolveLocalQuickPick, resolveLocalInputBox, resolveLocalSaveDiscardCancel, type SaveDiscardCancelChoice } from './lib/modal-store.svelte';
   import {
-    initCollectionCrud, handleNewRequestKind, handleDeleteCollection, handleDeleteRequest,
-    handleDeleteFolder, handleDuplicateCollection, handleDuplicateFolder, handleBulkDelete,
-    handleBulkMovePickTarget, handleCreateRequest, handleOpenCollectionRequest,
-    handleRunCollectionRequest, handleClearDrafts, handleRenameCollection, handleRenameFolder,
-    handleCreateFolder, handleOpenCollectionSettings, handleOpenFolderSettings,
-    handleSaveCollectionSettings, handleSaveCollectionRequest, handleRevertRequest,
+    resolveLocalConfirm,
+    resolveLocalQuickPick,
+    resolveLocalInputBox,
+    resolveLocalSaveDiscardCancel,
+    type SaveDiscardCancelChoice,
+  } from './lib/modal-store.svelte';
+  import {
+    initCollectionCrud,
+    handleNewRequestKind,
+    handleDeleteCollection,
+    handleDeleteRequest,
+    handleDeleteFolder,
+    handleDuplicateCollection,
+    handleDuplicateFolder,
+    handleBulkDelete,
+    handleBulkMovePickTarget,
+    handleCreateRequest,
+    handleOpenCollectionRequest,
+    handleRunCollectionRequest,
+    handleClearDrafts,
+    handleRenameCollection,
+    handleRenameFolder,
+    handleCreateFolder,
+    handleOpenCollectionSettings,
+    handleOpenFolderSettings,
+    handleSaveCollectionSettings,
+    handleSaveCollectionRequest,
+    handleRevertRequest,
     loadNewRequestIntoForm,
   } from './lib/collection-crud.svelte';
   import {
-    initImportExport, handleExportNative, handleExportAllNative, handleExportFolder,
-    handleExportPostman, handleExportHar, handleGenerateOpenApi, handleExportBackup, handleImportBackup,
-    handleImportAuto, handleImportCurl, handleImportFromUrl, handleImportThunderClientFolder,
-    handleExportHistory, handleImportHistory, handleImportPostmanEnvironment,
-    handleExportBenchmarkResults, handleImportCollectionAsMocks,
+    initImportExport,
+    handleExportNative,
+    handleExportAllNative,
+    handleExportFolder,
+    handleExportPostman,
+    handleExportHar,
+    handleGenerateOpenApi,
+    handleExportBackup,
+    handleImportBackup,
+    handleImportAuto,
+    handleImportCurl,
+    handleImportFromUrl,
+    handleImportThunderClientFolder,
+    handleExportHistory,
+    handleImportHistory,
+    handleImportPostmanEnvironment,
+    handleExportBenchmarkResults,
+    handleImportCollectionAsMocks,
   } from './lib/import-export.svelte';
 
   // View routing
@@ -127,7 +312,6 @@
 
   // App state
   let messageBus: ReturnType<typeof getMessageBus>;
-  let appLoading = $state(true);
   let collections = $state<Collection[]>([]);
   let dataLoaded = $state(false);
   let loadGeneration = 0;
@@ -136,7 +320,9 @@
 
   // Icon bar badge state
   const hasNoEnv = $derived(environmentsList().length > 0 && !activeEnvironment());
-  const envTooltip = $derived(activeEnvironment() ? `Environment: ${activeEnvironment()!.name}` : 'Environments');
+  const envTooltip = $derived(
+    activeEnvironment() ? `Environment: ${activeEnvironment()!.name}` : 'Environments',
+  );
 
   // Project state
   let projectPath = $state<string | null>(null);
@@ -154,7 +340,6 @@
   let showPalette = $state(false);
   let workspaceSettingsOpen = $state(false);
   let pendingHistorySave = $state<any>(null);
-
 
   // Conflict banner state
   let showConflictBanner = $state(false);
@@ -180,13 +365,15 @@
   let collectionSettingsDialogData = $state<SettingsInitData | null>(null);
 
   function isAppearancePayload(payload: unknown): payload is AppearanceSettings {
-    return !!payload
-      && typeof payload === 'object'
-      && typeof (payload as AppearanceSettings).theme === 'string'
-      && 'interfaceFont' in payload
-      && typeof (payload as AppearanceSettings).interfaceFontSize === 'number'
-      && 'editorFont' in payload
-      && typeof (payload as AppearanceSettings).editorFontSize === 'number';
+    return (
+      !!payload &&
+      typeof payload === 'object' &&
+      typeof (payload as AppearanceSettings).theme === 'string' &&
+      'interfaceFont' in payload &&
+      typeof (payload as AppearanceSettings).interfaceFontSize === 'number' &&
+      'editorFont' in payload &&
+      typeof (payload as AppearanceSettings).editorFontSize === 'number'
+    );
   }
 
   onMount(async () => {
@@ -194,7 +381,9 @@
     loadOnboardingState();
 
     // Set app version from Tauri config
-    getVersion().then(v => setAppVersion(v)).catch(() => {});
+    getVersion()
+      .then((v) => setAppVersion(v))
+      .catch(() => {});
     setIconUrl(noutoIconUrl);
 
     // Initialize undo/redo systems
@@ -244,28 +433,31 @@
     // either hide (macOS) or quit for real. Registered before show() so the
     // close button can never be clicked without a handler in place.
     let closing = false;
-    const unlistenClose = await tauriListen<{ hide: boolean }>('app:close-requested', async (event) => {
-      if (closing) return;
-      closing = true;
-      try {
-        // Save/Discard/Cancel for dirty OpenAPI documents; a no-op when none.
-        if (!(await confirmDiscardAllDirty('The OpenAPI document'))) return;
+    const unlistenClose = await tauriListen<{ hide: boolean }>(
+      'app:close-requested',
+      async (event) => {
+        if (closing) return;
+        closing = true;
         try {
-          await flushAllStores();
-        } catch (err) {
-          // Losing a debounced write is better than a window that refuses to close.
-          logger.error('Flushing stores on close failed:', err);
+          // Save/Discard/Cancel for dirty OpenAPI documents; a no-op when none.
+          if (!(await confirmDiscardAllDirty('The OpenAPI document'))) return;
+          try {
+            await flushAllStores();
+          } catch (err) {
+            // Losing a debounced write is better than a window that refuses to close.
+            logger.error('Flushing stores on close failed:', err);
+          }
+          // macOS convention, or the user's "close to tray" preference.
+          if (event.payload?.hide || settings.closeToTray) {
+            await getCurrentWindow().hide();
+            return;
+          }
+          await quitApp();
+        } finally {
+          closing = false;
         }
-        // macOS convention, or the user's "close to tray" preference.
-        if (event.payload?.hide || settings.closeToTray) {
-          await getCurrentWindow().hide();
-          return;
-        }
-        await quitApp();
-      } finally {
-        closing = false;
-      }
-    });
+      },
+    );
 
     // Tray "Quit" goes through the same flush-then-quit path.
     const unlistenTrayQuit = await tauriListen('tray:quit-requested', () => {
@@ -282,22 +474,26 @@
     }
 
     // Storage files that could not be parsed were set aside on load.
-    const unlistenRecovered = await tauriListen<{ files: string[] }>('storageRecovered', (event) => {
-      const files = event.payload?.files ?? [];
-      if (files.length === 0) return;
-      const names = files.map((f) => f.split(/[\\/]/).pop() ?? f);
-      showNotification(
-        'warning',
-        `Some saved data could not be read and was reset. A backup was kept: ${names.join(', ')}`,
-      );
-    });
+    const unlistenRecovered = await tauriListen<{ files: string[] }>(
+      'storageRecovered',
+      (event) => {
+        const files = event.payload?.files ?? [];
+        if (files.length === 0) return;
+        const names = files.map((f) => f.split(/[\\/]/).pop() ?? f);
+        showNotification(
+          'warning',
+          `Some saved data could not be read and was reset. A backup was kept: ${names.join(', ')}`,
+        );
+      },
+    );
 
     // Listen for deep-link URLs (nouto:// protocol)
     const unlistenDeepLink = await tauriListen<string>('deepLinkReceived', (event) => {
       logger.info('Deep link received:', event.payload);
       try {
         // Payload may be JSON-encoded string array or plain string
-        const raw = typeof event.payload === 'string' ? event.payload : JSON.stringify(event.payload);
+        const raw =
+          typeof event.payload === 'string' ? event.payload : JSON.stringify(event.payload);
         const urls: string[] = JSON.parse(raw);
         for (const urlStr of urls) {
           const url = new URL(urlStr);
@@ -326,28 +522,50 @@
     initCollectionCrud({
       messageBus,
       getCollections: () => collections,
-      setCollections: (c) => { collections = c; },
+      setCollections: (c) => {
+        collections = c;
+      },
       getCollectionId: () => collectionId,
-      setCollectionId: (id) => { collectionId = id; },
+      setCollectionId: (id) => {
+        collectionId = id;
+      },
       getCollectionName: () => collectionName,
-      setCollectionName: (name) => { collectionName = name; },
+      setCollectionName: (name) => {
+        collectionName = name;
+      },
       getRequestId: () => requestId,
-      setRequestId: (id) => { requestId = id; },
+      setRequestId: (id) => {
+        requestId = id;
+      },
       getPanelId: () => panelId,
-      setCurrentView: (v) => { currentView = v as View; },
-      setShowSaveNudge: (v) => { showSaveNudge = v; },
-      setNudgeDismissed: (v) => { nudgeDismissed = v; },
+      setCurrentView: (v) => {
+        currentView = v as View;
+      },
+      setShowSaveNudge: (v) => {
+        showSaveNudge = v;
+      },
+      setNudgeDismissed: (v) => {
+        nudgeDismissed = v;
+      },
       getCollectionSettingsDialogData: () => collectionSettingsDialogData,
-      setCollectionSettingsDialogData: (v) => { collectionSettingsDialogData = v; },
+      setCollectionSettingsDialogData: (v) => {
+        collectionSettingsDialogData = v;
+      },
     });
     initImportExport({
       messageBus,
       getCollections: () => collections,
-      setCollections: (c) => { collections = c; },
+      setCollections: (c) => {
+        collections = c;
+      },
     });
     // Direct view assignment on purpose: a Try It tab opening must not raise
     // the OpenAPI dirty prompt (the session stays alive under other views).
-    initTryIt({ setView: (v) => { currentView = v as View; } });
+    initTryIt({
+      setView: (v) => {
+        currentView = v as View;
+      },
+    });
 
     // Subscribe to messages from Rust backend
     const unsubscribe = messageBus.onMessage((message: IncomingMessage) => {
@@ -400,626 +618,688 @@
 
   async function handleMessage(message: IncomingMessage) {
     try {
-    switch (message.type) {
-      case 'initialData': {
-        const rawCollections = message.data?.collections || [];
-        collections = DraftsCollectionService.ensureDraftsCollection(rawCollections);
+      switch (message.type) {
+        case 'initialData': {
+          const rawCollections = message.data?.collections || [];
+          collections = DraftsCollectionService.ensureDraftsCollection(rawCollections);
 
-        // Auto-load sample collection on first run (no user collections exist yet)
-        const userCollections = collections.filter((c: any) => c.builtin !== 'drafts');
-        if (userCollections.length === 0 && !isSampleLoaded()) {
-          const sampleCollection = createSampleCollection();
-          collections = [...collections, sampleCollection];
-          markSampleLoaded();
-          messageBus.send({ type: 'saveCollections', data: $state.snapshot(collections) } as any);
-          // Add sample environment if none exist
-          // (initialData.environments is a plain array, not a nested object)
-          if (!message.data?.environments?.length) {
-            const sampleEnv = createSampleEnvironment();
-            setEnvironments([sampleEnv]);
-            setActiveEnvironment(sampleEnv.id);
-          }
-        }
-
-        initCollections(collections);
-        // Environments are loaded via the separate 'loadEnvironments' event
-        // (emitted by Rust before 'initialData'). Do NOT call loadEnvironments()
-        // here: initialData.environments is a plain array, not the full
-        // { environments, activeId, globalVariables } object the store expects,
-        // so passing it would wipe the correctly-loaded state.
-
-        // History is loaded lazily when the History tab is opened
-
-        // Load trash
-        if (message.data?.trash) {
-          initTrash(message.data.trash);
-          autoPurgeTrash();
-        }
-        // Track current project path (null when using default storage)
-        projectPath = message.data?.projectPath ?? null;
-        setProjectPath(projectPath);
-        loadGeneration = message.data?.generation ?? 0;
-        dataLoaded = true;
-        appLoading = false;
-        break;
-      }
-
-      case 'collectionsLoaded':
-      case 'collections':
-        collections = DraftsCollectionService.ensureDraftsCollection(message.data || []);
-        initCollections(collections);
-        break;
-
-      case 'historyLoaded':
-      case 'historyUpdated': {
-        const { entries = [], total = 0, hasMore = false } = message.data || {};
-        initHistory({ entries, total, hasMore });
-        break;
-      }
-
-      case 'historyStatsLoaded':
-        setHistoryStats(message.data);
-        setHistoryStatsLoading(false);
-        break;
-
-      case 'loadEnvironments':
-        loadEnvironments(message.data);
-        break;
-
-      case 'secretsResolved': {
-        // Discard stale results from a previous load_data call
-        if ((message.data?.generation ?? 0) !== loadGeneration) break;
-        // Background secret resolution completed: update collections and environments
-        const resolvedCollections = message.data?.collections || [];
-        collections = DraftsCollectionService.ensureDraftsCollection(resolvedCollections);
-        initCollections(collections);
-        if (message.data?.environments) {
-          loadEnvironments(message.data.environments);
-        }
-        break;
-      }
-
-      case 'envFileVariablesUpdated':
-        loadEnvFileVariables(message.data);
-        break;
-
-      case 'loadRequest':
-        loadRequest(message.data);
-        currentView = 'main'; // Switch to main view when loading a request
-        break;
-
-      case 'requestResponse':
-        setResponse(message.data);
-        if (message.data.assertionResults) {
-          setAssertionResults(message.data.assertionResults);
-        }
-        if (!collectionId && !nudgeDismissed && !message.data.error) {
-          showSaveNudge = true;
-        }
-        if (!message.data.error) {
-          trackRequest();
-          // Add to Drafts for unsaved requests or requests already in Drafts
-          if (!collectionId || collectionId === DraftsCollectionService.DRAFTS_ID) {
-            const tab = activeTabFn();
-            const responseMeta = {
-              status: message.data.status,
-              duration: message.data.duration,
-              size: message.data.size,
-            };
-            const currentCollections = $state.snapshot(collectionsStore());
-            const alreadyInDrafts = DraftsCollectionService.updateDraftResponseMeta(
-              currentCollections,
-              requestStore.url,
-              requestStore.method,
-              requestStore.grpc,
-              responseMeta,
-            );
-            if (alreadyInDrafts) {
-              setCollections(currentCollections);
-              syncCollections();
-            } else {
-              const updated = DraftsCollectionService.addToDrafts(
-                currentCollections,
-                {
-                  method: requestStore.method,
-                  url: requestStore.url,
-                  params: requestStore.params,
-                  headers: requestStore.headers,
-                  auth: requestStore.auth,
-                  body: requestStore.body,
-                  connectionMode: tab?.connectionMode,
-                  grpc: requestStore.grpc,
-                },
-                responseMeta,
-              );
-              setCollections(updated);
-              messageBus.send({ type: 'saveCollections', data: $state.snapshot(collectionsStore()) } as any);
-              syncCollections();
-            }
-          } else if (collectionId && requestId) {
-            // Update saved collection request with response metadata
-            updateRequest(requestId, {
-              lastResponseStatus: message.data.status,
-              lastResponseDuration: message.data.duration,
-              lastResponseSize: message.data.size,
-              lastResponseTime: new Date().toISOString(),
-            });
-          }
-        }
-        // Auto-refresh JSON Explorer if it's open for this request.
-        // Skipped while a subtree/embedded document is open (doc stack non-empty)
-        // so a re-sent request never silently replaces what the user is inspecting.
-        if (currentView === 'json-explorer' && jsonExplorerRequestId && jsonExplorerDocStack.length === 0) {
-          const tab = activeTabFn();
-          if (tab?.requestId === jsonExplorerRequestId) {
-            updateJsonData(message.data.data, new Date().toISOString(), {
-              requestMethod: requestStore.method,
-              requestUrl: requestStore.url,
-              requestName: tab?.label || '',
-            });
-            // Keep the doc snapshot in sync so a later subtree "Back" restores fresh data
-            if (jsonExplorerCurrentDoc) {
-              jsonExplorerCurrentDoc = { ...jsonExplorerCurrentDoc, json: message.data.data, timestamp: new Date().toISOString() };
+          // Auto-load sample collection on first run (no user collections exist yet)
+          const userCollections = collections.filter((c: any) => c.builtin !== 'drafts');
+          if (userCollections.length === 0 && !isSampleLoaded()) {
+            const sampleCollection = createSampleCollection();
+            collections = [...collections, sampleCollection];
+            markSampleLoaded();
+            messageBus.send({ type: 'saveCollections', data: $state.snapshot(collections) } as any);
+            // Add sample environment if none exist
+            // (initialData.environments is a plain array, not a nested object)
+            if (!message.data?.environments?.length) {
+              const sampleEnv = createSampleEnvironment();
+              setEnvironments([sampleEnv]);
+              setActiveEnvironment(sampleEnv.id);
             }
           }
-        }
-        break;
 
-      case 'downloadProgress':
-        setDownloadProgress(message.data.loaded, message.data.total);
-        break;
+          initCollections(collections);
+          // Environments are loaded via the separate 'loadEnvironments' event
+          // (emitted by Rust before 'initialData'). Do NOT call loadEnvironments()
+          // here: initialData.environments is a plain array, not the full
+          // { environments, activeId, globalVariables } object the store expects,
+          // so passing it would wipe the correctly-loaded state.
 
-      case 'requestCancelled':
-        setLoading(false);
-        break;
+          // History is loaded lazily when the History tab is opened
 
-      case 'storeResponseContext':
-        storeResponse(message.data.requestId, message.data.response, message.data.requestName);
-        break;
-
-      case 'loadSettings':
-        loadSettings(message.data);
-        // Keep the OS-wide hotkey in line with the saved setting (startup and changes).
-        void syncGlobalShortcut(settings.globalShortcut ?? null);
-        break;
-
-      case 'scriptOutput':
-        if (message.data.phase === 'preRequest') {
-          setScriptOutput('preRequest', message.data.result);
-        } else if (message.data.phase === 'postResponse') {
-          setScriptOutput('postResponse', message.data.result);
-        }
-        break;
-
-      case 'wsStatus':
-        setWsStatus(message.data.status, message.data.error);
-        break;
-
-      case 'wsMessage':
-        addWsMessage(message.data);
-        break;
-
-      case 'wsSessionSaved':
-        setCurrentSession(message.data.session);
-        break;
-      case 'wsSessionLoaded':
-        setCurrentSession(message.data.session);
-        break;
-      case 'wsSessionsList':
-        setSavedSessions(message.data.sessions);
-        break;
-      case 'wsRecordingState':
-        setRecordingState(message.data.state);
-        break;
-      case 'wsReplayProgress':
-        if (message.data.state === 'complete') {
-          setReplayProgress(null);
-        } else {
-          setReplayProgress({ index: message.data.index, total: message.data.total });
-        }
-        break;
-
-      case 'sseStatus':
-        setSSEStatus(message.data.status, message.data.error);
-        break;
-
-      case 'sseEvent': {
-        const raw = message.data;
-        addSSEEvent({
-          id: `sse-${generateId()}`,
-          eventId: raw.id,
-          eventType: raw.type || 'message',
-          data: raw.data,
-          timestamp: raw.timestamp,
-        });
-        break;
-      }
-
-      case 'cookieJarData':
-        setCookieJarData(message.data || {});
-        break;
-
-      case 'cookieJarsList':
-        loadCookieJars(message.data || { jars: [], activeJarId: null });
-        break;
-
-      case 'error':
-        logger.error(message.message);
-        break;
-
-      case 'openSettings':
-        openSettingsWindow(message.data?.section);
-        break;
-
-      case 'setVariables': {
-        const vars = message.data as { key: string; value: string; scope: 'environment' | 'global' }[];
-        const activeId = activeEnvironmentId();
-        const envs = environmentsList();
-        const activeEnv = activeId ? envs.find(e => e.id === activeId) : null;
-        for (const v of vars) {
-          if (v.scope === 'global') {
-            const current = globalVariables();
-            const idx = current.findIndex(g => g.key === v.key);
-            if (idx >= 0) {
-              const updated = [...current];
-              updated[idx] = { ...updated[idx], value: v.value };
-              updateGlobalVariables(updated);
-            } else {
-              updateGlobalVariables([...current, { key: v.key, value: v.value, enabled: true }]);
-            }
-          } else if (activeEnv) {
-            const idx = activeEnv.variables.findIndex(e => e.key === v.key);
-            if (idx >= 0) {
-              const updated = [...activeEnv.variables];
-              updated[idx] = { ...updated[idx], value: v.value };
-              updateEnvironmentVariables(activeEnv.id, updated);
-            } else {
-              updateEnvironmentVariables(activeEnv.id, [...activeEnv.variables, { key: v.key, value: v.value, enabled: true }]);
-            }
+          // Load trash
+          if (message.data?.trash) {
+            initTrash(message.data.trash);
+            autoPurgeTrash();
           }
-        }
-        break;
-      }
-
-      case 'collectionRequestSaved': {
-        setOriginalSnapshot($state.snapshot(requestStore));
-        showNotification('info', 'Request saved.');
-        const savedTabId = activeTabIdFn();
-        if (savedTabId) clearDraftForTab(savedTabId);
-        break;
-      }
-
-      case 'updateRequestIdentity': {
-        requestId = message.data.requestId ?? null;
-        collectionId = message.data.collectionId ?? null;
-        collectionName = message.data.collectionName ?? null;
-        // Sync with active tab
-        const atId = activeTabIdFn();
-        if (atId) {
-          setTabRequestId(atId, requestId, collectionId, collectionName);
-          if (message.data.requestName) updateTabLabel(atId, message.data.requestName);
-        }
-        break;
-      }
-
-      case 'requestLinkedToCollection': {
-        collectionId = message.data.collectionId ?? null;
-        collectionName = message.data.collectionName ?? null;
-        const atId2 = activeTabIdFn();
-        if (atId2) setTabRequestId(atId2, requestId, collectionId, collectionName);
-        break;
-      }
-
-      case 'requestUnlinked': {
-        collectionId = null;
-        collectionName = null;
-        const atId3 = activeTabIdFn();
-        if (atId3) setTabRequestId(atId3, null, null, null);
-        break;
-      }
-
-      case 'showNotification':
-        showNotification(message.data.level, message.data.message);
-        break;
-
-      case 'historySaveToCollection': {
-        const entry = message.data;
-        if (!entry) break;
-        if (collections.length === 0) {
-          showNotification('warning', 'No collections found. Create a collection first.');
+          // Track current project path (null when using default storage)
+          projectPath = message.data?.projectPath ?? null;
+          setProjectPath(projectPath);
+          loadGeneration = message.data?.generation ?? 0;
+          dataLoaded = true;
           break;
         }
-        pendingHistorySave = entry;
-        break;
-      }
-      case 'showInputBox':
-        setPendingInput({ type: 'inputBox', requestId: message.data.requestId, data: message.data });
-        break;
-      case 'showQuickPick':
-        setPendingInput({ type: 'quickPick', requestId: message.data.requestId, data: message.data });
-        break;
-      case 'showConfirm':
-        setPendingInput({ type: 'confirm', requestId: message.data.requestId, data: message.data });
-        break;
 
-      // Collection Runner events: forward to window so CollectionRunnerPanel receives them
-      case 'collectionRunComplete': {
-        const r = message.data ?? {};
-        const total = r.totalRequests ?? 0;
-        const passed = r.passedRequests ?? 0;
-        const failed = r.failedRequests ?? 0;
-        void notifyIfUnfocused(
-          'Collection run finished',
-          `${r.collectionName ?? 'Collection'}: ${passed}/${total} passed, ${failed} failed`,
-        );
-        window.postMessage({ type: message.type, data: message.data }, '*');
-        break;
-      }
-      case 'collectionRunProgress':
-      case 'collectionRunRequestResult':
-      case 'collectionRunCancelled':
-      case 'collectionRunWarning':
-      case 'runnerHistoryList':
-      case 'runnerHistoryDetail':
-      case 'dataFileLoaded':
-        window.postMessage({ type: message.type, data: message.data }, '*');
-        break;
+        case 'collectionsLoaded':
+        case 'collections':
+          collections = DraftsCollectionService.ensureDraftsCollection(message.data || []);
+          initCollections(collections);
+          break;
 
-      // Mock Server events: update store directly
-      case 'mockStatusChanged':
-        setMockStatus(message.data.status);
-        break;
-      case 'mockLogAdded':
-        addMockLog(message.data);
-        break;
+        case 'historyLoaded':
+        case 'historyUpdated': {
+          const { entries = [], total = 0, hasMore = false } = message.data || {};
+          initHistory({ entries, total, hasMore });
+          break;
+        }
 
-      // Benchmark events: update store directly
-      case 'benchmarkProgress':
-        updateBenchmarkProgress(message.data.current, message.data.total);
-        break;
-      case 'benchmarkIterationComplete':
-        addBenchmarkIteration(message.data);
-        break;
-      case 'benchmarkComplete': {
-        setBenchmarkCompleted(message.data);
-        const stats = message.data?.statistics;
-        if (stats) {
+        case 'historyStatsLoaded':
+          setHistoryStats(message.data);
+          setHistoryStatsLoading(false);
+          break;
+
+        case 'loadEnvironments':
+          loadEnvironments(message.data);
+          break;
+
+        case 'secretsResolved': {
+          // Discard stale results from a previous load_data call
+          if ((message.data?.generation ?? 0) !== loadGeneration) break;
+          // Background secret resolution completed: update collections and environments
+          const resolvedCollections = message.data?.collections || [];
+          collections = DraftsCollectionService.ensureDraftsCollection(resolvedCollections);
+          initCollections(collections);
+          if (message.data?.environments) {
+            loadEnvironments(message.data.environments);
+          }
+          break;
+        }
+
+        case 'envFileVariablesUpdated':
+          loadEnvFileVariables(message.data);
+          break;
+
+        case 'loadRequest':
+          loadRequest(message.data);
+          currentView = 'main'; // Switch to main view when loading a request
+          break;
+
+        case 'requestResponse':
+          setResponse(message.data);
+          if (message.data.assertionResults) {
+            setAssertionResults(message.data.assertionResults);
+          }
+          if (!collectionId && !nudgeDismissed && !message.data.error) {
+            showSaveNudge = true;
+          }
+          if (!message.data.error) {
+            trackRequest();
+            // Add to Drafts for unsaved requests or requests already in Drafts
+            if (!collectionId || collectionId === DraftsCollectionService.DRAFTS_ID) {
+              const tab = activeTabFn();
+              const responseMeta = {
+                status: message.data.status,
+                duration: message.data.duration,
+                size: message.data.size,
+              };
+              const currentCollections = $state.snapshot(collectionsStore());
+              const alreadyInDrafts = DraftsCollectionService.updateDraftResponseMeta(
+                currentCollections,
+                requestStore.url,
+                requestStore.method,
+                requestStore.grpc,
+                responseMeta,
+              );
+              if (alreadyInDrafts) {
+                setCollections(currentCollections);
+                syncCollections();
+              } else {
+                const updated = DraftsCollectionService.addToDrafts(
+                  currentCollections,
+                  {
+                    method: requestStore.method,
+                    url: requestStore.url,
+                    params: requestStore.params,
+                    headers: requestStore.headers,
+                    auth: requestStore.auth,
+                    body: requestStore.body,
+                    connectionMode: tab?.connectionMode,
+                    grpc: requestStore.grpc,
+                  },
+                  responseMeta,
+                );
+                setCollections(updated);
+                messageBus.send({
+                  type: 'saveCollections',
+                  data: $state.snapshot(collectionsStore()),
+                } as any);
+                syncCollections();
+              }
+            } else if (collectionId && requestId) {
+              // Update saved collection request with response metadata
+              updateRequest(requestId, {
+                lastResponseStatus: message.data.status,
+                lastResponseDuration: message.data.duration,
+                lastResponseSize: message.data.size,
+                lastResponseTime: new Date().toISOString(),
+              });
+            }
+          }
+          // Auto-refresh JSON Explorer if it's open for this request.
+          // Skipped while a subtree/embedded document is open (doc stack non-empty)
+          // so a re-sent request never silently replaces what the user is inspecting.
+          if (
+            currentView === 'json-explorer' &&
+            jsonExplorerRequestId &&
+            jsonExplorerDocStack.length === 0
+          ) {
+            const tab = activeTabFn();
+            if (tab?.requestId === jsonExplorerRequestId) {
+              updateJsonData(message.data.data, new Date().toISOString(), {
+                requestMethod: requestStore.method,
+                requestUrl: requestStore.url,
+                requestName: tab?.label || '',
+              });
+              // Keep the doc snapshot in sync so a later subtree "Back" restores fresh data
+              if (jsonExplorerCurrentDoc) {
+                jsonExplorerCurrentDoc = {
+                  ...jsonExplorerCurrentDoc,
+                  json: message.data.data,
+                  timestamp: new Date().toISOString(),
+                };
+              }
+            }
+          }
+          break;
+
+        case 'downloadProgress':
+          setDownloadProgress(message.data.loaded, message.data.total);
+          break;
+
+        case 'requestCancelled':
+          setLoading(false);
+          break;
+
+        case 'storeResponseContext':
+          storeResponse(message.data.requestId, message.data.response, message.data.requestName);
+          break;
+
+        case 'loadSettings':
+          loadSettings(message.data);
+          // Keep the OS-wide hotkey in line with the saved setting (startup and changes).
+          void syncGlobalShortcut(settings.globalShortcut ?? null);
+          break;
+
+        case 'scriptOutput':
+          if (message.data.phase === 'preRequest') {
+            setScriptOutput('preRequest', message.data.result);
+          } else if (message.data.phase === 'postResponse') {
+            setScriptOutput('postResponse', message.data.result);
+          }
+          break;
+
+        case 'wsStatus':
+          setWsStatus(message.data.status, message.data.error);
+          break;
+
+        case 'wsMessage':
+          addWsMessage(message.data);
+          break;
+
+        case 'wsSessionSaved':
+          setCurrentSession(message.data.session);
+          break;
+        case 'wsSessionLoaded':
+          setCurrentSession(message.data.session);
+          break;
+        case 'wsSessionsList':
+          setSavedSessions(message.data.sessions);
+          break;
+        case 'wsRecordingState':
+          setRecordingState(message.data.state);
+          break;
+        case 'wsReplayProgress':
+          if (message.data.state === 'complete') {
+            setReplayProgress(null);
+          } else {
+            setReplayProgress({ index: message.data.index, total: message.data.total });
+          }
+          break;
+
+        case 'sseStatus':
+          setSSEStatus(message.data.status, message.data.error);
+          break;
+
+        case 'sseEvent': {
+          const raw = message.data;
+          addSSEEvent({
+            id: `sse-${generateId()}`,
+            eventId: raw.id,
+            eventType: raw.type || 'message',
+            data: raw.data,
+            timestamp: raw.timestamp,
+          });
+          break;
+        }
+
+        case 'cookieJarData':
+          setCookieJarData(message.data || {});
+          break;
+
+        case 'cookieJarsList':
+          loadCookieJars(message.data || { jars: [], activeJarId: null });
+          break;
+
+        case 'error':
+          logger.error(message.message);
+          break;
+
+        case 'openSettings':
+          openSettingsWindow(message.data?.section);
+          break;
+
+        case 'setVariables': {
+          const vars = message.data as {
+            key: string;
+            value: string;
+            scope: 'environment' | 'global';
+          }[];
+          const activeId = activeEnvironmentId();
+          const envs = environmentsList();
+          const activeEnv = activeId ? envs.find((e) => e.id === activeId) : null;
+          for (const v of vars) {
+            if (v.scope === 'global') {
+              const current = globalVariables();
+              const idx = current.findIndex((g) => g.key === v.key);
+              if (idx >= 0) {
+                const updated = [...current];
+                updated[idx] = { ...updated[idx], value: v.value };
+                updateGlobalVariables(updated);
+              } else {
+                updateGlobalVariables([...current, { key: v.key, value: v.value, enabled: true }]);
+              }
+            } else if (activeEnv) {
+              const idx = activeEnv.variables.findIndex((e) => e.key === v.key);
+              if (idx >= 0) {
+                const updated = [...activeEnv.variables];
+                updated[idx] = { ...updated[idx], value: v.value };
+                updateEnvironmentVariables(activeEnv.id, updated);
+              } else {
+                updateEnvironmentVariables(activeEnv.id, [
+                  ...activeEnv.variables,
+                  { key: v.key, value: v.value, enabled: true },
+                ]);
+              }
+            }
+          }
+          break;
+        }
+
+        case 'collectionRequestSaved': {
+          setOriginalSnapshot($state.snapshot(requestStore));
+          showNotification('info', 'Request saved.');
+          const savedTabId = activeTabIdFn();
+          if (savedTabId) clearDraftForTab(savedTabId);
+          break;
+        }
+
+        case 'updateRequestIdentity': {
+          requestId = message.data.requestId ?? null;
+          collectionId = message.data.collectionId ?? null;
+          collectionName = message.data.collectionName ?? null;
+          // Sync with active tab
+          const atId = activeTabIdFn();
+          if (atId) {
+            setTabRequestId(atId, requestId, collectionId, collectionName);
+            if (message.data.requestName) updateTabLabel(atId, message.data.requestName);
+          }
+          break;
+        }
+
+        case 'requestLinkedToCollection': {
+          collectionId = message.data.collectionId ?? null;
+          collectionName = message.data.collectionName ?? null;
+          const atId2 = activeTabIdFn();
+          if (atId2) setTabRequestId(atId2, requestId, collectionId, collectionName);
+          break;
+        }
+
+        case 'requestUnlinked': {
+          collectionId = null;
+          collectionName = null;
+          const atId3 = activeTabIdFn();
+          if (atId3) setTabRequestId(atId3, null, null, null);
+          break;
+        }
+
+        case 'showNotification':
+          showNotification(message.data.level, message.data.message);
+          break;
+
+        case 'historySaveToCollection': {
+          const entry = message.data;
+          if (!entry) break;
+          if (collections.length === 0) {
+            showNotification('warning', 'No collections found. Create a collection first.');
+            break;
+          }
+          pendingHistorySave = entry;
+          break;
+        }
+        case 'showInputBox':
+          setPendingInput({
+            type: 'inputBox',
+            requestId: message.data.requestId,
+            data: message.data,
+          });
+          break;
+        case 'showQuickPick':
+          setPendingInput({
+            type: 'quickPick',
+            requestId: message.data.requestId,
+            data: message.data,
+          });
+          break;
+        case 'showConfirm':
+          setPendingInput({
+            type: 'confirm',
+            requestId: message.data.requestId,
+            data: message.data,
+          });
+          break;
+
+        // Collection Runner events: forward to window so CollectionRunnerPanel receives them
+        case 'collectionRunComplete': {
+          const r = message.data ?? {};
+          const total = r.totalRequests ?? 0;
+          const passed = r.passedRequests ?? 0;
+          const failed = r.failedRequests ?? 0;
           void notifyIfUnfocused(
-            'Benchmark finished',
-            `${message.data.requestName ?? 'Request'}: ${stats.totalIterations} iterations, ` +
-              `${stats.failCount} failed, ${Math.round(stats.requestsPerSecond)} req/s`,
+            'Collection run finished',
+            `${r.collectionName ?? 'Collection'}: ${passed}/${total} passed, ${failed} failed`,
           );
+          window.postMessage({ type: message.type, data: message.data }, '*');
+          break;
         }
-        break;
-      }
-      case 'benchmarkCancelled':
-        setBenchmarkCancelled();
-        break;
+        case 'collectionRunProgress':
+        case 'collectionRunRequestResult':
+        case 'collectionRunCancelled':
+        case 'collectionRunWarning':
+        case 'runnerHistoryList':
+        case 'runnerHistoryDetail':
+        case 'dataFileLoaded':
+          window.postMessage({ type: message.type, data: message.data }, '*');
+          break;
 
-      // GraphQL Subscription events
-      case 'gqlSubStatus':
-        setGqlSubStatus(message.data.status, message.data.error);
-        break;
-      case 'gqlSubEvent': {
-        const gqlRaw = message.data;
-        addGqlSubEvent({
-          id: `gql-${generateId()}`,
-          type: gqlRaw.error ? 'error' : 'data',
-          data: JSON.stringify(gqlRaw.error || gqlRaw.payload),
-          timestamp: gqlRaw.timestamp,
-        });
-        break;
-      }
+        // Mock Server events: update store directly
+        case 'mockStatusChanged':
+          setMockStatus(message.data.status);
+          break;
+        case 'mockLogAdded':
+          addMockLog(message.data);
+          break;
 
-      // gRPC events
-      case 'grpcProtoLoaded':
-        setGrpcProtoLoaded(message.data);
-        break;
-      case 'grpcProtoError':
-        setGrpcProtoError(message.data.message);
-        setLoading(false);
-        break;
-      case 'protoFilesPicked':
-        patchGrpc({ protoPaths: [...(requestStore.grpc?.protoPaths || []), ...(message.data.paths || [])] });
-        break;
-      case 'protoImportDirsPicked':
-        patchGrpc({ protoImportDirs: [...(requestStore.grpc?.protoImportDirs || []), ...(message.data.paths || [])] });
-        for (const dir of message.data.paths || []) {
-          messageBus.send({ type: 'scanProtoDir', data: { dirPath: dir } } as any);
+        // Benchmark events: update store directly
+        case 'benchmarkProgress':
+          updateBenchmarkProgress(message.data.current, message.data.total);
+          break;
+        case 'benchmarkIterationComplete':
+          addBenchmarkIteration(message.data);
+          break;
+        case 'benchmarkComplete': {
+          setBenchmarkCompleted(message.data);
+          const stats = message.data?.statistics;
+          if (stats) {
+            void notifyIfUnfocused(
+              'Benchmark finished',
+              `${message.data.requestName ?? 'Request'}: ${stats.totalIterations} iterations, ` +
+                `${stats.failCount} failed, ${Math.round(stats.requestsPerSecond)} req/s`,
+            );
+          }
+          break;
         }
-        break;
-      case 'grpcConnectionStart': {
-        const mType = grpcMethodType();
-        const isStreaming = mType === 'server_streaming' || mType === 'client_streaming' || mType === 'streaming';
-        setGrpcConnectionStart(message.data, isStreaming);
-        clearAssertionResults();
-        setLoading(true);
-        break;
-      }
-      case 'grpcEvent':
-        addGrpcEvent(message.data);
-        break;
-      case 'grpcConnectionEnd':
-        setGrpcConnectionEnd(message.data);
-        if (message.data.assertionResults) {
-          setAssertionResults(message.data.assertionResults);
+        case 'benchmarkCancelled':
+          setBenchmarkCancelled();
+          break;
+
+        // GraphQL Subscription events
+        case 'gqlSubStatus':
+          setGqlSubStatus(message.data.status, message.data.error);
+          break;
+        case 'gqlSubEvent': {
+          const gqlRaw = message.data;
+          addGqlSubEvent({
+            id: `gql-${generateId()}`,
+            type: gqlRaw.error ? 'error' : 'data',
+            data: JSON.stringify(gqlRaw.error || gqlRaw.payload),
+            timestamp: gqlRaw.timestamp,
+          });
+          break;
         }
-        setLoading(false);
-        break;
 
-      case 'openEnvironmentsPanel':
-        openEnvironmentsTab();
-        break;
-
-      case 'openMockServer':
-        switchView('mock');
-        break;
-
-      case 'openBenchmark':
-        switchView('benchmark');
-        break;
-
-      case 'openJsonExplorer':
-        handleOpenJsonExplorer((message as any).data || {});
-        break;
-
-      case 'showWarning':
-        showNotification('warning', message.data?.message || 'Warning');
-        break;
-
-      case 'closePanelsForRequests': {
-        const idsToClose: string[] = message.data?.requestIds || [];
-        for (const rid of idsToClose) {
-          const tab = findTabByRequestId(rid);
-          if (tab) closeTab(tab.id);
+        // gRPC events
+        case 'grpcProtoLoaded':
+          setGrpcProtoLoaded(message.data);
+          break;
+        case 'grpcProtoError':
+          setGrpcProtoError(message.data.message);
+          setLoading(false);
+          break;
+        case 'protoFilesPicked':
+          patchGrpc({
+            protoPaths: [...(requestStore.grpc?.protoPaths || []), ...(message.data.paths || [])],
+          });
+          break;
+        case 'protoImportDirsPicked':
+          patchGrpc({
+            protoImportDirs: [
+              ...(requestStore.grpc?.protoImportDirs || []),
+              ...(message.data.paths || []),
+            ],
+          });
+          for (const dir of message.data.paths || []) {
+            messageBus.send({ type: 'scanProtoDir', data: { dirPath: dir } } as any);
+          }
+          break;
+        case 'grpcConnectionStart': {
+          const mType = grpcMethodType();
+          const isStreaming =
+            mType === 'server_streaming' || mType === 'client_streaming' || mType === 'streaming';
+          setGrpcConnectionStart(message.data, isStreaming);
+          clearAssertionResults();
+          setLoading(true);
+          break;
         }
-        break;
-      }
+        case 'grpcEvent':
+          addGrpcEvent(message.data);
+          break;
+        case 'grpcConnectionEnd':
+          setGrpcConnectionEnd(message.data);
+          if (message.data.assertionResults) {
+            setAssertionResults(message.data.assertionResults);
+          }
+          setLoading(false);
+          break;
 
-      case 'createRequestFromUrl': {
-        const urlForNew = message.data?.url;
-        if (!urlForNew) break;
-        const defaults = getDefaultsForRequestKind('http');
-        loadNewRequestIntoForm({ ...defaults, url: urlForNew, name: deriveNameFromUrl(urlForNew) }, null, null, null);
-        break;
-      }
+        case 'openEnvironmentsPanel':
+          openEnvironmentsTab();
+          break;
 
-      case 'saveToCollectionWithLink': {
-        const { collectionId: targetColId, folderId: targetFolderId, request: reqData } = message.data || {};
-        if (!targetColId) break;
-        const targetCol = collections.find(c => c.id === targetColId);
-        if (!targetCol) break;
-        const saved = addRequestToCollection(targetColId, {
-          name: reqData?.name || requestStore.name || 'Request',
-          method: reqData?.method || requestStore.method || 'GET',
-          url: reqData?.url || requestStore.url || '',
-          params: reqData?.params || requestStore.params || [],
-          pathParams: reqData?.pathParams || requestStore.pathParams || [],
-          headers: reqData?.headers || requestStore.headers || [],
-          auth: reqData?.auth || requestStore.auth || { type: 'none' },
-          body: reqData?.body || requestStore.body || { type: 'none', content: '' },
-          assertions: reqData?.assertions || requestStore.assertions || [],
-          authInheritance: reqData?.authInheritance || requestStore.authInheritance,
-          scriptInheritance: reqData?.scriptInheritance || requestStore.scriptInheritance,
-          scripts: reqData?.scripts || requestStore.scripts,
-          description: requestStore.description || '',
-          ssl: requestStore.ssl,
-          proxy: requestStore.proxy,
-          timeout: requestStore.timeout,
-          followRedirects: requestStore.followRedirects,
-          maxRedirects: requestStore.maxRedirects,
-          connectionMode: reqData?.connectionMode || requestStore.connectionMode,
-          grpc: requestStore.grpc,
-        }, targetFolderId || undefined);
-        if (!saved) break;
-        collections = collectionsStore();
-        requestId = saved.id;
-        collectionId = targetColId;
-        collectionName = targetCol.name;
-        const atSave = activeTabIdFn();
-        if (atSave) setTabRequestId(atSave, saved.id, targetColId, targetCol.name);
-        setOriginalSnapshot($state.snapshot(requestStore));
-        syncCollections();
-        messageBus.send({ type: 'saveCollections', data: $state.snapshot(collectionsStore()) } as any);
-        showNotification('info', `Saved to "${targetCol.name}".`);
-        break;
-      }
+        case 'openMockServer':
+          switchView('mock');
+          break;
 
-      case 'saveToNewCollectionWithLink': {
-        const { name: newColName, color: newColColor, icon: newColIcon, request: newReqData } = message.data || {};
-        if (!newColName) break;
-        const newCol = addCollection(newColName);
-        if (!newCol) break;
-        if (newColColor) newCol.color = newColColor;
-        if (newColIcon) newCol.icon = newColIcon;
-        collections = collectionsStore();
-        const savedNew = addRequestToCollection(newCol.id, {
-          name: newReqData?.name || requestStore.name || 'Request',
-          method: newReqData?.method || requestStore.method || 'GET',
-          url: newReqData?.url || requestStore.url || '',
-          params: newReqData?.params || requestStore.params || [],
-          pathParams: newReqData?.pathParams || requestStore.pathParams || [],
-          headers: newReqData?.headers || requestStore.headers || [],
-          auth: newReqData?.auth || requestStore.auth || { type: 'none' },
-          body: newReqData?.body || requestStore.body || { type: 'none', content: '' },
-          assertions: newReqData?.assertions || requestStore.assertions || [],
-          authInheritance: newReqData?.authInheritance || requestStore.authInheritance,
-          scriptInheritance: newReqData?.scriptInheritance || requestStore.scriptInheritance,
-          scripts: newReqData?.scripts || requestStore.scripts,
-          description: requestStore.description || '',
-          ssl: requestStore.ssl,
-          proxy: requestStore.proxy,
-          timeout: requestStore.timeout,
-          followRedirects: requestStore.followRedirects,
-          maxRedirects: requestStore.maxRedirects,
-          connectionMode: newReqData?.connectionMode || requestStore.connectionMode,
-          grpc: requestStore.grpc,
-        });
-        if (!savedNew) break;
-        collections = collectionsStore();
-        requestId = savedNew.id;
-        collectionId = newCol.id;
-        collectionName = newCol.name;
-        const atNew = activeTabIdFn();
-        if (atNew) setTabRequestId(atNew, savedNew.id, newCol.id, newCol.name);
-        setOriginalSnapshot($state.snapshot(requestStore));
-        syncCollections();
-        messageBus.send({ type: 'saveCollections', data: $state.snapshot(collectionsStore()) } as any);
-        showNotification('info', `Saved to new collection "${newCol.name}".`);
-        break;
-      }
+        case 'openBenchmark':
+          switchView('benchmark');
+          break;
 
-      case 'revealActiveRequest': {
-        revealActiveRequest(message.data?.requestId);
-        break;
-      }
+        case 'openJsonExplorer':
+          handleOpenJsonExplorer((message as any).data || {});
+          break;
 
-      case 'selectRequest': {
-        // From command palette: open the selected request
-        const srData = (message as any).data || message;
-        const srReqId = srData.requestId;
-        const srColId = srData.collectionId;
-        if (srReqId && srColId) {
-          selectRequest(srColId, srReqId);
-          handleOpenCollectionRequest({ requestId: srReqId, collectionId: srColId });
+        case 'showWarning':
+          showNotification('warning', message.data?.message || 'Warning');
+          break;
+
+        case 'closePanelsForRequests': {
+          const idsToClose: string[] = message.data?.requestIds || [];
+          for (const rid of idsToClose) {
+            const tab = findTabByRequestId(rid);
+            if (tab) closeTab(tab.id);
+          }
+          break;
         }
-        break;
-      }
 
-      case 'projectOpened': {
-        projectPath = message.data?.path ?? null;
-        setProjectPath(projectPath);
-        break;
-      }
-
-      case 'projectClosed': {
-        projectPath = null;
-        setProjectPath(null);
-        const emptyCollections = DraftsCollectionService.ensureDraftsCollection([]);
-        collections = emptyCollections;
-        initCollections(collections);
-        break;
-      }
-
-      case 'recentProjectsLoaded': {
-        recentProjects = message.data || [];
-        break;
-      }
-
-      case 'projectFileChanged':
-      case 'externalFileChanged': {
-        // Check if the current request has unsaved changes
-        const activeT = activeTabFn();
-        if (activeT?.dirty) {
-          conflictMessage = message.data?.message || 'Files changed externally. Reload to see changes.';
-          showConflictBanner = true;
-        } else {
-          // No unsaved changes, just reload collections silently
-          messageBus.send({ type: 'loadData' });
+        case 'createRequestFromUrl': {
+          const urlForNew = message.data?.url;
+          if (!urlForNew) break;
+          const defaults = getDefaultsForRequestKind('http');
+          loadNewRequestIntoForm(
+            { ...defaults, url: urlForNew, name: deriveNameFromUrl(urlForNew) },
+            null,
+            null,
+            null,
+          );
+          break;
         }
-        break;
+
+        case 'saveToCollectionWithLink': {
+          const {
+            collectionId: targetColId,
+            folderId: targetFolderId,
+            request: reqData,
+          } = message.data || {};
+          if (!targetColId) break;
+          const targetCol = collections.find((c) => c.id === targetColId);
+          if (!targetCol) break;
+          const saved = addRequestToCollection(
+            targetColId,
+            {
+              name: reqData?.name || requestStore.name || 'Request',
+              method: reqData?.method || requestStore.method || 'GET',
+              url: reqData?.url || requestStore.url || '',
+              params: reqData?.params || requestStore.params || [],
+              pathParams: reqData?.pathParams || requestStore.pathParams || [],
+              headers: reqData?.headers || requestStore.headers || [],
+              auth: reqData?.auth || requestStore.auth || { type: 'none' },
+              body: reqData?.body || requestStore.body || { type: 'none', content: '' },
+              assertions: reqData?.assertions || requestStore.assertions || [],
+              authInheritance: reqData?.authInheritance || requestStore.authInheritance,
+              scriptInheritance: reqData?.scriptInheritance || requestStore.scriptInheritance,
+              scripts: reqData?.scripts || requestStore.scripts,
+              description: requestStore.description || '',
+              ssl: requestStore.ssl,
+              proxy: requestStore.proxy,
+              timeout: requestStore.timeout,
+              followRedirects: requestStore.followRedirects,
+              maxRedirects: requestStore.maxRedirects,
+              connectionMode: reqData?.connectionMode || requestStore.connectionMode,
+              grpc: requestStore.grpc,
+            },
+            targetFolderId || undefined,
+          );
+          if (!saved) break;
+          collections = collectionsStore();
+          requestId = saved.id;
+          collectionId = targetColId;
+          collectionName = targetCol.name;
+          const atSave = activeTabIdFn();
+          if (atSave) setTabRequestId(atSave, saved.id, targetColId, targetCol.name);
+          setOriginalSnapshot($state.snapshot(requestStore));
+          syncCollections();
+          messageBus.send({
+            type: 'saveCollections',
+            data: $state.snapshot(collectionsStore()),
+          } as any);
+          showNotification('info', `Saved to "${targetCol.name}".`);
+          break;
+        }
+
+        case 'saveToNewCollectionWithLink': {
+          const {
+            name: newColName,
+            color: newColColor,
+            icon: newColIcon,
+            request: newReqData,
+          } = message.data || {};
+          if (!newColName) break;
+          const newCol = addCollection(newColName);
+          if (!newCol) break;
+          if (newColColor) newCol.color = newColColor;
+          if (newColIcon) newCol.icon = newColIcon;
+          collections = collectionsStore();
+          const savedNew = addRequestToCollection(newCol.id, {
+            name: newReqData?.name || requestStore.name || 'Request',
+            method: newReqData?.method || requestStore.method || 'GET',
+            url: newReqData?.url || requestStore.url || '',
+            params: newReqData?.params || requestStore.params || [],
+            pathParams: newReqData?.pathParams || requestStore.pathParams || [],
+            headers: newReqData?.headers || requestStore.headers || [],
+            auth: newReqData?.auth || requestStore.auth || { type: 'none' },
+            body: newReqData?.body || requestStore.body || { type: 'none', content: '' },
+            assertions: newReqData?.assertions || requestStore.assertions || [],
+            authInheritance: newReqData?.authInheritance || requestStore.authInheritance,
+            scriptInheritance: newReqData?.scriptInheritance || requestStore.scriptInheritance,
+            scripts: newReqData?.scripts || requestStore.scripts,
+            description: requestStore.description || '',
+            ssl: requestStore.ssl,
+            proxy: requestStore.proxy,
+            timeout: requestStore.timeout,
+            followRedirects: requestStore.followRedirects,
+            maxRedirects: requestStore.maxRedirects,
+            connectionMode: newReqData?.connectionMode || requestStore.connectionMode,
+            grpc: requestStore.grpc,
+          });
+          if (!savedNew) break;
+          collections = collectionsStore();
+          requestId = savedNew.id;
+          collectionId = newCol.id;
+          collectionName = newCol.name;
+          const atNew = activeTabIdFn();
+          if (atNew) setTabRequestId(atNew, savedNew.id, newCol.id, newCol.name);
+          setOriginalSnapshot($state.snapshot(requestStore));
+          syncCollections();
+          messageBus.send({
+            type: 'saveCollections',
+            data: $state.snapshot(collectionsStore()),
+          } as any);
+          showNotification('info', `Saved to new collection "${newCol.name}".`);
+          break;
+        }
+
+        case 'revealActiveRequest': {
+          revealActiveRequest(message.data?.requestId);
+          break;
+        }
+
+        case 'selectRequest': {
+          // From command palette: open the selected request
+          const srData = (message as any).data || message;
+          const srReqId = srData.requestId;
+          const srColId = srData.collectionId;
+          if (srReqId && srColId) {
+            selectRequest(srColId, srReqId);
+            handleOpenCollectionRequest({ requestId: srReqId, collectionId: srColId });
+          }
+          break;
+        }
+
+        case 'projectOpened': {
+          projectPath = message.data?.path ?? null;
+          setProjectPath(projectPath);
+          break;
+        }
+
+        case 'projectClosed': {
+          projectPath = null;
+          setProjectPath(null);
+          const emptyCollections = DraftsCollectionService.ensureDraftsCollection([]);
+          collections = emptyCollections;
+          initCollections(collections);
+          break;
+        }
+
+        case 'recentProjectsLoaded': {
+          recentProjects = message.data || [];
+          break;
+        }
+
+        case 'projectFileChanged':
+        case 'externalFileChanged': {
+          // Check if the current request has unsaved changes
+          const activeT = activeTabFn();
+          if (activeT?.dirty) {
+            conflictMessage =
+              message.data?.message || 'Files changed externally. Reload to see changes.';
+            showConflictBanner = true;
+          } else {
+            // No unsaved changes, just reload collections silently
+            messageBus.send({ type: 'loadData' });
+          }
+          break;
+        }
       }
-    }
     } catch (err) {
       logger.error('Error handling message:', (message as any)?.type, err);
     }
@@ -1101,7 +1381,6 @@
     messageBus.send({ type: 'closeProject' } as any);
   }
 
-
   // Onboarding handlers
   function handleLoadSampleCollection() {
     const sampleCollection = createSampleCollection();
@@ -1173,27 +1452,53 @@
 
   // Messages that are handled locally in the desktop app
   const LOCAL_CRUD_MESSAGES = new Set([
-    'deleteCollection', 'deleteRequest', 'deleteFolder',
-    'duplicateCollection', 'duplicateFolder',
-    'bulkDelete', 'bulkMovePickTarget',
-    'createRequest', 'createFolder',
-    'openCollectionRequest', 'runCollectionRequest',
+    'deleteCollection',
+    'deleteRequest',
+    'deleteFolder',
+    'duplicateCollection',
+    'duplicateFolder',
+    'bulkDelete',
+    'bulkMovePickTarget',
+    'createRequest',
+    'createFolder',
+    'openCollectionRequest',
+    'runCollectionRequest',
     'clearDrafts',
-    'renameCollection', 'renameFolder',
-    'newRequest', 'duplicateRequest',
-    'openCollectionSettings', 'openFolderSettings',
-    'saveCollectionSettings', 'saveFolderSettings', 'closeSettingsPanel',
-    'exportCollection', 'exportFolder', 'exportNative',
-    'exportAllPostman', 'exportAllNative',
+    'renameCollection',
+    'renameFolder',
+    'newRequest',
+    'duplicateRequest',
+    'openCollectionSettings',
+    'openFolderSettings',
+    'saveCollectionSettings',
+    'saveFolderSettings',
+    'closeSettingsPanel',
+    'exportCollection',
+    'exportFolder',
+    'exportNative',
+    'exportAllPostman',
+    'exportAllNative',
     'generateOpenApiFromCollection',
-    'runAllInCollection', 'runAllInFolder',
+    'runAllInCollection',
+    'runAllInFolder',
     'importCollectionAsMocks',
-    'startBenchmark', 'exportBenchmarkResults',
-    'importAuto', 'importCurl', 'importFromUrl', 'importThunderClientFolder',
-    'saveCollectionRequest', 'draftUpdated', 'revertRequest',
-    'exportHar', 'exportHistory', 'importHistory', 'importPostmanEnvironment',
-    'exportBackup', 'importBackup',
-    'addResponseExample', 'deleteResponseExample',
+    'startBenchmark',
+    'exportBenchmarkResults',
+    'importAuto',
+    'importCurl',
+    'importFromUrl',
+    'importThunderClientFolder',
+    'saveCollectionRequest',
+    'draftUpdated',
+    'revertRequest',
+    'exportHar',
+    'exportHistory',
+    'importHistory',
+    'importPostmanEnvironment',
+    'exportBackup',
+    'importBackup',
+    'addResponseExample',
+    'deleteResponseExample',
     'openCommandPalette',
   ]);
 
@@ -1368,26 +1673,32 @@
       case 'addResponseExample': {
         const { requestId: exReqId, collectionId: exColId, example } = data;
         if (!exReqId || !exColId || !example) break;
-        const exCol = collections.find(c => c.id === exColId);
+        const exCol = collections.find((c) => c.id === exColId);
         if (!exCol) break;
         const exReq = findItemRecursive(exCol.items, exReqId) as SavedRequest | null;
         if (!exReq || !isRequest(exReq)) break;
         const existingExamples = exReq.examples || [];
         updateRequest(exReqId, { examples: [...existingExamples, example] });
         syncCollections();
-        messageBus.send({ type: 'saveCollections', data: $state.snapshot(collectionsStore()) } as any);
+        messageBus.send({
+          type: 'saveCollections',
+          data: $state.snapshot(collectionsStore()),
+        } as any);
         break;
       }
       case 'deleteResponseExample': {
         const { requestId: delReqId, collectionId: delColId, exampleId } = data;
         if (!delReqId || !delColId || !exampleId) break;
-        const delCol = collections.find(c => c.id === delColId);
+        const delCol = collections.find((c) => c.id === delColId);
         if (!delCol) break;
         const delReq = findItemRecursive(delCol.items, delReqId) as SavedRequest | null;
         if (!delReq || !isRequest(delReq) || !delReq.examples) break;
-        updateRequest(delReqId, { examples: delReq.examples.filter(e => e.id !== exampleId) });
+        updateRequest(delReqId, { examples: delReq.examples.filter((e) => e.id !== exampleId) });
         syncCollections();
-        messageBus.send({ type: 'saveCollections', data: $state.snapshot(collectionsStore()) } as any);
+        messageBus.send({
+          type: 'saveCollections',
+          data: $state.snapshot(collectionsStore()),
+        } as any);
         break;
       }
       case 'openCommandPalette':
@@ -1421,16 +1732,19 @@
     // Enrich with active tab context if not provided
     const tab = activeTabFn();
     jsonExplorerDocStack = []; // fresh document is a new root
-    openJsonExplorerDoc({
-      json: data.json,
-      contentType: data.contentType || '',
-      requestName: data.requestName || tab?.label || '',
-      requestMethod: data.requestMethod || '',
-      requestUrl: data.requestUrl || '',
-      requestId: data.requestId || tab?.requestId || '',
-      panelId: data.panelId || '',
-      timestamp: data.timestamp || new Date().toISOString(),
-    }, { pushCurrent: false });
+    openJsonExplorerDoc(
+      {
+        json: data.json,
+        contentType: data.contentType || '',
+        requestName: data.requestName || tab?.label || '',
+        requestMethod: data.requestMethod || '',
+        requestUrl: data.requestUrl || '',
+        requestId: data.requestId || tab?.requestId || '',
+        panelId: data.panelId || '',
+        timestamp: data.timestamp || new Date().toISOString(),
+      },
+      { pushCurrent: false },
+    );
   }
 
   function handleBackToPreviousJsonExplorerDoc() {
@@ -1480,22 +1794,35 @@
         currentView = 'main';
         // Add assertion to current request
         const currentAssertions = (requestStore as any).assertions || [];
-        setAssertions([...currentAssertions, { id: generateId(), source: 'body', property: path, operator: operator || 'equals', expected: expected ?? '', enabled: true }]);
+        setAssertions([
+          ...currentAssertions,
+          {
+            id: generateId(),
+            source: 'body',
+            property: path,
+            operator: operator || 'equals',
+            expected: expected ?? '',
+            enabled: true,
+          },
+        ]);
         break;
       }
       case 'openSubtreePanel': {
         const { json, path } = msg.data || {};
         if (json === undefined) break;
-        openJsonExplorerDoc({
-          json,
-          contentType: jsonExplorerCurrentDoc?.contentType || '',
-          requestName: path || '',
-          requestMethod: '',
-          requestUrl: '',
-          requestId: '', // a subtree has no backing request; assertion/save-var actions hide
-          panelId: jsonExplorerCurrentDoc?.panelId || '',
-          timestamp: new Date().toISOString(),
-        }, { pushCurrent: true });
+        openJsonExplorerDoc(
+          {
+            json,
+            contentType: jsonExplorerCurrentDoc?.contentType || '',
+            requestName: path || '',
+            requestMethod: '',
+            requestUrl: '',
+            requestId: '', // a subtree has no backing request; assertion/save-var actions hide
+            panelId: jsonExplorerCurrentDoc?.panelId || '',
+            timestamp: new Date().toISOString(),
+          },
+          { pushCurrent: true },
+        );
         break;
       }
       case 'pickCompareFile': {
@@ -1510,7 +1837,10 @@
           const envList = environmentsList();
           const activeEnv = envList.find((e: any) => e.id === activeEnvId);
           if (activeEnv) {
-            const vars = [...(activeEnv.variables || []), { key, value: String(value ?? ''), enabled: true }];
+            const vars = [
+              ...(activeEnv.variables || []),
+              { key, value: String(value ?? ''), enabled: true },
+            ];
             updateEnvironmentVariables(activeEnvId, vars);
             messageBus.send({ type: 'saveEnvironments', data: $state.snapshot(envList) } as any);
             showNotification('info', `Saved "${key}" to active environment`);
@@ -1530,12 +1860,18 @@
   (window as any).vscode = {
     postMessage: (msg: any) => handleJsonExplorerMessage(msg),
     getState: () => {
-      try { return JSON.parse(localStorage.getItem(JSON_EXPLORER_STATE_KEY) || 'null'); }
-      catch { return null; }
+      try {
+        return JSON.parse(localStorage.getItem(JSON_EXPLORER_STATE_KEY) || 'null');
+      } catch {
+        return null;
+      }
     },
     setState: (state: any) => {
-      try { localStorage.setItem(JSON_EXPLORER_STATE_KEY, JSON.stringify(state)); }
-      catch { /* ignore */ }
+      try {
+        localStorage.setItem(JSON_EXPLORER_STATE_KEY, JSON.stringify(state));
+      } catch {
+        /* ignore */
+      }
     },
   };
 
@@ -1546,7 +1882,7 @@
   }
 
   function handleOpenRunner(data: { collectionId: string; folderId?: string }) {
-    const col = collections.find(c => c.id === data.collectionId);
+    const col = collections.find((c) => c.id === data.collectionId);
     if (!col) {
       showNotification('error', 'Collection not found.');
       return;
@@ -1586,8 +1922,13 @@
       collectionId: col.id,
       collectionName: col.name,
       folderId: data.folderId,
-      requests: requestItems.map((r: any) => ({ id: r.id, name: r.name, method: r.method, url: r.url })),
-      environments: environmentsList().map(e => ({ id: e.id, name: e.name })),
+      requests: requestItems.map((r: any) => ({
+        id: r.id,
+        name: r.name,
+        method: r.method,
+        url: r.url,
+      })),
+      environments: environmentsList().map((e) => ({ id: e.id, name: e.name })),
       activeEnvironmentId: activeEnvironmentId() ?? null,
     });
     switchView('runner');
@@ -1606,20 +1947,25 @@
       key: substituteVariables(p.key || ''),
       value: substituteVariables(p.value || ''),
     }));
-    const rawBody = reqStore.body ? {
-      ...reqStore.body,
-      content: reqStore.body.content ? substituteVariables(reqStore.body.content) : '',
-    } : reqStore.body;
-    messageBus.send({ type: 'startBenchmark', data: $state.snapshot({
-      config: data.config,
-      method: benchmarkState.requestMethod || reqStore.method || 'GET',
-      url: substituteVariables(rawUrl),
-      headers: rawHeaders,
-      params: rawParams,
-      body: rawBody,
-      auth: reqStore.auth,
-      requestName: benchmarkState.requestName || '',
-    })} as any);
+    const rawBody = reqStore.body
+      ? {
+          ...reqStore.body,
+          content: reqStore.body.content ? substituteVariables(reqStore.body.content) : '',
+        }
+      : reqStore.body;
+    messageBus.send({
+      type: 'startBenchmark',
+      data: $state.snapshot({
+        config: data.config,
+        method: benchmarkState.requestMethod || reqStore.method || 'GET',
+        url: substituteVariables(rawUrl),
+        headers: rawHeaders,
+        params: rawParams,
+        body: rawBody,
+        auth: reqStore.auth,
+        requestName: benchmarkState.requestName || '',
+      }),
+    } as any);
   }
 
   // Global keyboard shortcut handler
@@ -1774,7 +2120,7 @@
       e.preventDefault();
       const allTabs = tabsList();
       if (allTabs.length <= 1) return;
-      const currentIdx = allTabs.findIndex(t => t.id === activeTabIdFn());
+      const currentIdx = allTabs.findIndex((t) => t.id === activeTabIdFn());
       if (currentIdx === -1) return;
       const nextIdx = e.shiftKey
         ? (currentIdx - 1 + allTabs.length) % allTabs.length
@@ -1826,7 +2172,10 @@
       if (pending.requestId === '_local') {
         resolveLocalInputBox(value);
       } else {
-        messageBus.send({ type: 'inputBoxResult', data: { requestId: pending.requestId, value } } as any);
+        messageBus.send({
+          type: 'inputBoxResult',
+          data: { requestId: pending.requestId, value },
+        } as any);
         clearPendingInput();
       }
     }
@@ -1838,7 +2187,10 @@
       if (pending.requestId === '_local') {
         resolveLocalQuickPick(value);
       } else {
-        messageBus.send({ type: 'quickPickResult', data: { requestId: pending.requestId, value } } as any);
+        messageBus.send({
+          type: 'quickPickResult',
+          data: { requestId: pending.requestId, value },
+        } as any);
         clearPendingInput();
       }
     }
@@ -1850,7 +2202,10 @@
       if (pending.requestId === '_local') {
         resolveLocalConfirm(confirmed);
       } else {
-        messageBus.send({ type: 'confirmResult', data: { requestId: pending.requestId, confirmed } } as any);
+        messageBus.send({
+          type: 'confirmResult',
+          data: { requestId: pending.requestId, confirmed },
+        } as any);
         clearPendingInput();
       }
     }
@@ -1860,7 +2215,11 @@
   // (Save/Discard/Cancel); ordinary 2-way confirms keep the boolean path.
   function respondConfirmTriState(choice: SaveDiscardCancelChoice) {
     const pending = pendingInput();
-    if (pending?.type === 'confirm' && pending.requestId === '_local' && pending.data.tertiaryLabel) {
+    if (
+      pending?.type === 'confirm' &&
+      pending.requestId === '_local' &&
+      pending.data.tertiaryLabel
+    ) {
       resolveLocalSaveDiscardCancel(choice);
     } else {
       respondConfirm(choice === 'save');
@@ -1878,10 +2237,12 @@
 
 {#if showPalette}
   <CommandPaletteApp
-    collections={collections}
+    {collections}
     environments={environmentsList()}
     isModal={true}
-    onclose={() => { showPalette = false; }}
+    onclose={() => {
+      showPalette = false;
+    }}
     onselect={(msg) => {
       showPalette = false;
       const d = msg?.data || msg;
@@ -1896,8 +2257,11 @@
 {#if showConflictBanner}
   <div class="draft-recovery-banner conflict-banner">
     <span>{conflictMessage}</span>
-    <button class="draft-recovery-btn recover" onclick={() => handleConflictReload()}>Reload</button>
-    <button class="draft-recovery-btn dismiss" onclick={() => handleConflictKeepMine()}>Keep Mine</button>
+    <button class="draft-recovery-btn recover" onclick={() => handleConflictReload()}>Reload</button
+    >
+    <button class="draft-recovery-btn dismiss" onclick={() => handleConflictKeepMine()}
+      >Keep Mine</button
+    >
   </div>
 {/if}
 
@@ -1905,7 +2269,9 @@
   <div class="draft-recovery-banner">
     <span>Unsaved work from a previous session was found.</span>
     <button class="draft-recovery-btn recover" onclick={() => recoverDrafts()}>Recover</button>
-    <button class="draft-recovery-btn dismiss" onclick={() => dismissDraftRecovery()}>Dismiss</button>
+    <button class="draft-recovery-btn dismiss" onclick={() => dismissDraftRecovery()}
+      >Dismiss</button
+    >
   </div>
 {/if}
 
@@ -1938,7 +2304,9 @@
     variant={pendingInput().data.variant}
     onconfirm={() => respondConfirmTriState('save')}
     oncancel={() => respondConfirmTriState('cancel')}
-    ontertiary={pendingInput().data.tertiaryLabel ? () => respondConfirmTriState('discard') : undefined}
+    ontertiary={pendingInput().data.tertiaryLabel
+      ? () => respondConfirmTriState('discard')
+      : undefined}
   />
 {/if}
 
@@ -1947,43 +2315,58 @@
     <CollectionSettingsDialog
       initialData={collectionSettingsDialogData}
       onsave={(data) => handleSaveCollectionSettings(data)}
-      onclose={() => { collectionSettingsDialogData = null; }}
+      onclose={() => {
+        collectionSettingsDialogData = null;
+      }}
     />
   {/key}
 {/if}
 
 <TopToolbar
   iconUrl={noutoIconUrl}
-  onSearch={() => { showPalette = true; }}
+  onSearch={() => {
+    showPalette = true;
+  }}
   onSettings={() => openSettingsWindow()}
   onOpenFolder={handleOpenFolder}
   onNewProject={handleNewProject}
   onOpenRecent={handleOpenRecentProject}
   onRemoveRecent={handleRemoveRecentProject}
   onCloseProject={handleCloseProject}
-  onOpenWorkspaceSettings={() => { workspaceSettingsOpen = true; }}
+  onOpenWorkspaceSettings={() => {
+    workspaceSettingsOpen = true;
+  }}
 />
 
 <WorkspaceSettingsDialog
   open={workspaceSettingsOpen}
-  onclose={() => { workspaceSettingsOpen = false; }}
+  onclose={() => {
+    workspaceSettingsOpen = false;
+  }}
 />
 
 <SaveToCollectionDialog
   open={!!pendingHistorySave}
   {collections}
-  requestName={pendingHistorySave?.requestName || pendingHistorySave?.url?.split('/').filter(Boolean).pop() || 'Request'}
+  requestName={pendingHistorySave?.requestName ||
+    pendingHistorySave?.url?.split('/').filter(Boolean).pop() ||
+    'Request'}
   onconfirm={(colId, reqName) => {
     const entry = pendingHistorySave;
-    const col = collections.find(c => c.id === colId);
-    if (!entry || !col) { pendingHistorySave = null; return; }
+    const col = collections.find((c) => c.id === colId);
+    if (!entry || !col) {
+      pendingHistorySave = null;
+      return;
+    }
     const saved = addRequestToCollection(colId, {
       name: reqName,
       method: entry.method || 'GET',
       url: entry.url || '',
       params: entry.params || [],
       pathParams: entry.pathParams || [],
-      headers: (entry.headers || []).filter((h) => h.key && !h.key.toLowerCase().startsWith('content-length')),
+      headers: (entry.headers || []).filter(
+        (h) => h.key && !h.key.toLowerCase().startsWith('content-length'),
+      ),
       auth: entry.auth || { type: 'none' },
       body: entry.body || { type: 'none', content: '' },
       connectionMode: entry.connectionMode,
@@ -1992,12 +2375,17 @@
     if (saved) {
       collections = collectionsStore();
       syncCollections();
-      messageBus.send({ type: 'saveCollections', data: $state.snapshot(collectionsStore()) } as any);
+      messageBus.send({
+        type: 'saveCollections',
+        data: $state.snapshot(collectionsStore()),
+      } as any);
       showNotification('info', `Saved "${reqName}" to "${col.name}".`);
     }
     pendingHistorySave = null;
   }}
-  oncancel={() => { pendingHistorySave = null; }}
+  oncancel={() => {
+    pendingHistorySave = null;
+  }}
 />
 
 <div class="app-container" style="grid-template-columns: {gridColumns};">
@@ -2007,27 +2395,52 @@
     <div class="action-rail">
       <div class="rail-top">
         <Tooltip text="Requests" position="right">
-          <button class="rail-btn" class:active={currentView === 'main'} onclick={() => switchView('main')} aria-label="Requests">
+          <button
+            class="rail-btn"
+            class:active={currentView === 'main'}
+            onclick={() => switchView('main')}
+            aria-label="Requests"
+          >
             <span class="codicon codicon-request"></span>
           </button>
         </Tooltip>
         <Tooltip text="Runner" position="right">
-          <button class="rail-btn" class:active={currentView === 'runner'} onclick={() => switchView('runner')} aria-label="Runner">
+          <button
+            class="rail-btn"
+            class:active={currentView === 'runner'}
+            onclick={() => switchView('runner')}
+            aria-label="Runner"
+          >
             <span class="codicon codicon-play"></span>
           </button>
         </Tooltip>
         <Tooltip text="Mock Server" position="right">
-          <button class="rail-btn" class:active={currentView === 'mock'} onclick={() => switchView('mock')} aria-label="Mock Server">
+          <button
+            class="rail-btn"
+            class:active={currentView === 'mock'}
+            onclick={() => switchView('mock')}
+            aria-label="Mock Server"
+          >
             <span class="codicon codicon-server"></span>
           </button>
         </Tooltip>
         <Tooltip text="Benchmark" position="right">
-          <button class="rail-btn" class:active={currentView === 'benchmark'} onclick={() => switchView('benchmark')} aria-label="Benchmark">
+          <button
+            class="rail-btn"
+            class:active={currentView === 'benchmark'}
+            onclick={() => switchView('benchmark')}
+            aria-label="Benchmark"
+          >
             <span class="codicon codicon-pulse"></span>
           </button>
         </Tooltip>
         <Tooltip text="OpenAPI" position="right">
-          <button class="rail-btn" class:active={currentView === 'openapi'} onclick={() => switchView('openapi')} aria-label="OpenAPI">
+          <button
+            class="rail-btn"
+            class:active={currentView === 'openapi'}
+            onclick={() => switchView('openapi')}
+            aria-label="OpenAPI"
+          >
             <span class="codicon codicon-symbol-interface"></span>
           </button>
         </Tooltip>
@@ -2041,19 +2454,33 @@
           </button>
         </Tooltip>
         <Tooltip text="Open Project Folder" position="right">
-          <button class="rail-btn" onclick={() => messageBus.send({ type: 'openProjectDir' } as any)} aria-label="Open Project Folder">
+          <button
+            class="rail-btn"
+            onclick={() => messageBus.send({ type: 'openProjectDir' } as any)}
+            aria-label="Open Project Folder"
+          >
             <span class="codicon codicon-folder-opened"></span>
           </button>
         </Tooltip>
       </div>
       <div class="rail-bottom">
         <Tooltip text="Settings" position="right">
-          <button class="rail-btn" onclick={() => openSettingsWindow('appearance')} aria-label="Settings">
+          <button
+            class="rail-btn"
+            onclick={() => openSettingsWindow('appearance')}
+            aria-label="Settings"
+          >
             <span class="codicon codicon-gear"></span>
           </button>
         </Tooltip>
         <Tooltip text="About" position="right">
-          <button class="rail-btn" onclick={() => { openSettingsWindow('about'); }} aria-label="About">
+          <button
+            class="rail-btn"
+            onclick={() => {
+              openSettingsWindow('about');
+            }}
+            aria-label="About"
+          >
             <span class="codicon codicon-info"></span>
           </button>
         </Tooltip>
@@ -2061,114 +2488,146 @@
     </div>
 
     <div class="sidebar-main">
-    <!-- New Request Button -->
-    <div class="new-request-bar">
-      <div class="new-request-dropdown">
-        <Tooltip text="New Request (Ctrl+N)">
-          <div class="new-request-group">
-            <button class="new-request-button" onclick={handleNewRequest}>
-              <span class="codicon codicon-add"></span>
-              <span class="button-label">New Request</span>
-            </button>
-            <span class="new-request-divider"></span>
-            <button
-              class="new-request-arrow"
-              onclick={toggleNewRequestDropdown}
-              type="button"
-              aria-label="Request type options"
-            >
-              <svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor">
-                <path d="M8 10.5L2.5 5h11L8 10.5z"/>
-              </svg>
-            </button>
-          </div>
+      <!-- New Request Button -->
+      <div class="new-request-bar">
+        <div class="new-request-dropdown">
+          <Tooltip text="New Request (Ctrl+N)">
+            <div class="new-request-group">
+              <button class="new-request-button" onclick={handleNewRequest}>
+                <span class="codicon codicon-add"></span>
+                <span class="button-label">New Request</span>
+              </button>
+              <span class="new-request-divider"></span>
+              <button
+                class="new-request-arrow"
+                onclick={toggleNewRequestDropdown}
+                type="button"
+                aria-label="Request type options"
+              >
+                <svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor">
+                  <path d="M8 10.5L2.5 5h11L8 10.5z" />
+                </svg>
+              </button>
+            </div>
+          </Tooltip>
+          {#if newRequestDropdownOpen}
+            <div
+              class="dropdown-backdrop"
+              role="none"
+              onclick={() => {
+                newRequestDropdownOpen = false;
+              }}
+            ></div>
+            <div class="dropdown-menu">
+              <button class="dropdown-item" onclick={() => handleNewRequestKind('http')}>
+                <span class="codicon codicon-globe"></span>
+                New HTTP Request
+              </button>
+              <button class="dropdown-item" onclick={() => handleNewRequestKind('graphql')}>
+                <svg
+                  class="dropdown-icon"
+                  viewBox="0 0 16 16"
+                  width="16"
+                  height="16"
+                  fill="currentColor"
+                >
+                  <path
+                    d="M8 1.5L2.5 4.75v6.5L8 14.5l5.5-3.25v-6.5L8 1.5zm0 1.15l4.1 2.42v4.86L8 12.35 3.9 9.93V5.07L8 2.65z"
+                  />
+                  <circle cx="8" cy="3" r="1.2" />
+                  <circle cx="12" cy="5.5" r="1.2" />
+                  <circle cx="12" cy="10.5" r="1.2" />
+                  <circle cx="8" cy="13" r="1.2" />
+                  <circle cx="4" cy="10.5" r="1.2" />
+                  <circle cx="4" cy="5.5" r="1.2" />
+                </svg>
+                New GraphQL Request
+              </button>
+              <button
+                class="dropdown-item"
+                onclick={() => handleNewRequestKind('graphql-subscription')}
+              >
+                <span class="codicon codicon-radio-tower"></span>
+                New GraphQL Subscription
+              </button>
+              <button class="dropdown-item" onclick={() => handleNewRequestKind('websocket')}>
+                <span class="codicon codicon-plug"></span>
+                New WebSocket
+              </button>
+              <button class="dropdown-item" onclick={() => handleNewRequestKind('sse')}>
+                <span class="codicon codicon-broadcast"></span>
+                New SSE Connection
+              </button>
+              <button class="dropdown-item" onclick={() => handleNewRequestKind('grpc')}>
+                <span class="codicon codicon-server"></span>
+                New gRPC Call
+              </button>
+            </div>
+          {/if}
+        </div>
+      </div>
+
+      <!-- Sidebar Tabs -->
+      <div class="sidebar-tab-bar">
+        <Tooltip text="Collections" position="bottom">
+          <button
+            class="sidebar-tab"
+            class:active={sidebarView === 'collections'}
+            onclick={() => (sidebarView = 'collections')}
+            aria-label="Collections"
+          >
+            <span class="codicon codicon-folder-library"></span>
+          </button>
         </Tooltip>
-        {#if newRequestDropdownOpen}
-          <!-- svelte-ignore a11y_click_events_have_key_events -->
-          <div class="dropdown-backdrop" role="none" onclick={() => { newRequestDropdownOpen = false; }}></div>
-          <div class="dropdown-menu">
-            <button class="dropdown-item" onclick={() => handleNewRequestKind('http')}>
-              <span class="codicon codicon-globe"></span>
-              New HTTP Request
-            </button>
-            <button class="dropdown-item" onclick={() => handleNewRequestKind('graphql')}>
-              <svg class="dropdown-icon" viewBox="0 0 16 16" width="16" height="16" fill="currentColor">
-                <path d="M8 1.5L2.5 4.75v6.5L8 14.5l5.5-3.25v-6.5L8 1.5zm0 1.15l4.1 2.42v4.86L8 12.35 3.9 9.93V5.07L8 2.65z"/>
-                <circle cx="8" cy="3" r="1.2"/>
-                <circle cx="12" cy="5.5" r="1.2"/>
-                <circle cx="12" cy="10.5" r="1.2"/>
-                <circle cx="8" cy="13" r="1.2"/>
-                <circle cx="4" cy="10.5" r="1.2"/>
-                <circle cx="4" cy="5.5" r="1.2"/>
-              </svg>
-              New GraphQL Request
-            </button>
-            <button class="dropdown-item" onclick={() => handleNewRequestKind('graphql-subscription')}>
-              <span class="codicon codicon-radio-tower"></span>
-              New GraphQL Subscription
-            </button>
-            <button class="dropdown-item" onclick={() => handleNewRequestKind('websocket')}>
-              <span class="codicon codicon-plug"></span>
-              New WebSocket
-            </button>
-            <button class="dropdown-item" onclick={() => handleNewRequestKind('sse')}>
-              <span class="codicon codicon-broadcast"></span>
-              New SSE Connection
-            </button>
-            <button class="dropdown-item" onclick={() => handleNewRequestKind('grpc')}>
-              <span class="codicon codicon-server"></span>
-              New gRPC Call
-            </button>
-          </div>
+        <Tooltip text="History" position="bottom">
+          <button
+            class="sidebar-tab"
+            class:active={sidebarView === 'history'}
+            onclick={() => (sidebarView = 'history')}
+            aria-label="History"
+          >
+            <span class="codicon codicon-history"></span>
+          </button>
+        </Tooltip>
+        <Tooltip text="Trash" position="bottom">
+          <button
+            class="sidebar-tab"
+            class:active={sidebarView === 'trash'}
+            onclick={() => (sidebarView = 'trash')}
+            aria-label="Trash"
+          >
+            <span class="codicon codicon-trash"></span>
+            {#if trashCount() > 0}
+              <span class="sidebar-trash-badge">{trashCount()}</span>
+            {/if}
+          </button>
+        </Tooltip>
+      </div>
+
+      <!-- Sidebar Content -->
+      <div class="sidebar-content">
+        {#if sidebarView === 'collections'}
+          <CollectionsTab
+            {postMessage}
+            {dataLoaded}
+            onNewProject={handleNewProject}
+            onOpenFolder={handleOpenFolder}
+            onImportCollection={handleImportAuto}
+            onLoadSampleCollection={handleLoadSampleCollection}
+            {projectPath}
+            onCloseProject={handleCloseProject}
+            {recentProjects}
+            onOpenRecentProject={handleOpenRecentProject}
+            onClearRecentProjects={() => messageBus.send({ type: 'clearRecentProjectsCmd' } as any)}
+          />
+        {:else if sidebarView === 'history'}
+          <HistoryTab {postMessage} />
+        {:else if sidebarView === 'trash'}
+          <TrashTab />
         {/if}
       </div>
     </div>
-
-    <!-- Sidebar Tabs -->
-    <div class="sidebar-tab-bar">
-      <Tooltip text="Collections" position="bottom">
-        <button class="sidebar-tab" class:active={sidebarView === 'collections'} onclick={() => sidebarView = 'collections'} aria-label="Collections">
-          <span class="codicon codicon-folder-library"></span>
-        </button>
-      </Tooltip>
-      <Tooltip text="History" position="bottom">
-        <button class="sidebar-tab" class:active={sidebarView === 'history'} onclick={() => sidebarView = 'history'} aria-label="History">
-          <span class="codicon codicon-history"></span>
-        </button>
-      </Tooltip>
-      <Tooltip text="Trash" position="bottom">
-        <button class="sidebar-tab" class:active={sidebarView === 'trash'} onclick={() => sidebarView = 'trash'} aria-label="Trash">
-          <span class="codicon codicon-trash"></span>
-          {#if trashCount() > 0}
-            <span class="sidebar-trash-badge">{trashCount()}</span>
-          {/if}
-        </button>
-      </Tooltip>
-    </div>
-
-    <!-- Sidebar Content -->
-    <div class="sidebar-content">
-      {#if sidebarView === 'collections'}
-        <CollectionsTab
-          {postMessage}
-          {dataLoaded}
-          onNewProject={handleNewProject}
-          onOpenFolder={handleOpenFolder}
-          onImportCollection={handleImportAuto}
-          onLoadSampleCollection={handleLoadSampleCollection}
-          {projectPath}
-          onCloseProject={handleCloseProject}
-          {recentProjects}
-          onOpenRecentProject={handleOpenRecentProject}
-          onClearRecentProjects={() => messageBus.send({ type: 'clearRecentProjectsCmd' } as any)}
-        />
-      {:else if sidebarView === 'history'}
-        <HistoryTab {postMessage} />
-      {:else if sidebarView === 'trash'}
-        <TrashTab />
-      {/if}
-    </div>
-    </div><!-- /.sidebar-main -->
+    <!-- /.sidebar-main -->
   </aside>
 
   <!-- Sidebar Resizer -->
@@ -2185,7 +2644,7 @@
       oninstall={installUpdate}
       ondismiss={dismissUpdate}
     />
-    <ActionBar collectionId={collectionId} {collections} {postMessage} />
+    <ActionBar {collectionId} {collections} {postMessage} />
     {#if currentView === 'main'}
       <TabBar />
       {#if tabsList().length === 0}
@@ -2199,7 +2658,11 @@
           onNewProject={handleNewProject}
           onOpenFolder={handleOpenFolder}
           onImportCollection={handleImportAuto}
-          onLoadSampleCollection={collections.some(c => c.name === 'Sample Collection (httpbin.org)') ? undefined : handleLoadSampleCollection}
+          onLoadSampleCollection={collections.some(
+            (c) => c.name === 'Sample Collection (httpbin.org)',
+          )
+            ? undefined
+            : handleLoadSampleCollection}
           onStartFromScratch={handleStartFromScratch}
           onNewRequest={() => handleNewRequestKind('http')}
           onOpenDocs={handleOpenDocs}
@@ -2219,8 +2682,13 @@
             {showSaveNudge}
             {postMessage}
             hideActionBar
-            onDismissNudge={() => { showSaveNudge = false; nudgeDismissed = true; }}
-            onSaveToCollection={() => { messageBus.send({ type: 'getCollections' }); }}
+            onDismissNudge={() => {
+              showSaveNudge = false;
+              nudgeDismissed = true;
+            }}
+            onSaveToCollection={() => {
+              messageBus.send({ type: 'getCollections' });
+            }}
           />
         </div>
       {/if}
@@ -2240,7 +2708,10 @@
             Back to Requests
           </button>
           {#if jsonExplorerDocStack.length > 0}
-            <button class="json-explorer-back json-explorer-back-doc" onclick={handleBackToPreviousJsonExplorerDoc}>
+            <button
+              class="json-explorer-back json-explorer-back-doc"
+              onclick={handleBackToPreviousJsonExplorerDoc}
+            >
               <span class="codicon codicon-chevron-left"></span>
               Back to previous document
             </button>
@@ -2355,7 +2826,9 @@
     color: var(--hf-foreground);
     cursor: pointer;
     opacity: var(--hf-icon-opacity);
-    transition: opacity 0.15s, background 0.15s;
+    transition:
+      opacity 0.15s,
+      background 0.15s;
     position: relative;
   }
 
@@ -2440,7 +2913,9 @@
     color: var(--hf-foreground);
     cursor: pointer;
     opacity: var(--hf-icon-opacity);
-    transition: opacity 0.15s, border-color 0.15s;
+    transition:
+      opacity 0.15s,
+      border-color 0.15s;
     user-select: none;
   }
 
@@ -2643,5 +3118,4 @@
   .json-explorer-content :global(.json-explorer-panel) {
     height: 100%;
   }
-
 </style>

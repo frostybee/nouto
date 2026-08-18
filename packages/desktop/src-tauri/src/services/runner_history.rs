@@ -56,7 +56,8 @@ impl RunnerHistory {
     /// List runs (metadata only, optionally filtered by collectionId)
     pub async fn list_runs(&self, collection_id: Option<&str>) -> Result<Vec<Value>, String> {
         let entries = self.load_all().await?;
-        let summaries: Vec<Value> = entries.iter()
+        let summaries: Vec<Value> = entries
+            .iter()
             .filter(|e| {
                 if let Some(cid) = collection_id {
                     e["collectionId"].as_str() == Some(cid)

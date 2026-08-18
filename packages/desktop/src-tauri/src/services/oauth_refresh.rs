@@ -36,14 +36,16 @@ pub async fn refresh_oauth_token(
         .ok_or("Missing access_token in refresh response")?
         .to_string();
 
-    let expires_at = json["expires_in"].as_i64().map(|expires_in| {
-        Utc::now().timestamp_millis() + expires_in * 1000
-    });
+    let expires_at = json["expires_in"]
+        .as_i64()
+        .map(|expires_in| Utc::now().timestamp_millis() + expires_in * 1000);
 
     Ok(crate::models::types::OAuthToken {
         access_token,
         access_token_ref: None,
-        refresh_token: json["refresh_token"].as_str().map(|s| s.to_string())
+        refresh_token: json["refresh_token"]
+            .as_str()
+            .map(|s| s.to_string())
             .or_else(|| Some(refresh_token.to_string())),
         refresh_token_ref: None,
         token_type: json["token_type"].as_str().unwrap_or("Bearer").to_string(),

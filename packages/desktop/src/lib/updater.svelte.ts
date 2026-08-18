@@ -13,15 +13,33 @@ let _updateSupported = $state(true);
 let _preDownloaded = $state(false);
 let _updateHandle: any = null;
 
-export function updateAvailable() { return _updateAvailable; }
-export function updateVersion() { return _updateVersion; }
-export function updateBody() { return _updateBody; }
-export function downloading() { return _downloading; }
-export function downloadProgress() { return _downloadProgress; }
-export function dismissed() { return _dismissed; }
-export function installType() { return _installType; }
-export function updateSupported() { return _updateSupported; }
-export function preDownloaded() { return _preDownloaded; }
+export function updateAvailable() {
+  return _updateAvailable;
+}
+export function updateVersion() {
+  return _updateVersion;
+}
+export function updateBody() {
+  return _updateBody;
+}
+export function downloading() {
+  return _downloading;
+}
+export function downloadProgress() {
+  return _downloadProgress;
+}
+export function dismissed() {
+  return _dismissed;
+}
+export function installType() {
+  return _installType;
+}
+export function updateSupported() {
+  return _updateSupported;
+}
+export function preDownloaded() {
+  return _preDownloaded;
+}
 
 function makeProgressHandler() {
   let bytesReceived = 0;
@@ -33,9 +51,10 @@ function makeProgressHandler() {
       _downloadProgress = 0;
     } else if (progress.event === 'Progress') {
       bytesReceived += progress.data?.chunkLength ?? 0;
-      _downloadProgress = totalBytes > 0
-        ? Math.min(100, Math.round(bytesReceived / totalBytes * 100))
-        : Math.min(99, _downloadProgress + 1);
+      _downloadProgress =
+        totalBytes > 0
+          ? Math.min(100, Math.round((bytesReceived / totalBytes) * 100))
+          : Math.min(99, _downloadProgress + 1);
     } else if (progress.event === 'Finished') {
       _downloadProgress = 100;
     }
@@ -61,15 +80,21 @@ export async function checkForUpdates(): Promise<void> {
       _updateVersion = update.version;
       _updateBody = update.body || '';
       _updateAvailable = true;
-      void notifyIfUnfocused('Nouto update available', `Version ${update.version} is ready to install.`);
+      void notifyIfUnfocused(
+        'Nouto update available',
+        `Version ${update.version} is ready to install.`,
+      );
 
       // Start background pre-download silently so install is near-instant
-      update.download(makeProgressHandler()).then(() => {
-        _preDownloaded = true;
-        logger.debug('Update pre-downloaded:', _updateVersion);
-      }).catch((err: unknown) => {
-        logger.debug('Background pre-download failed, will download on install:', err);
-      });
+      update
+        .download(makeProgressHandler())
+        .then(() => {
+          _preDownloaded = true;
+          logger.debug('Update pre-downloaded:', _updateVersion);
+        })
+        .catch((err: unknown) => {
+          logger.debug('Background pre-download failed, will download on install:', err);
+        });
     }
   } catch (err) {
     // Silently fail: updater may not be configured or network unavailable

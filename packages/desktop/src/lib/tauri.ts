@@ -15,31 +15,56 @@ import {
 } from '@nouto/ui/stores/workspace.svelte';
 
 import { handleRunnerMessage } from './handlers/runner-handler';
-import { handleWsSessionMessage, createWsSessionState, type WsSessionState } from './handlers/ws-session-handler';
+import {
+  handleWsSessionMessage,
+  createWsSessionState,
+  type WsSessionState,
+} from './handlers/ws-session-handler';
 import { handleCodegenMessage } from './handlers/codegen-handler';
 import { handleFileOperation } from './handlers/file-handler';
 import { handleCollectionMessage } from './handlers/collection-handler';
 import { handleCookieMessage } from './handlers/cookie-handler';
-import { handleEnvironmentMessage, emitStoredEnvironments, cacheEnvironmentEvent } from './handlers/environment-handler';
+import {
+  handleEnvironmentMessage,
+  emitStoredEnvironments,
+  cacheEnvironmentEvent,
+} from './handlers/environment-handler';
 import { handleOpenApiMessage } from './handlers/openapi-handler';
 import { logger } from './logger';
 
 const COOKIE_MESSAGE_TYPES = new Set([
-  'getCookieJar', 'getCookieJars', 'createCookieJar', 'renameCookieJar',
-  'deleteCookieJar', 'setActiveCookieJar', 'deleteCookie', 'deleteCookieDomain',
-  'clearCookieJar', 'addCookie', 'updateCookie',
+  'getCookieJar',
+  'getCookieJars',
+  'createCookieJar',
+  'renameCookieJar',
+  'deleteCookieJar',
+  'setActiveCookieJar',
+  'deleteCookie',
+  'deleteCookieDomain',
+  'clearCookieJar',
+  'addCookie',
+  'updateCookie',
 ]);
 
 const COLLECTION_MESSAGE_TYPES = new Set(['getCollections']);
 
 const ENVIRONMENT_MESSAGE_TYPES = new Set([
-  'createEnvironment', 'renameEnvironment', 'deleteEnvironment', 'duplicateEnvironment',
-  'setActiveEnvironment', 'importEnvironments', 'exportEnvironment', 'exportAllEnvironments',
-  'exportGlobalVariables', 'importGlobalVariables',
+  'createEnvironment',
+  'renameEnvironment',
+  'deleteEnvironment',
+  'duplicateEnvironment',
+  'setActiveEnvironment',
+  'importEnvironments',
+  'exportEnvironment',
+  'exportAllEnvironments',
+  'exportGlobalVariables',
+  'importGlobalVariables',
 ]);
 
 const FILE_OP_MESSAGE_TYPES = new Set([
-  'downloadResponse', 'downloadBinaryResponse', 'openBinaryResponse',
+  'downloadResponse',
+  'downloadBinaryResponse',
+  'openBinaryResponse',
 ]);
 
 const CODEGEN_MESSAGE_TYPES = new Set(['openInNewTab']);
@@ -49,42 +74,108 @@ const OPENAPI_MESSAGE_TYPES = new Set(['openApiSave', 'openApiSaveAs', 'openApiO
 const RUNNER_MESSAGE_TYPES = new Set(['retryFailedRequests', 'exportRunResults']);
 
 const WS_SESSION_MESSAGE_TYPES = new Set([
-  'wsStartRecording', 'wsStopRecording', 'wsSaveSession', 'wsExportSession',
-  'wsLoadSession', 'wsStartReplay', 'wsCancelReplay',
+  'wsStartRecording',
+  'wsStopRecording',
+  'wsSaveSession',
+  'wsExportSession',
+  'wsLoadSession',
+  'wsStartReplay',
+  'wsCancelReplay',
 ]);
 
 const RUST_COMMAND_TYPES = new Set([
-  'ready', 'loadData', 'sendRequest', 'cancelRequest', 'saveCollections',
-  'saveEnvironments', 'saveTrash', 'updateSettings', 'selectFile', 'openExternal',
-  'getHistory', 'clearHistory', 'deleteHistoryEntry', 'saveHistoryToCollection',
-  'getHistoryEntry', 'getHistoryStats', 'getRequestHistory', 'getDrawerHistory',
-  'exportHistory', 'importHistory', 'pickSslFile',
-  'grpcReflect', 'grpcLoadProto', 'grpcInvoke', 'grpcSendMessage', 'grpcEndStream',
-  'grpcInvalidatePool', 'grpcCommitStream', 'pickProtoFile', 'pickProtoImportDir',
-  'scanProtoDir', 'introspectGraphQL',
-  'wsConnect', 'wsSend', 'wsDisconnect', 'wsSaveSession', 'wsLoadSessionById',
-  'wsListSessions', 'wsDeleteSession',
-  'sseConnect', 'sseDisconnect',
-  'startOAuthFlow', 'refreshOAuthToken', 'clearOAuthToken', 'oauthDeepLinkCallback',
-  'startCollectionRun', 'cancelCollectionRun',
-  'getRunnerHistory', 'getRunnerHistoryDetail', 'deleteRunnerHistoryEntry', 'clearRunnerHistory',
+  'ready',
+  'loadData',
+  'sendRequest',
+  'cancelRequest',
+  'saveCollections',
+  'saveEnvironments',
+  'saveTrash',
+  'updateSettings',
+  'selectFile',
+  'openExternal',
+  'getHistory',
+  'clearHistory',
+  'deleteHistoryEntry',
+  'saveHistoryToCollection',
+  'getHistoryEntry',
+  'getHistoryStats',
+  'getRequestHistory',
+  'getDrawerHistory',
+  'exportHistory',
+  'importHistory',
+  'pickSslFile',
+  'grpcReflect',
+  'grpcLoadProto',
+  'grpcInvoke',
+  'grpcSendMessage',
+  'grpcEndStream',
+  'grpcInvalidatePool',
+  'grpcCommitStream',
+  'pickProtoFile',
+  'pickProtoImportDir',
+  'scanProtoDir',
+  'introspectGraphQL',
+  'wsConnect',
+  'wsSend',
+  'wsDisconnect',
+  'wsSaveSession',
+  'wsLoadSessionById',
+  'wsListSessions',
+  'wsDeleteSession',
+  'sseConnect',
+  'sseDisconnect',
+  'startOAuthFlow',
+  'refreshOAuthToken',
+  'clearOAuthToken',
+  'oauthDeepLinkCallback',
+  'startCollectionRun',
+  'cancelCollectionRun',
+  'getRunnerHistory',
+  'getRunnerHistoryDetail',
+  'deleteRunnerHistoryEntry',
+  'clearRunnerHistory',
   'selectDataFile',
-  'startMockServer', 'stopMockServer', 'updateMockRoutes', 'clearMockLogs',
-  'startBenchmark', 'cancelBenchmark',
-  'storeSecret', 'getSecret', 'deleteSecret',
-  'gqlSubSubscribe', 'gqlSubUnsubscribe',
-  'linkEnvFile', 'unlinkEnvFile',
-  'openProjectDir', 'closeProject', 'getRecentProjects', 'removeRecentProject',
-  'clearRecentProjectsCmd', 'openRecentProject', 'createProject',
-  'getWorkspaceMeta', 'updateWorkspaceMeta', 'deleteWorkspaceMeta',
-  'exportBackup', 'importBackup',
-  'createSettingsWindow', 'getSettings',
+  'startMockServer',
+  'stopMockServer',
+  'updateMockRoutes',
+  'clearMockLogs',
+  'startBenchmark',
+  'cancelBenchmark',
+  'storeSecret',
+  'getSecret',
+  'deleteSecret',
+  'gqlSubSubscribe',
+  'gqlSubUnsubscribe',
+  'linkEnvFile',
+  'unlinkEnvFile',
+  'openProjectDir',
+  'closeProject',
+  'getRecentProjects',
+  'removeRecentProject',
+  'clearRecentProjectsCmd',
+  'openRecentProject',
+  'createProject',
+  'getWorkspaceMeta',
+  'updateWorkspaceMeta',
+  'deleteWorkspaceMeta',
+  'exportBackup',
+  'importBackup',
+  'createSettingsWindow',
+  'getSettings',
 ]);
 
 const FORWARD_TO_LISTENERS = new Set([
-  'openEnvironmentsPanel', 'createRequestFromUrl', 'closePanelsForRequests',
-  'showWarning', 'saveToCollectionWithLink', 'saveToNewCollectionWithLink',
-  'revealActiveRequest', 'selectRequest', 'openMockServer', 'openBenchmark',
+  'openEnvironmentsPanel',
+  'createRequestFromUrl',
+  'closePanelsForRequests',
+  'showWarning',
+  'saveToCollectionWithLink',
+  'saveToNewCollectionWithLink',
+  'revealActiveRequest',
+  'selectRequest',
+  'openMockServer',
+  'openBenchmark',
   'openJsonExplorer',
 ]);
 
@@ -111,35 +202,87 @@ export class TauriMessageBus implements IMessageBus {
 
   private async setupEventListeners() {
     const eventTypes = [
-      'loadRequest', 'requestResponse', 'requestCancelled',
-      'collections', 'collectionsLoaded', 'initialData', 'collectionsSaved',
-      'loadEnvironments', 'storeResponseContext', 'loadSettings',
-      'securityWarning', 'oauthTokenReceived', 'oauthFlowError',
-      'fileSelected', 'graphqlSchema', 'graphqlSchemaError',
-      'sslFilePicked', 'oauthTokenRefreshed', 'oauthTokenCleared',
+      'loadRequest',
+      'requestResponse',
+      'requestCancelled',
+      'collections',
+      'collectionsLoaded',
+      'initialData',
+      'collectionsSaved',
+      'loadEnvironments',
+      'storeResponseContext',
+      'loadSettings',
+      'securityWarning',
+      'oauthTokenReceived',
+      'oauthFlowError',
+      'fileSelected',
+      'graphqlSchema',
+      'graphqlSchemaError',
+      'sslFilePicked',
+      'oauthTokenRefreshed',
+      'oauthTokenCleared',
       'downloadProgress',
-      'grpcProtoLoaded', 'grpcProtoError', 'protoFilesPicked', 'protoImportDirsPicked',
-      'grpcConnectionStart', 'grpcEvent', 'grpcConnectionEnd',
-      'error', 'openSettings', 'setVariables',
-      'collectionRequestSaved', 'updateRequestIdentity',
-      'requestLinkedToCollection', 'requestUnlinked',
-      'showNotification', 'scriptOutput',
-      'historyLoaded', 'historyUpdated', 'historyEntryLoaded', 'historyStatsLoaded', 'historySaveToCollection',
+      'grpcProtoLoaded',
+      'grpcProtoError',
+      'protoFilesPicked',
+      'protoImportDirsPicked',
+      'grpcConnectionStart',
+      'grpcEvent',
+      'grpcConnectionEnd',
+      'error',
+      'openSettings',
+      'setVariables',
+      'collectionRequestSaved',
+      'updateRequestIdentity',
+      'requestLinkedToCollection',
+      'requestUnlinked',
+      'showNotification',
+      'scriptOutput',
+      'historyLoaded',
+      'historyUpdated',
+      'historyEntryLoaded',
+      'historyStatsLoaded',
+      'historySaveToCollection',
       'drawerHistoryLoaded',
-      'wsStatus', 'wsMessage', 'sseStatus', 'sseEvent',
-      'collectionRunProgress', 'collectionRunRequestResult',
-      'collectionRunComplete', 'collectionRunCancelled', 'collectionRunWarning',
-      'runnerHistoryList', 'runnerHistoryDetail', 'dataFileLoaded',
-      'mockStatusChanged', 'mockLogAdded',
-      'benchmarkProgress', 'benchmarkIterationComplete', 'benchmarkComplete', 'benchmarkCancelled',
-      'secretValue', 'secretStored', 'secretDeleted',
+      'wsStatus',
+      'wsMessage',
+      'sseStatus',
+      'sseEvent',
+      'collectionRunProgress',
+      'collectionRunRequestResult',
+      'collectionRunComplete',
+      'collectionRunCancelled',
+      'collectionRunWarning',
+      'runnerHistoryList',
+      'runnerHistoryDetail',
+      'dataFileLoaded',
+      'mockStatusChanged',
+      'mockLogAdded',
+      'benchmarkProgress',
+      'benchmarkIterationComplete',
+      'benchmarkComplete',
+      'benchmarkCancelled',
+      'secretValue',
+      'secretStored',
+      'secretDeleted',
       'envFileVariablesUpdated',
-      'projectOpened', 'projectClosed', 'projectFileChanged',
-      'recentProjectsLoaded', 'workspaceMetaLoaded', 'externalFileChanged',
-      'wsSessionSaved', 'wsSessionLoaded', 'wsSessionsList', 'wsReplayProgress',
-      'gqlSubStatus', 'gqlSubEvent',
-      'restoreCookies', 'cookieMutations', 'secretsResolved',
-      'backupExportDone', 'backupImportDone',
+      'projectOpened',
+      'projectClosed',
+      'projectFileChanged',
+      'recentProjectsLoaded',
+      'workspaceMetaLoaded',
+      'externalFileChanged',
+      'wsSessionSaved',
+      'wsSessionLoaded',
+      'wsSessionsList',
+      'wsReplayProgress',
+      'gqlSubStatus',
+      'gqlSubEvent',
+      'restoreCookies',
+      'cookieMutations',
+      'secretsResolved',
+      'backupExportDone',
+      'backupImportDone',
     ];
 
     for (const eventType of eventTypes) {
@@ -166,7 +309,7 @@ export class TauriMessageBus implements IMessageBus {
         } else if (eventType === 'recentProjectsLoaded') {
           const list = Array.isArray(event.payload?.data) ? event.payload.data : [];
           setRecentWorkspaces(
-            list.map((r: any) => ({ path: r.path ?? '', name: r.name ?? r.path ?? '' }))
+            list.map((r: any) => ({ path: r.path ?? '', name: r.name ?? r.path ?? '' })),
           );
         }
 
@@ -291,7 +434,10 @@ export class TauriMessageBus implements IMessageBus {
       const filePath = (message as any).data.path;
       readTextFile(filePath)
         .then((content) => {
-          this.notifyListeners({ type: 'fileContentRead', data: { path: filePath, content } } as any);
+          this.notifyListeners({
+            type: 'fileContentRead',
+            data: { path: filePath, content },
+          } as any);
         })
         .catch((error) => {
           this.notifyListeners({
@@ -305,7 +451,9 @@ export class TauriMessageBus implements IMessageBus {
     if (message.type === 'sendRequest') {
       this.injectCookieHeader(message);
       if (message.data && typeof message.data === 'object') {
-        (message.data as any).cookies = Object.values(this.cookieJarService.getAllByDomain()).flat();
+        (message.data as any).cookies = Object.values(
+          this.cookieJarService.getAllByDomain(),
+        ).flat();
       }
     }
 
@@ -332,12 +480,14 @@ export class TauriMessageBus implements IMessageBus {
           d.ssl = {
             ...(d.ssl || {}),
             rejectUnauthorized: globalReject,
-            ...(hasGlobalCert ? {
-              certPath: gc!.certPath,
-              keyPath: gc!.keyPath || '',
-              passphrase: gc!.passphrase || '',
-              caCertPath: gc!.caCertPath || '',
-            } : {}),
+            ...(hasGlobalCert
+              ? {
+                  certPath: gc!.certPath,
+                  keyPath: gc!.keyPath || '',
+                  passphrase: gc!.passphrase || '',
+                  caCertPath: gc!.caCertPath || '',
+                }
+              : {}),
           };
         }
       }
@@ -353,8 +503,12 @@ export class TauriMessageBus implements IMessageBus {
       this.injectCookieHeader(message);
     }
 
-    if (message.type === 'closeProject' || message.type === 'openProjectDir' ||
-        message.type === 'openRecentProject' || message.type === 'createProject') {
+    if (
+      message.type === 'closeProject' ||
+      message.type === 'openProjectDir' ||
+      message.type === 'openRecentProject' ||
+      message.type === 'createProject'
+    ) {
       if (this._saveTimer) {
         clearTimeout(this._saveTimer);
         this._saveTimer = null;
@@ -368,9 +522,12 @@ export class TauriMessageBus implements IMessageBus {
     }
 
     const command = this.messageTypeToCommand(message.type);
-    const payload = command === 'open_external'
-      ? this.normalizeOpenExternalPayload(message)
-      : ('data' in message ? message.data : {});
+    const payload =
+      command === 'open_external'
+        ? this.normalizeOpenExternalPayload(message)
+        : 'data' in message
+          ? message.data
+          : {};
 
     logger.debug(`[TauriMessageBus] Sending command: "${command}"`);
 
@@ -491,7 +648,7 @@ export class TauriMessageBus implements IMessageBus {
 
     const headers: Array<{ key: string; value: string; enabled: boolean }> = data.headers || [];
     const hasExplicitCookie = headers.some(
-      (h: any) => h.enabled && h.key?.toLowerCase() === 'cookie'
+      (h: any) => h.enabled && h.key?.toLowerCase() === 'cookie',
     );
     if (hasExplicitCookie) return;
 

@@ -1,6 +1,10 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { analyzeOpenApi } from '@nouto/core/services/openapi/analyze';
-import { computeSyncDiagnostics, fetchExampleDiagnostics, fetchSchemaDiagnostics } from './diagnostics';
+import {
+  computeSyncDiagnostics,
+  fetchExampleDiagnostics,
+  fetchSchemaDiagnostics,
+} from './diagnostics';
 
 const tauriMocks = vi.hoisted(() => ({ invoke: vi.fn() }));
 const settingsMocks = vi.hoisted(() => ({
@@ -64,13 +68,15 @@ describe('computeSyncDiagnostics', () => {
 
   it('honors per-rule severity overrides including off', () => {
     const analysis = analyzeOpenApi(YAML_WITH_ISSUES, 'yaml');
-    const before = computeSyncDiagnostics(YAML_WITH_ISSUES, 'yaml', analysis)
-      .filter((d) => d.source === 'lint');
+    const before = computeSyncDiagnostics(YAML_WITH_ISSUES, 'yaml', analysis).filter(
+      (d) => d.source === 'lint',
+    );
     expect(before.length).toBeGreaterThan(0);
     const offAll = Object.fromEntries(before.map((d) => [d.code!, 'off' as const]));
     settingsMocks.settings.openApiLintRules = offAll;
-    const after = computeSyncDiagnostics(YAML_WITH_ISSUES, 'yaml', analysis)
-      .filter((d) => d.source === 'lint');
+    const after = computeSyncDiagnostics(YAML_WITH_ISSUES, 'yaml', analysis).filter(
+      (d) => d.source === 'lint',
+    );
     expect(after).toEqual([]);
   });
 });
@@ -149,7 +155,10 @@ paths:
     const analysis = analyzeOpenApi(WITH_EXAMPLE, 'yaml');
     const result = await fetchExampleDiagnostics(analysis);
     expect(tauriMocks.invoke).toHaveBeenCalledTimes(1);
-    const [command, payload] = tauriMocks.invoke.mock.calls[0] as [string, { version: string; sites: unknown[] }];
+    const [command, payload] = tauriMocks.invoke.mock.calls[0] as [
+      string,
+      { version: string; sites: unknown[] },
+    ];
     expect(command).toBe('validate_openapi_examples');
     expect(payload.version).toBe('3.1');
     expect(payload.sites).toEqual([
@@ -173,13 +182,18 @@ paths:
 
   it('skips the round trip when the rules are off, lint is disabled, or there are no sites', async () => {
     const analysis = analyzeOpenApi(WITH_EXAMPLE, 'yaml');
-    settingsMocks.settings.openApiLintRules = { 'example-invalid-media': 'off', 'example-invalid-schema': 'off' };
+    settingsMocks.settings.openApiLintRules = {
+      'example-invalid-media': 'off',
+      'example-invalid-schema': 'off',
+    };
     await expect(fetchExampleDiagnostics(analysis)).resolves.toEqual([]);
     settingsMocks.settings.openApiLintRules = {};
     settingsMocks.settings.openApiLintEnabled = false;
     await expect(fetchExampleDiagnostics(analysis)).resolves.toEqual([]);
     settingsMocks.settings.openApiLintEnabled = true;
-    const noExamples = ['openapi: 3.1.0', 'info: { title: T, version: 1 }', 'paths: {}', ''].join('\n');
+    const noExamples = ['openapi: 3.1.0', 'info: { title: T, version: 1 }', 'paths: {}', ''].join(
+      '\n',
+    );
     await expect(fetchExampleDiagnostics(analyzeOpenApi(noExamples, 'yaml'))).resolves.toEqual([]);
     expect(tauriMocks.invoke).not.toHaveBeenCalled();
   });
@@ -187,7 +201,9 @@ paths:
   it('resolves to an empty list instead of throwing on invoke failure', async () => {
     const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
     tauriMocks.invoke.mockRejectedValue(new Error('boom'));
-    await expect(fetchExampleDiagnostics(analyzeOpenApi(WITH_EXAMPLE, 'yaml'))).resolves.toEqual([]);
+    await expect(fetchExampleDiagnostics(analyzeOpenApi(WITH_EXAMPLE, 'yaml'))).resolves.toEqual(
+      [],
+    );
     consoleError.mockRestore();
   });
 });

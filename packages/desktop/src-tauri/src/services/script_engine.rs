@@ -2,7 +2,10 @@
 // Uses rquickjs for sandboxed JS execution with a limited API surface.
 // The scripting API is exposed as `nt.*` (e.g. nt.request, nt.response, nt.test).
 
-use rquickjs::{Runtime, Context, Function, Object, Value as JsValue, FromJs, function::{Rest, Opt}};
+use rquickjs::{
+    function::{Opt, Rest},
+    Context, FromJs, Function, Object, Runtime, Value as JsValue,
+};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::sync::{Arc, Mutex};
@@ -24,7 +27,7 @@ pub struct ScriptResult {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ScriptLogEntry {
-    pub level: String,  // "log", "warn", "error", "info"
+    pub level: String, // "log", "warn", "error", "info"
     pub message: String,
     pub timestamp: String,
 }
@@ -46,7 +49,9 @@ pub struct VariableToSet {
     pub scope: String,
 }
 
-fn default_scope() -> String { "environment".to_string() }
+fn default_scope() -> String {
+    "environment".to_string()
+}
 
 /// A cookie passed into a script as a snapshot of the active cookie jar
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -92,10 +97,7 @@ pub struct ScriptEngine;
 
 impl ScriptEngine {
     /// Execute a pre-request script
-    pub async fn execute_pre_request(
-        script: &str,
-        context: &ScriptContext,
-    ) -> ScriptResult {
+    pub async fn execute_pre_request(script: &str, context: &ScriptContext) -> ScriptResult {
         if script.trim().is_empty() {
             return ScriptResult::default();
         }
@@ -103,10 +105,7 @@ impl ScriptEngine {
     }
 
     /// Execute a post-response script
-    pub async fn execute_post_response(
-        script: &str,
-        context: &ScriptContext,
-    ) -> ScriptResult {
+    pub async fn execute_post_response(script: &str, context: &ScriptContext) -> ScriptResult {
         if script.trim().is_empty() {
             return ScriptResult::default();
         }
@@ -124,7 +123,8 @@ impl ScriptEngine {
         // Run in a blocking thread since QuickJS is synchronous
         let result = tokio::task::spawn_blocking(move || {
             Self::run_in_quickjs(&script, &context, is_post_response)
-        }).await;
+        })
+        .await;
 
         match result {
             Ok(r) => r,
@@ -145,14 +145,17 @@ impl ScriptEngine {
         let variables = Arc::new(Mutex::new(Vec::<VariableToSet>::new()));
         let next_request = Arc::new(Mutex::new(None::<String>));
         let modified_request = Arc::new(Mutex::new(None::<Value>));
-        let cookie_mutations_arc: Arc<Mutex<Vec<CookieMutation>>> = Arc::new(Mutex::new(Vec::new()));
+        let cookie_mutations_arc: Arc<Mutex<Vec<CookieMutation>>> =
+            Arc::new(Mutex::new(Vec::new()));
 
         let rt = match Runtime::new() {
             Ok(r) => r,
-            Err(e) => return ScriptResult {
-                error: Some(format!("Failed to create JS runtime: {}", e)),
-                ..Default::default()
-            },
+            Err(e) => {
+                return ScriptResult {
+                    error: Some(format!("Failed to create JS runtime: {}", e)),
+                    ..Default::default()
+                }
+            }
         };
 
         // Set memory limit (32MB) and interrupt handler (30s timeout)
@@ -164,10 +167,12 @@ impl ScriptEngine {
 
         let ctx = match Context::full(&rt) {
             Ok(c) => c,
-            Err(e) => return ScriptResult {
-                error: Some(format!("Failed to create JS context: {}", e)),
-                ..Default::default()
-            },
+            Err(e) => {
+                return ScriptResult {
+                    error: Some(format!("Failed to create JS context: {}", e)),
+                    ..Default::default()
+                }
+            }
         };
 
         let exec_result = ctx.with(|ctx| -> Result<(), String> {
@@ -725,18 +730,33 @@ impl ScriptEngine {
             Ok(())
         });
 
-        let error = match exec_result {
-            Ok(()) => None,
-            Err(e) => Some(e),
-        };
+        let error = exec_result.err();
 
         ScriptResult {
-            logs: Arc::try_unwrap(logs).unwrap_or_default().into_inner().unwrap_or_default(),
-            test_results: Arc::try_unwrap(test_results).unwrap_or_default().into_inner().unwrap_or_default(),
-            variables_to_set: Arc::try_unwrap(variables).unwrap_or_default().into_inner().unwrap_or_default(),
-            modified_request: Arc::try_unwrap(modified_request).unwrap_or_default().into_inner().unwrap_or_default(),
-            next_request: Arc::try_unwrap(next_request).unwrap_or_default().into_inner().unwrap_or_default(),
-            cookie_mutations: Arc::try_unwrap(cookie_mutations_arc).unwrap_or_default().into_inner().unwrap_or_default(),
+            logs: Arc::try_unwrap(logs)
+                .unwrap_or_default()
+                .into_inner()
+                .unwrap_or_default(),
+            test_results: Arc::try_unwrap(test_results)
+                .unwrap_or_default()
+                .into_inner()
+                .unwrap_or_default(),
+            variables_to_set: Arc::try_unwrap(variables)
+                .unwrap_or_default()
+                .into_inner()
+                .unwrap_or_default(),
+            modified_request: Arc::try_unwrap(modified_request)
+                .unwrap_or_default()
+                .into_inner()
+                .unwrap_or_default(),
+            next_request: Arc::try_unwrap(next_request)
+                .unwrap_or_default()
+                .into_inner()
+                .unwrap_or_default(),
+            cookie_mutations: Arc::try_unwrap(cookie_mutations_arc)
+                .unwrap_or_default()
+                .into_inner()
+                .unwrap_or_default(),
             error,
         }
     }

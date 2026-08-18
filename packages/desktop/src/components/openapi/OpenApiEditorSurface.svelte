@@ -1,9 +1,13 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import type { OpenApiDiagnostic, OpenApiFormat, OpenApiVersion } from '@nouto/core/services/openapi/types';
+  import type {
+    OpenApiDiagnostic,
+    OpenApiFormat,
+    OpenApiVersion,
+  } from '@nouto/core/services/openapi/types';
   import type { OpenApiPointerMap } from '@nouto/core/services/openapi/pointerMap';
   import type { SpecTextEdit } from '@nouto/core/services/openapi/specEdit';
-  import type { RevealAndSelect } from './MonacoOpenApiEditor.svelte';
+  import type { RevealAndSelect } from './monacoProviders';
 
   /**
    * Widget-swap boundary: everything above this component speaks text content

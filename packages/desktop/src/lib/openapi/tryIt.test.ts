@@ -96,7 +96,9 @@ describe('tryOperation', () => {
     openSession('/tmp/pets.yaml', SPEC_YAML, 'yaml');
     // Simulate an unsaved edit adding a second operation, without waiting
     // for the analysis debounce — tryOperation reads content directly.
-    openApiSession.content = SPEC_YAML + `  /toys:
+    openApiSession.content =
+      SPEC_YAML +
+      `  /toys:
     get:
       operationId: listToys
       responses:
@@ -115,7 +117,10 @@ describe('tryOperation', () => {
 
     expect(outcome.ok).toBe(false);
     expect(outcome.message).toMatch(/not found/);
-    expect(notificationMocks.showNotification).toHaveBeenCalledWith('error', expect.stringMatching(/not found/));
+    expect(notificationMocks.showNotification).toHaveBeenCalledWith(
+      'error',
+      expect.stringMatching(/not found/),
+    );
     expect(tabsMocks.openTab).not.toHaveBeenCalled();
     expect(setView).not.toHaveBeenCalled();
   });

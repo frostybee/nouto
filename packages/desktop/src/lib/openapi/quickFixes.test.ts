@@ -21,13 +21,10 @@ function fixesFor(text: string, code: string) {
   const map = buildPointerMap(text, 'yaml');
   const diagnostics = analysis.diagnostics.filter((diagnostic) => diagnostic.code === code);
   expect(diagnostics.length).toBeGreaterThan(0);
-  return buildQuickFixes(
-    { text, format: 'yaml' },
-    diagnostics,
-    analysis,
-    map,
-    { from: 0, to: text.length }
-  );
+  return buildQuickFixes({ text, format: 'yaml' }, diagnostics, analysis, map, {
+    from: 0,
+    to: text.length,
+  });
 }
 
 describe('missing-root-sections', () => {
@@ -76,7 +73,7 @@ paths:
     const fix = QUICK_FIX_BUILDERS['duplicate-operation-id'](
       { text: DOC, format: 'yaml' },
       { source: 'semantic', severity: 'warning', message: 'x', pointer: '/paths' },
-      analyzeOpenApi(DOC, 'yaml')
+      analyzeOpenApi(DOC, 'yaml'),
     );
     expect(fix).toBeUndefined();
   });
@@ -173,7 +170,7 @@ components:
         pointer: '/paths',
         data: { ref: '#/info/title', targetPointer: '/info/title' },
       },
-      analyzeOpenApi(DOC, 'yaml')
+      analyzeOpenApi(DOC, 'yaml'),
     );
     expect(fix).toBeUndefined();
   });
@@ -200,7 +197,7 @@ paths:
       diagnostics,
       analysis,
       map,
-      { from: 0, to: 5 } // inside `openapi`, far from the diagnostic
+      { from: 0, to: 5 }, // inside `openapi`, far from the diagnostic
     );
     expect(fixes).toEqual([]);
   });
@@ -209,14 +206,20 @@ paths:
     const analysis = analyzeOpenApi(DOC, 'yaml');
     const map = buildPointerMap(DOC, 'yaml');
     const noise: OpenApiDiagnostic[] = [
-      { source: 'lint', severity: 'info', message: 'x', pointer: '/components/securitySchemes/k', code: 'http-basic-scheme' },
+      {
+        source: 'lint',
+        severity: 'info',
+        message: 'x',
+        pointer: '/components/securitySchemes/k',
+        code: 'http-basic-scheme',
+      },
       { source: 'schema', severity: 'error', message: 'x', pointer: '/info' },
     ];
     expect(
       buildQuickFixes({ text: DOC, format: 'yaml' }, noise, analysis, map, {
         from: 0,
         to: DOC.length,
-      })
+      }),
     ).toEqual([]);
   });
 
@@ -229,8 +232,8 @@ paths:
         [{ source: 'semantic', severity: 'warning', message: 'x', code: 'missing-root-sections' }],
         analysis,
         buildPointerMap(broken, 'yaml'),
-        { from: 0, to: broken.length }
-      )
+        { from: 0, to: broken.length },
+      ),
     ).toEqual([]);
   });
 
@@ -240,7 +243,13 @@ paths:
     const diagnostic = analysis.diagnostics.find((d) => d.code === 'missing-path-param')!;
     const range = diagnosticMarkerRange(diagnostic, map)!;
     expect(range.to).toBeGreaterThan(range.from);
-    const fixes = buildQuickFixes({ text: DOC, format: 'yaml' }, [diagnostic], analysis, map, range);
+    const fixes = buildQuickFixes(
+      { text: DOC, format: 'yaml' },
+      [diagnostic],
+      analysis,
+      map,
+      range,
+    );
     expect(fixes).toHaveLength(1);
     expect(fixes[0].range).toEqual(range);
   });
@@ -273,10 +282,13 @@ components:
     const analysis = analyzeOpenApi(text, 'yaml');
     const map = buildPointerMap(text, 'yaml');
     const diagnostics = runLintRules(analysis, { disabledRules: [] }).filter(
-      (diagnostic) => diagnostic.code !== undefined && codes.includes(diagnostic.code)
+      (diagnostic) => diagnostic.code !== undefined && codes.includes(diagnostic.code),
     );
     expect(diagnostics.length).toBeGreaterThan(0);
-    return buildQuickFixes({ text, format: 'yaml' }, diagnostics, analysis, map, { from: 0, to: text.length });
+    return buildQuickFixes({ text, format: 'yaml' }, diagnostics, analysis, map, {
+      from: 0,
+      to: text.length,
+    });
   }
 
   function lintCodes(text: string): Array<string | undefined> {
@@ -305,12 +317,17 @@ components:
 
     const id = lintFixesFor(LINTABLE, ['operation-missing-operation-id']);
     expect(id[0].title).toBe('Add operationId "getStoreOrderByOrderId"');
-    expect(lintCodes(applyEdits(LINTABLE, id[0].edits))).not.toContain('operation-missing-operation-id');
+    expect(lintCodes(applyEdits(LINTABLE, id[0].edits))).not.toContain(
+      'operation-missing-operation-id',
+    );
   });
 
   it('adds rate-limit headers to the 2xx responses of an operation', () => {
     // Block-style response: the YAML planner does not splice into flow maps.
-    const spec = LINTABLE.replace("        '200': { description: OK }", "        '200':\n          description: OK");
+    const spec = LINTABLE.replace(
+      "        '200': { description: OK }",
+      "        '200':\n          description: OK",
+    );
     const [fix] = lintFixesFor(spec, ['rate-limit-headers']);
     expect(fix.title).toBe('Add rate-limit headers to 2xx responses');
     const fixed = applyEdits(spec, fix.edits);
@@ -319,7 +336,10 @@ components:
   });
 
   it('adds a derived summary to an operation without one', () => {
-    const spec = LINTABLE.replace('    get:\n      parameters:', '    get:\n      operationId: getOrderById\n      parameters:');
+    const spec = LINTABLE.replace(
+      '    get:\n      parameters:',
+      '    get:\n      operationId: getOrderById\n      parameters:',
+    );
     const [fix] = lintFixesFor(spec, ['operation-missing-description']);
     expect(fix.title).toBe('Add summary "Get order by id"');
     expect(lintCodes(applyEdits(spec, fix.edits))).not.toContain('operation-missing-description');
@@ -328,19 +348,34 @@ components:
   it('places the candidate on the anchored (key) range', () => {
     const analysis = analyzeOpenApi(LINTABLE, 'yaml');
     const map = buildPointerMap(LINTABLE, 'yaml');
-    const [diagnostic] = runLintRules(analysis, { disabledRules: [] }).filter((d) => d.code === 'operation-missing-tags');
-    const [fix] = buildQuickFixes({ text: LINTABLE, format: 'yaml' }, [diagnostic], analysis, map, { from: 0, to: LINTABLE.length });
+    const [diagnostic] = runLintRules(analysis, { disabledRules: [] }).filter(
+      (d) => d.code === 'operation-missing-tags',
+    );
+    const [fix] = buildQuickFixes({ text: LINTABLE, format: 'yaml' }, [diagnostic], analysis, map, {
+      from: 0,
+      to: LINTABLE.length,
+    });
     expect(LINTABLE.slice(fix.range.from, fix.range.to)).toBe('get');
   });
 
   it('offers nothing for lint rules without a fix', () => {
     const analysis = analyzeOpenApi(LINTABLE, 'yaml');
     const map = buildPointerMap(LINTABLE, 'yaml');
-    const diagnostics: OpenApiDiagnostic[] = [{
-      source: 'lint', severity: 'warning', message: 'x', code: 'http-basic-scheme',
-      pointer: '/components/securitySchemes/key',
-    }];
-    expect(buildQuickFixes({ text: LINTABLE, format: 'yaml' }, diagnostics, analysis, map, { from: 0, to: LINTABLE.length })).toEqual([]);
+    const diagnostics: OpenApiDiagnostic[] = [
+      {
+        source: 'lint',
+        severity: 'warning',
+        message: 'x',
+        code: 'http-basic-scheme',
+        pointer: '/components/securitySchemes/key',
+      },
+    ];
+    expect(
+      buildQuickFixes({ text: LINTABLE, format: 'yaml' }, diagnostics, analysis, map, {
+        from: 0,
+        to: LINTABLE.length,
+      }),
+    ).toEqual([]);
   });
 
   it('offers per-scheme security requirements, https rewrite, and unused-schema removal', () => {
@@ -371,7 +406,13 @@ components:
     const whole = { from: 0, to: SPEC.length };
     const doc = { text: SPEC, format: 'yaml' as const };
 
-    const sec = buildQuickFixes(doc, all.filter((d) => d.code === 'operation-without-security'), analysis, map, whole);
+    const sec = buildQuickFixes(
+      doc,
+      all.filter((d) => d.code === 'operation-without-security'),
+      analysis,
+      map,
+      whole,
+    );
     expect(sec.map((f) => f.title)).toEqual([
       'Require "petstore_auth" for this operation',
       'Require "api_key" for this operation',
@@ -379,14 +420,27 @@ components:
       'Require "api_key" for all operations',
     ]);
     const secured = applyEdits(SPEC, sec[2].edits);
-    expect(runLintRules(analyzeOpenApi(secured, 'yaml'), { disabledRules: [] }).map((d) => d.code))
-      .not.toContain('operation-without-security');
+    expect(
+      runLintRules(analyzeOpenApi(secured, 'yaml'), { disabledRules: [] }).map((d) => d.code),
+    ).not.toContain('operation-without-security');
 
-    const [https] = buildQuickFixes(doc, all.filter((d) => d.code === 'server-uses-http'), analysis, map, whole);
+    const [https] = buildQuickFixes(
+      doc,
+      all.filter((d) => d.code === 'server-uses-http'),
+      analysis,
+      map,
+      whole,
+    );
     expect(https.title).toBe('Use https://');
     expect(applyEdits(SPEC, https.edits)).toContain('url: https://petstore.example/api/v3');
 
-    const [remove] = buildQuickFixes(doc, all.filter((d) => d.code === 'unused-component-schema'), analysis, map, whole);
+    const [remove] = buildQuickFixes(
+      doc,
+      all.filter((d) => d.code === 'unused-component-schema'),
+      analysis,
+      map,
+      whole,
+    );
     expect(remove.title).toBe('Remove unused schema "Unused"');
     const removed = applyEdits(SPEC, remove.edits);
     expect(removed).not.toContain('Unused');

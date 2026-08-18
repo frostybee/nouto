@@ -101,7 +101,14 @@ describe('previewAdapter', () => {
   });
 
   it('bridges openApiProxyRequest to the openapi_proxy_fetch invoke', async () => {
-    const response = { status: 200, statusText: 'OK', headers: {}, body: '{}', bodyEncoding: 'utf8', url: 'http://x/' };
+    const response = {
+      status: 200,
+      statusText: 'OK',
+      headers: {},
+      body: '{}',
+      bodyEncoding: 'utf8',
+      url: 'http://x/',
+    };
     tauriMocks.invoke.mockResolvedValue(response);
     const adapter = createPreviewAdapter();
     const request = { method: 'GET', url: 'http://x/', headers: {} };
@@ -117,18 +124,32 @@ describe('previewAdapter', () => {
     tauriMocks.invoke.mockRejectedValue(new Error('connection refused'));
     const adapter = createPreviewAdapter();
 
-    adapter.postMessage({ type: 'openApiProxyRequest', data: { requestId: 'p1', request: { method: 'GET', url: 'http://x/', headers: {} } } });
+    adapter.postMessage({
+      type: 'openApiProxyRequest',
+      data: { requestId: 'p1', request: { method: 'GET', url: 'http://x/', headers: {} } },
+    });
 
     await vi.waitFor(() => expect(ofType('openApiProxyResponse')).toHaveLength(1));
-    expect(ofType('openApiProxyResponse')[0].data).toEqual({ requestId: 'p1', error: 'connection refused' });
+    expect(ofType('openApiProxyResponse')[0].data).toEqual({
+      requestId: 'p1',
+      error: 'connection refused',
+    });
   });
 
   it('drops a late proxy result after openApiProxyCancel', async () => {
     let resolveInvoke!: (value: unknown) => void;
-    tauriMocks.invoke.mockImplementation(() => new Promise((resolve) => { resolveInvoke = resolve; }));
+    tauriMocks.invoke.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveInvoke = resolve;
+        }),
+    );
     const adapter = createPreviewAdapter();
 
-    adapter.postMessage({ type: 'openApiProxyRequest', data: { requestId: 'p1', request: { method: 'GET', url: 'http://x/', headers: {} } } });
+    adapter.postMessage({
+      type: 'openApiProxyRequest',
+      data: { requestId: 'p1', request: { method: 'GET', url: 'http://x/', headers: {} } },
+    });
     adapter.postMessage({ type: 'openApiProxyCancel', data: { requestId: 'p1' } });
     resolveInvoke({ status: 200 });
     await Promise.resolve();
@@ -146,7 +167,10 @@ describe('previewAdapter', () => {
     expect(tryItMocks.tryOperation).toHaveBeenCalledWith('/pets', 'get');
     expect(ofType('openApiActionStarted')[0].data).toEqual({ action: 'tryOperation' });
     await vi.waitFor(() => expect(ofType('openApiActionSucceeded')).toHaveLength(1));
-    expect(ofType('openApiActionSucceeded')[0].data).toEqual({ action: 'tryOperation', message: 'Opened "Get pets".' });
+    expect(ofType('openApiActionSucceeded')[0].data).toEqual({
+      action: 'tryOperation',
+      message: 'Opened "Get pets".',
+    });
     expect(ofType('openApiActionFailed')).toHaveLength(0);
   });
 
@@ -157,12 +181,18 @@ describe('previewAdapter', () => {
     adapter.postMessage({ type: 'openApiTryOperation', data: { path: '/x', method: 'get' } });
 
     await vi.waitFor(() => expect(ofType('openApiActionFailed')).toHaveLength(1));
-    expect(ofType('openApiActionFailed')[0].data).toEqual({ action: 'tryOperation', message: 'path "/x" not found' });
+    expect(ofType('openApiActionFailed')[0].data).toEqual({
+      action: 'tryOperation',
+      message: 'path "/x" not found',
+    });
   });
 
   it('routes Generate Collection through the shared import pipeline', async () => {
     const id = openSession('/tmp/api.yaml', VALID_YAML, 'yaml');
-    importExportMocks.generateCollectionFromOpenApi.mockReturnValue({ ok: true, message: 'Generated collection "T".' });
+    importExportMocks.generateCollectionFromOpenApi.mockReturnValue({
+      ok: true,
+      message: 'Generated collection "T".',
+    });
     const adapter = createPreviewAdapter();
 
     adapter.postMessage({ type: 'openApiGenerateCollection' });

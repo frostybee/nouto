@@ -1,21 +1,42 @@
 import {
-  collections as collectionsStore, addRequestToCollection, addCollection,
-  setCollections, deleteCollection as storeDeleteCollection,
-  deleteRequest as storeDeleteRequest, deleteFolder as storeDeleteFolder,
-  moveItem, findItemById, findItemRecursive, findCollectionForItem,
-  isDraftsCollection, addFolder, updateRequest,
-  renameCollection as storeRenameCollection, renameFolder as storeRenameFolder,
+  collections as collectionsStore,
+  addRequestToCollection,
+  addCollection,
+  setCollections,
+  deleteCollection as storeDeleteCollection,
+  deleteRequest as storeDeleteRequest,
+  deleteFolder as storeDeleteFolder,
+  moveItem,
+  findItemById,
+  findItemRecursive,
+  findCollectionForItem,
+  isDraftsCollection,
+  addFolder,
+  updateRequest,
+  renameCollection as storeRenameCollection,
+  renameFolder as storeRenameFolder,
 } from '@nouto/ui/stores/collections.svelte';
 import {
-  openTab, switchTab as switchTabFn,
-  findTabByRequestId, createRequestTab,
+  openTab,
+  switchTab as switchTabFn,
+  findTabByRequestId,
+  createRequestTab,
 } from '@nouto/ui/stores/tabs.svelte';
 import { setOriginalSnapshot, request as requestStore } from '@nouto/ui/stores';
 import { showNotification } from '@nouto/ui/stores/notifications.svelte';
-import { notifySettingsSaved, type SettingsInitData } from '@nouto/ui/stores/collectionSettings.svelte';
 import {
-  getDefaultsForRequestKind, isFolder, isRequest, generateId,
-  type RequestKind, type SavedRequest, type Collection, type Folder,
+  notifySettingsSaved,
+  type SettingsInitData,
+} from '@nouto/ui/stores/collectionSettings.svelte';
+import {
+  getDefaultsForRequestKind,
+  isFolder,
+  isRequest,
+  generateId,
+  type RequestKind,
+  type SavedRequest,
+  type Collection,
+  type Folder,
   type CollectionItem,
 } from '@nouto/core';
 import { showLocalQuickPick, showLocalInputBox, showLocalConfirm } from './modal-store.svelte';
@@ -83,12 +104,35 @@ export function countAllItems(items: (SavedRequest | Folder)[]): number {
   return count;
 }
 
-export function buildCollectionPickerItems(cols: Collection[]): { label: string; value: string; description?: string; kind?: string; icon?: string; accent?: boolean }[] {
-  const items: { label: string; value: string; description?: string; kind?: string; icon?: string; accent?: boolean }[] = [
+export function buildCollectionPickerItems(cols: Collection[]): {
+  label: string;
+  value: string;
+  description?: string;
+  kind?: string;
+  icon?: string;
+  accent?: boolean;
+}[] {
+  const items: {
+    label: string;
+    value: string;
+    description?: string;
+    kind?: string;
+    icon?: string;
+    accent?: boolean;
+  }[] = [
     { label: 'Quick Start', value: '_sep_quick', kind: 'separator' },
-    { label: 'No Collection (Quick Request)', value: 'no-collection', description: 'Saved to Drafts and History after sending' },
+    {
+      label: 'No Collection (Quick Request)',
+      value: 'no-collection',
+      description: 'Saved to Drafts and History after sending',
+    },
     { label: 'Collections', value: '_sep_collections', kind: 'separator' },
-    { label: 'Create New Collection...', value: 'new-collection', icon: 'codicon-new-folder', accent: true },
+    {
+      label: 'Create New Collection...',
+      value: 'new-collection',
+      icon: 'codicon-new-folder',
+      accent: true,
+    },
     { label: '', value: '_sep_existing', kind: 'separator' },
   ];
   for (const col of cols) {
@@ -104,7 +148,7 @@ export function buildCollectionPickerItems(cols: Collection[]): { label: string;
 
 export function duplicateItemsRecursive(items: CollectionItem[]): CollectionItem[] {
   const now = new Date().toISOString();
-  return items.map(item => {
+  return items.map((item) => {
     if (isFolder(item)) {
       return {
         ...item,
@@ -123,7 +167,9 @@ export function duplicateItemsRecursive(items: CollectionItem[]): CollectionItem
   });
 }
 
-function buildMoveTargetItems(excludeIds: Set<string>): { label: string; value: string; description?: string; kind?: string }[] {
+function buildMoveTargetItems(
+  excludeIds: Set<string>,
+): { label: string; value: string; description?: string; kind?: string }[] {
   const items: { label: string; value: string; description?: string; kind?: string }[] = [];
   const cols = collectionsStore();
 
@@ -143,7 +189,7 @@ function addFolderTargets(
   items: CollectionItem[],
   result: { label: string; value: string; description?: string }[],
   excludeIds: Set<string>,
-  depth: number
+  depth: number,
 ) {
   for (const item of items) {
     if (isFolder(item) && !excludeIds.has(item.id)) {
@@ -157,7 +203,12 @@ function addFolderTargets(
   }
 }
 
-export function loadNewRequestIntoForm(defaults: ReturnType<typeof getDefaultsForRequestKind>, savedReq: SavedRequest | null, targetColId: string | null, targetColName: string | null) {
+export function loadNewRequestIntoForm(
+  defaults: ReturnType<typeof getDefaultsForRequestKind>,
+  savedReq: SavedRequest | null,
+  targetColId: string | null,
+  targetColName: string | null,
+) {
   setCollectionId(targetColId);
   setCollectionName(targetColName);
   setRequestId(savedReq?.id ?? null);
@@ -177,14 +228,34 @@ export function loadNewRequestIntoForm(defaults: ReturnType<typeof getDefaultsFo
   tab.connectionMode = defaults.connectionMode;
 
   if (savedReq?.id && targetColId) {
-    tab.context = { panelId: 'desktop-main', requestId: savedReq.id, collectionId: targetColId, collectionName: targetColName || '' };
-    tab.originalSnapshot = JSON.parse(JSON.stringify({
-      method: tab.method, url: tab.url, params: tab.params, pathParams: tab.pathParams,
-      headers: tab.headers, auth: tab.auth, body: tab.body, assertions: tab.assertions,
-      scripts: tab.scripts, description: tab.description, ssl: tab.ssl, proxy: tab.proxy,
-      timeout: tab.timeout, followRedirects: tab.followRedirects, maxRedirects: tab.maxRedirects,
-      authInheritance: tab.authInheritance, scriptInheritance: tab.scriptInheritance, grpc: tab.grpc,
-    }));
+    tab.context = {
+      panelId: 'desktop-main',
+      requestId: savedReq.id,
+      collectionId: targetColId,
+      collectionName: targetColName || '',
+    };
+    tab.originalSnapshot = JSON.parse(
+      JSON.stringify({
+        method: tab.method,
+        url: tab.url,
+        params: tab.params,
+        pathParams: tab.pathParams,
+        headers: tab.headers,
+        auth: tab.auth,
+        body: tab.body,
+        assertions: tab.assertions,
+        scripts: tab.scripts,
+        description: tab.description,
+        ssl: tab.ssl,
+        proxy: tab.proxy,
+        timeout: tab.timeout,
+        followRedirects: tab.followRedirects,
+        maxRedirects: tab.maxRedirects,
+        authInheritance: tab.authInheritance,
+        scriptInheritance: tab.scriptInheritance,
+        grpc: tab.grpc,
+      }),
+    );
   }
 
   openTab(tab);
@@ -229,7 +300,7 @@ export async function handleNewRequestKind(kind: string) {
   }
 
   const colId = selectedValue.replace('collection:', '');
-  const targetCollection = collections.find(c => c.id === colId);
+  const targetCollection = collections.find((c) => c.id === colId);
   if (!targetCollection) return;
 
   const savedRequest = addRequestToCollection(targetCollection.id, {
@@ -249,7 +320,7 @@ export async function handleNewRequestKind(kind: string) {
 
 export async function handleDeleteCollection(id: string) {
   const collections = getCollections();
-  const col = collections.find(c => c.id === id);
+  const col = collections.find((c) => c.id === id);
   if (!col) return;
   if (isDraftsCollection(col)) {
     showNotification('warning', 'Cannot delete the Drafts collection. Use "Clear All" instead.');
@@ -271,7 +342,7 @@ export function handleDeleteFolder(folderId: string) {
 
 export function handleDuplicateCollection(id: string) {
   const collections = getCollections();
-  const col = collections.find(c => c.id === id);
+  const col = collections.find((c) => c.id === id);
   if (!col) return;
   const now = new Date().toISOString();
   const newCol: Collection = {
@@ -292,7 +363,7 @@ export function handleDuplicateCollection(id: string) {
 
 export function handleDuplicateFolder(folderId: string, collectionId: string) {
   const collections = getCollections();
-  const col = collections.find(c => c.id === collectionId);
+  const col = collections.find((c) => c.id === collectionId);
   if (!col) return;
   const folder = findItemRecursive(col.items, folderId);
   if (!folder || !isFolder(folder)) return;
@@ -359,30 +430,44 @@ export async function handleBulkMovePickTarget(itemIds: string[], _sourceCollect
   syncCollections();
 }
 
-export function handleCreateRequest(data: { collectionId: string; parentFolderId?: string; openInPanel?: boolean; requestKind?: string }) {
+export function handleCreateRequest(data: {
+  collectionId: string;
+  parentFolderId?: string;
+  openInPanel?: boolean;
+  requestKind?: string;
+}) {
   const collections = getCollections();
   const defaults = getDefaultsForRequestKind((data.requestKind || 'http') as RequestKind);
-  const savedRequest = addRequestToCollection(data.collectionId, {
-    name: defaults.name,
-    method: defaults.method,
-    url: defaults.url,
-    params: [],
-    headers: [],
-    auth: { type: 'none' },
-    body: defaults.body,
-    connectionMode: defaults.connectionMode,
-    grpc: defaults.grpc,
-  }, data.parentFolderId);
+  const savedRequest = addRequestToCollection(
+    data.collectionId,
+    {
+      name: defaults.name,
+      method: defaults.method,
+      url: defaults.url,
+      params: [],
+      headers: [],
+      auth: { type: 'none' },
+      body: defaults.body,
+      connectionMode: defaults.connectionMode,
+      grpc: defaults.grpc,
+    },
+    data.parentFolderId,
+  );
   syncCollections();
 
   if (data.openInPanel) {
-    loadNewRequestIntoForm(defaults, savedRequest, data.collectionId, collections.find(c => c.id === data.collectionId)?.name || null);
+    loadNewRequestIntoForm(
+      defaults,
+      savedRequest,
+      data.collectionId,
+      collections.find((c) => c.id === data.collectionId)?.name || null,
+    );
   }
 }
 
 export function handleOpenCollectionRequest(data: { requestId: string; collectionId: string }) {
   const collections = getCollections();
-  const col = collections.find(c => c.id === data.collectionId);
+  const col = collections.find((c) => c.id === data.collectionId);
   if (!col) return;
   const item = findItemRecursive(col.items, data.requestId);
   if (!item || !isRequest(item)) return;
@@ -416,14 +501,34 @@ export function handleOpenCollectionRequest(data: { requestId: string; collectio
   tab.followRedirects = (item as any).followRedirects;
   tab.maxRedirects = (item as any).maxRedirects;
   tab.grpc = (item as any).grpc;
-  tab.context = { panelId: getPanelId() || 'desktop-main', requestId: data.requestId, collectionId: data.collectionId, collectionName: col.name };
-  tab.originalSnapshot = JSON.parse(JSON.stringify({
-    method: tab.method, url: tab.url, params: tab.params, pathParams: tab.pathParams,
-    headers: tab.headers, auth: tab.auth, body: tab.body, assertions: tab.assertions,
-    scripts: tab.scripts, description: tab.description, ssl: tab.ssl, proxy: tab.proxy,
-    timeout: tab.timeout, followRedirects: tab.followRedirects, maxRedirects: tab.maxRedirects,
-    authInheritance: tab.authInheritance, scriptInheritance: tab.scriptInheritance, grpc: tab.grpc,
-  }));
+  tab.context = {
+    panelId: getPanelId() || 'desktop-main',
+    requestId: data.requestId,
+    collectionId: data.collectionId,
+    collectionName: col.name,
+  };
+  tab.originalSnapshot = JSON.parse(
+    JSON.stringify({
+      method: tab.method,
+      url: tab.url,
+      params: tab.params,
+      pathParams: tab.pathParams,
+      headers: tab.headers,
+      auth: tab.auth,
+      body: tab.body,
+      assertions: tab.assertions,
+      scripts: tab.scripts,
+      description: tab.description,
+      ssl: tab.ssl,
+      proxy: tab.proxy,
+      timeout: tab.timeout,
+      followRedirects: tab.followRedirects,
+      maxRedirects: tab.maxRedirects,
+      authInheritance: tab.authInheritance,
+      scriptInheritance: tab.scriptInheritance,
+      grpc: tab.grpc,
+    }),
+  );
 
   setCollectionId(data.collectionId);
   setCollectionName(col.name);
@@ -441,12 +546,12 @@ export async function handleClearDrafts() {
   const confirmed = await showLocalConfirm(
     'Clear all draft requests? This cannot be undone.',
     'Clear',
-    'danger'
+    'danger',
   );
   if (!confirmed) return;
 
   const cols = collectionsStore();
-  const drafts = cols.find(c => c.builtin === 'drafts');
+  const drafts = cols.find((c) => c.builtin === 'drafts');
   if (drafts) {
     drafts.items = [];
     drafts.updatedAt = new Date().toISOString();
@@ -457,9 +562,13 @@ export async function handleClearDrafts() {
 
 export async function handleRenameCollection(id: string, currentName?: string) {
   const collections = getCollections();
-  const col = collections.find(c => c.id === id);
+  const col = collections.find((c) => c.id === id);
   if (!col) return;
-  const newName = await showLocalInputBox('Rename collection', 'Collection name', currentName || col.name);
+  const newName = await showLocalInputBox(
+    'Rename collection',
+    'Collection name',
+    currentName || col.name,
+  );
   if (!newName || newName === col.name) return;
   storeRenameCollection(id, newName);
   syncCollections();
@@ -483,27 +592,29 @@ export async function handleCreateFolder(data: { collectionId: string; parentFol
 
 export function handleOpenCollectionSettings(colId: string) {
   const collections = getCollections();
-  const col = collections.find(c => c.id === colId);
+  const col = collections.find((c) => c.id === colId);
   if (!col) {
     showNotification('error', 'Collection not found.');
     return;
   }
-  setCollectionSettingsDialogData($state.snapshot({
-    entityType: 'collection' as const,
-    entityName: col.name,
-    collectionId: col.id,
-    initialAuth: col.auth,
-    initialHeaders: col.headers,
-    initialVariables: col.variables,
-    initialScripts: col.scripts,
-    initialAssertions: col.assertions,
-    initialNotes: col.description,
-  }) as SettingsInitData);
+  setCollectionSettingsDialogData(
+    $state.snapshot({
+      entityType: 'collection' as const,
+      entityName: col.name,
+      collectionId: col.id,
+      initialAuth: col.auth,
+      initialHeaders: col.headers,
+      initialVariables: col.variables,
+      initialScripts: col.scripts,
+      initialAssertions: col.assertions,
+      initialNotes: col.description,
+    }) as SettingsInitData,
+  );
 }
 
 export function handleOpenFolderSettings(colId: string, folderId: string) {
   const collections = getCollections();
-  const col = collections.find(c => c.id === colId);
+  const col = collections.find((c) => c.id === colId);
   if (!col) {
     showNotification('error', 'Collection not found.');
     return;
@@ -513,23 +624,25 @@ export function handleOpenFolderSettings(colId: string, folderId: string) {
     showNotification('error', 'Folder not found.');
     return;
   }
-  setCollectionSettingsDialogData($state.snapshot({
-    entityType: 'folder' as const,
-    entityName: folder.name,
-    collectionId: colId,
-    folderId,
-    initialAuth: folder.auth,
-    initialHeaders: folder.headers,
-    initialVariables: folder.variables,
-    initialScripts: folder.scripts,
-    initialAssertions: folder.assertions,
-    initialNotes: folder.description,
-  }) as SettingsInitData);
+  setCollectionSettingsDialogData(
+    $state.snapshot({
+      entityType: 'folder' as const,
+      entityName: folder.name,
+      collectionId: colId,
+      folderId,
+      initialAuth: folder.auth,
+      initialHeaders: folder.headers,
+      initialVariables: folder.variables,
+      initialScripts: folder.scripts,
+      initialAssertions: folder.assertions,
+      initialNotes: folder.description,
+    }) as SettingsInitData,
+  );
 }
 
 export function handleSaveCollectionSettings(data: any) {
   const cols = collectionsStore();
-  const col = cols.find(c => c.id === data.collectionId);
+  const col = cols.find((c) => c.id === data.collectionId);
   if (!col) return;
 
   if (data.folderId) {
@@ -558,19 +671,66 @@ export function handleSaveCollectionSettings(data: any) {
   showNotification('info', 'Settings saved.');
 }
 
-export function handleSaveCollectionRequest(data: { requestId: string; collectionId: string; request: SavedRequest }) {
+export function handleSaveCollectionRequest(data: {
+  requestId: string;
+  collectionId: string;
+  request: SavedRequest;
+}) {
   if (!data.requestId || !data.collectionId) return;
-  const { method, url, params, pathParams, headers, auth, body, assertions, authInheritance, scriptInheritance, scripts, description, ssl, proxy, timeout, followRedirects, maxRedirects, connectionMode, grpc } = data.request;
-  updateRequest(data.requestId, { method, url, params, pathParams, headers, auth, body, assertions, authInheritance, scriptInheritance, scripts, description, ssl, proxy, timeout, followRedirects, maxRedirects, connectionMode, grpc });
+  const {
+    method,
+    url,
+    params,
+    pathParams,
+    headers,
+    auth,
+    body,
+    assertions,
+    authInheritance,
+    scriptInheritance,
+    scripts,
+    description,
+    ssl,
+    proxy,
+    timeout,
+    followRedirects,
+    maxRedirects,
+    connectionMode,
+    grpc,
+  } = data.request;
+  updateRequest(data.requestId, {
+    method,
+    url,
+    params,
+    pathParams,
+    headers,
+    auth,
+    body,
+    assertions,
+    authInheritance,
+    scriptInheritance,
+    scripts,
+    description,
+    ssl,
+    proxy,
+    timeout,
+    followRedirects,
+    maxRedirects,
+    connectionMode,
+    grpc,
+  });
   syncCollections();
   persistCollections();
   setOriginalSnapshot($state.snapshot(requestStore));
 }
 
-export function handleRevertRequest(data: { requestId: string; collectionId: string }, loadRequest: (item: SavedRequest) => void) {
+export function handleRevertRequest(
+  data: { requestId: string; collectionId: string },
+  loadRequest: (item: SavedRequest) => void,
+) {
   if (!data.requestId || !data.collectionId) return;
   const collections = getCollections();
-  const col = collections.find(c => c.id === data.collectionId);
+  const col = collections.find((c) => c.id === data.collectionId);
   if (!col) return;
   const item = findItemRecursive(col.items, data.requestId);
   if (!item || !isRequest(item)) return;

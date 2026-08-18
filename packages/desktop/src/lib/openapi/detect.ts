@@ -15,7 +15,9 @@ export function formatFromPath(path: string): OpenApiFormat | null {
  */
 export function isOpenApiDocument(content: string, format: OpenApiFormat): boolean {
   const quickMatch =
-    format === 'yaml' ? /^["']?openapi["']?\s*:\s*["']?3\./m.test(content) : /"openapi"\s*:\s*"3\./.test(content);
+    format === 'yaml'
+      ? /^["']?openapi["']?\s*:\s*["']?3\./m.test(content)
+      : /"openapi"\s*:\s*"3\./.test(content);
   if (!quickMatch) return false;
   try {
     const parsed = format === 'yaml' ? yaml.load(content) : JSON.parse(content);

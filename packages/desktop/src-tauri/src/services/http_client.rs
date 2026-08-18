@@ -1,13 +1,16 @@
 // HTTP Client Service - Phase 2
 // Implements HTTP/1.1, HTTP/2, compression, auth, and timing tracking
 
-use crate::models::types::{HttpMethod, KeyValue, ProxyConfig, ProxyProtocol, RedirectHop, ResponseData, TimingData, ContentCategory, SslConfig, TimelineEvent, TimelineEventCategory};
-use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64};
+use crate::models::types::{
+    ContentCategory, HttpMethod, KeyValue, ProxyConfig, ProxyProtocol, RedirectHop, ResponseData,
+    SslConfig, TimelineEvent, TimelineEventCategory, TimingData,
+};
+use base64::{engine::general_purpose::STANDARD as BASE64, Engine as _};
+use futures::StreamExt;
 use reqwest::{Client, Method, Request, Response, StatusCode};
 use serde_json::Value;
 use std::collections::HashMap;
 use std::time::{Duration, Instant};
-use futures::StreamExt;
 
 /// HTTP request configuration
 #[derive(Debug, Clone)]
@@ -52,7 +55,13 @@ impl HttpClient {
     }
 
     /// Build a reqwest Client, applying any SSL, proxy, timeout and redirect overrides from config
-    fn build_client(ssl: Option<&SslConfig>, proxy: Option<&ProxyConfig>, timeout_ms: u64, follow_redirects: bool, max_redirects: u32) -> Result<Client, String> {
+    fn build_client(
+        ssl: Option<&SslConfig>,
+        proxy: Option<&ProxyConfig>,
+        timeout_ms: u64,
+        follow_redirects: bool,
+        max_redirects: u32,
+    ) -> Result<Client, String> {
         let mut builder = Client::builder()
             .gzip(true)
             .brotli(true)
@@ -114,7 +123,8 @@ impl HttpClient {
                 let proxy_url = format!("{}://{}:{}", scheme, proxy_cfg.host, proxy_cfg.port);
 
                 // Build no-proxy bypass list
-                let no_proxy_entries: Vec<String> = proxy_cfg.no_proxy
+                let no_proxy_entries: Vec<String> = proxy_cfg
+                    .no_proxy
                     .as_deref()
                     .unwrap_or("")
                     .split(',')
@@ -132,7 +142,10 @@ impl HttpClient {
                     reqwest::Proxy::custom(move |url| {
                         let host = url.host_str().unwrap_or("").to_lowercase();
                         for entry in &no_proxy_entries {
-                            if entry == "*" || host == *entry || host.ends_with(&format!(".{}", entry)) {
+                            if entry == "*"
+                                || host == *entry
+                                || host.ends_with(&format!(".{}", entry))
+                            {
                                 return None;
                             }
                         }
@@ -154,7 +167,11 @@ impl HttpClient {
     }
 
     /// Execute an HTTP request with optional download progress callback
-    pub async fn execute<F>(&self, config: HttpRequestConfig, on_progress: Option<F>) -> Result<ResponseData, String>
+    pub async fn execute<F>(
+        &self,
+        config: HttpRequestConfig,
+        on_progress: Option<F>,
+    ) -> Result<ResponseData, String>
     where
         F: Fn(usize, Option<u64>) + Send,
     {
@@ -241,10 +258,12 @@ impl HttpClient {
 
         // Extract hostname and port for DNS lookup
         let parsed_url = reqwest::Url::parse(&request_url).ok();
-        let hostname = parsed_url.as_ref()
+        let hostname = parsed_url
+            .as_ref()
             .and_then(|u| u.host_str().map(|h| h.to_string()))
             .unwrap_or_default();
-        let port = parsed_url.as_ref()
+        let port = parsed_url
+            .as_ref()
             .and_then(|u| u.port_or_known_default())
             .unwrap_or(80);
         let is_https = request_url.starts_with("https://");
@@ -259,7 +278,11 @@ impl HttpClient {
         timing.dns_lookup = dns_start.elapsed().as_millis() as i64;
 
         // Manual redirect loop to capture Set-Cookie headers from intermediate responses
-        let max_redirects = if config.follow_redirects { config.max_redirects as usize } else { 0 };
+        let max_redirects = if config.follow_redirects {
+            config.max_redirects as usize
+        } else {
+            0
+        };
         let mut redirect_set_cookies: Vec<String> = Vec::new();
         let mut redirect_chain: Vec<RedirectHop> = Vec::new();
         let mut last_hop_time = Instant::now();
@@ -311,7 +334,8 @@ impl HttpClient {
             }
 
             // Capture response headers for this hop
-            let hop_headers: HashMap<String, String> = response.headers()
+            let hop_headers: HashMap<String, String> = response
+                .headers()
                 .iter()
                 .map(|(k, v)| (k.as_str().to_string(), v.to_str().unwrap_or("").to_string()))
                 .collect();
@@ -321,18 +345,25 @@ impl HttpClient {
 
             // Get redirect location
             let location = match response.headers().get("location") {
-                Some(loc) => loc.to_str().map_err(|_| "Invalid Location header".to_string())?,
+                Some(loc) => loc
+                    .to_str()
+                    .map_err(|_| "Invalid Location header".to_string())?,
                 None => break,
             };
 
             // Resolve redirect URL (handle relative URLs)
-            let redirect_url = current_url.join(location)
+            let redirect_url = current_url
+                .join(location)
                 .map_err(|e| format!("Invalid redirect URL: {}", e))?;
             current_url = redirect_url;
 
             // 303 always becomes GET, 301/302 change to GET for non-GET/HEAD
             let old_method = current_method.to_string();
-            if status == 303 || ((status == 301 || status == 302) && current_method != Method::GET && current_method != Method::HEAD) {
+            if status == 303
+                || ((status == 301 || status == 302)
+                    && current_method != Method::GET
+                    && current_method != Method::HEAD)
+            {
                 current_method = Method::GET;
             }
 
@@ -380,8 +411,14 @@ impl HttpClient {
         }
 
         // If still a redirect after exhausting the limit, throw an error
-        if response.status().is_redirection() && redirect_count >= max_redirects && max_redirects > 0 {
-            return Err(format!("Maximum number of redirects ({}) exceeded", max_redirects));
+        if response.status().is_redirection()
+            && redirect_count >= max_redirects
+            && max_redirects > 0
+        {
+            return Err(format!(
+                "Maximum number of redirects ({}) exceeded",
+                max_redirects
+            ));
         }
 
         // Process final response
@@ -391,7 +428,12 @@ impl HttpClient {
         // Response status event
         timeline.push(TimelineEvent {
             category: TimelineEventCategory::Response,
-            text: format!("HTTP/{} {} {}", http_version, status, status_code_to_text(response.status())),
+            text: format!(
+                "HTTP/{} {} {}",
+                http_version,
+                status,
+                status_code_to_text(response.status())
+            ),
             timestamp: ts(),
         });
 
@@ -418,7 +460,8 @@ impl HttpClient {
 
         // Read response body with streaming progress
         let transfer_start = Instant::now();
-        let content_length = headers.get("content-length")
+        let content_length = headers
+            .get("content-length")
             .and_then(|v| v.parse::<u64>().ok());
 
         let mut body_bytes = match content_length {
@@ -429,8 +472,7 @@ impl HttpClient {
         let mut last_progress_time = Instant::now();
 
         while let Some(chunk_result) = stream.next().await {
-            let chunk = chunk_result
-                .map_err(|e| format!("Failed to read response body: {}", e))?;
+            let chunk = chunk_result.map_err(|e| format!("Failed to read response body: {}", e))?;
             body_bytes.extend_from_slice(&chunk);
 
             if let Some(ref cb) = on_progress {
@@ -490,13 +532,21 @@ impl HttpClient {
             request_headers: Some(request_headers_map),
             request_url: Some(request_url),
             remote_address,
-            redirect_chain: if redirect_chain.is_empty() { None } else { Some(redirect_chain) },
+            redirect_chain: if redirect_chain.is_empty() {
+                None
+            } else {
+                Some(redirect_chain)
+            },
             timeline: Some(timeline),
         })
     }
 
     /// Build a reqwest Request from config using the provided client
-    fn build_request_with_client(&self, client: &Client, config: &HttpRequestConfig) -> Result<Request, String> {
+    fn build_request_with_client(
+        &self,
+        client: &Client,
+        config: &HttpRequestConfig,
+    ) -> Result<Request, String> {
         // Convert HttpMethod string to reqwest::Method (supports custom methods)
         let method = Method::from_bytes(config.method.as_str().as_bytes())
             .map_err(|e| format!("Invalid HTTP method '{}': {}", config.method.as_str(), e))?;
@@ -554,7 +604,8 @@ impl HttpClient {
                         builder = builder.body(body_str.clone());
                     }
                     "x-www-form-urlencoded" => {
-                        builder = builder.header("Content-Type", "application/x-www-form-urlencoded");
+                        builder =
+                            builder.header("Content-Type", "application/x-www-form-urlencoded");
                         builder = builder.body(body_str.clone());
                     }
                     "form-data" => {
@@ -562,17 +613,25 @@ impl HttpClient {
                         if let Ok(items) = serde_json::from_str::<Vec<Value>>(body_str) {
                             let mut form = reqwest::multipart::Form::new();
                             for item in &items {
-                                let enabled = item.get("enabled").and_then(|v| v.as_bool()).unwrap_or(false);
+                                let enabled = item
+                                    .get("enabled")
+                                    .and_then(|v| v.as_bool())
+                                    .unwrap_or(false);
                                 let key = item.get("key").and_then(|v| v.as_str()).unwrap_or("");
                                 if !enabled || key.is_empty() {
                                     continue;
                                 }
-                                let field_type = item.get("fieldType").and_then(|v| v.as_str()).unwrap_or("text");
-                                let value = item.get("value").and_then(|v| v.as_str()).unwrap_or("");
+                                let field_type = item
+                                    .get("fieldType")
+                                    .and_then(|v| v.as_str())
+                                    .unwrap_or("text");
+                                let value =
+                                    item.get("value").and_then(|v| v.as_str()).unwrap_or("");
                                 if field_type == "file" && !value.is_empty() {
                                     // File field: read the file and attach it
                                     if let Ok(file_bytes) = std::fs::read(value) {
-                                        let file_name = item.get("fileName")
+                                        let file_name = item
+                                            .get("fileName")
                                             .and_then(|v| v.as_str())
                                             .unwrap_or_else(|| {
                                                 std::path::Path::new(value)
@@ -581,14 +640,17 @@ impl HttpClient {
                                                     .unwrap_or("file")
                                             })
                                             .to_string();
-                                        let mime_type = item.get("fileMimeType")
+                                        let mime_type = item
+                                            .get("fileMimeType")
                                             .and_then(|v| v.as_str())
                                             .unwrap_or("application/octet-stream")
                                             .to_string();
                                         let part = reqwest::multipart::Part::bytes(file_bytes)
                                             .file_name(file_name)
                                             .mime_str(&mime_type)
-                                            .unwrap_or_else(|_| reqwest::multipart::Part::bytes(vec![]));
+                                            .unwrap_or_else(|_| {
+                                                reqwest::multipart::Part::bytes(vec![])
+                                            });
                                         form = form.part(key.to_string(), part);
                                     }
                                 } else {
@@ -621,7 +683,10 @@ impl HttpClient {
 impl Default for HttpClient {
     fn default() -> Self {
         Self::new().unwrap_or_else(|e| {
-            log::warn!("HTTP client init with TLS failed ({}), creating plain client", e);
+            log::warn!(
+                "HTTP client init with TLS failed ({}), creating plain client",
+                e
+            );
             // Fallback: build a minimal client without native-tls
             HttpClient {
                 client: reqwest::Client::builder()
@@ -650,8 +715,8 @@ fn build_url_with_params(base_url: &str, params: &[KeyValue]) -> Result<String, 
         return Ok(base_url.to_string());
     }
 
-    let mut url = reqwest::Url::parse(base_url)
-        .map_err(|e| format!("Invalid URL '{}': {}", base_url, e))?;
+    let mut url =
+        reqwest::Url::parse(base_url).map_err(|e| format!("Invalid URL '{}': {}", base_url, e))?;
 
     for kv in params {
         if kv.enabled && !kv.key.is_empty() {
@@ -683,30 +748,22 @@ fn parse_response_body(bytes: &[u8], content_type: Option<&str>) -> (Value, Cont
 
         // Images: return base64-encoded data for preview
         if ct_lower.starts_with("image/") {
-            return (
-                Value::String(BASE64.encode(bytes)),
-                ContentCategory::Image,
-            );
+            return (Value::String(BASE64.encode(bytes)), ContentCategory::Image);
         }
 
         // PDF: return base64-encoded data for preview
         if ct_lower.contains("application/pdf") {
-            return (
-                Value::String(BASE64.encode(bytes)),
-                ContentCategory::Pdf,
-            );
+            return (Value::String(BASE64.encode(bytes)), ContentCategory::Pdf);
         }
 
         // Audio/video/archives: return base64-encoded data for download
-        if ct_lower.starts_with("audio/") || ct_lower.starts_with("video/")
+        if ct_lower.starts_with("audio/")
+            || ct_lower.starts_with("video/")
             || ct_lower.contains("application/octet-stream")
             || ct_lower.contains("application/zip")
             || ct_lower.contains("application/gzip")
         {
-            return (
-                Value::String(BASE64.encode(bytes)),
-                ContentCategory::Binary,
-            );
+            return (Value::String(BASE64.encode(bytes)), ContentCategory::Binary);
         }
     }
 
@@ -715,10 +772,7 @@ fn parse_response_body(bytes: &[u8], content_type: Option<&str>) -> (Value, Cont
         Ok(s) => s,
         Err(_) => {
             // Binary data (non-UTF8): return base64-encoded for download
-            return (
-                Value::String(BASE64.encode(bytes)),
-                ContentCategory::Binary,
-            );
+            return (Value::String(BASE64.encode(bytes)), ContentCategory::Binary);
         }
     };
 
@@ -864,7 +918,8 @@ mod tests {
     #[test]
     fn test_parse_json_with_charset() {
         let json_bytes = b"{\"data\": 123}";
-        let (data, category) = parse_response_body(json_bytes, Some("application/json; charset=utf-8"));
+        let (data, category) =
+            parse_response_body(json_bytes, Some("application/json; charset=utf-8"));
 
         assert!(matches!(category, ContentCategory::Json));
         assert_eq!(data["data"], 123);
@@ -944,7 +999,7 @@ mod tests {
     fn test_parse_binary_response() {
         // Use actual binary data (non-UTF8)
         let binary_bytes = vec![0xFF, 0xD8, 0xFF, 0xE0, 0xFF]; // JPEG header + invalid UTF8
-        let (data, category) = parse_response_body(&binary_bytes, Some("image/jpeg"));
+        let (_data, category) = parse_response_body(&binary_bytes, Some("image/jpeg"));
 
         assert!(matches!(category, ContentCategory::Image));
     }

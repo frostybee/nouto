@@ -33,10 +33,10 @@ describe('pathToFileUri', () => {
   it('produces URIs that compose with WHATWG URL relative resolution (core resolver contract)', () => {
     const base = pathToFileUri('C:\\specs\\api.yaml');
     expect(new URL('./schemas/common.yaml', base).toString()).toBe(
-      pathToFileUri('C:\\specs\\schemas\\common.yaml')
+      pathToFileUri('C:\\specs\\schemas\\common.yaml'),
     );
     expect(new URL('../shared/common.yaml', base).toString()).toBe(
-      pathToFileUri('C:\\shared\\common.yaml')
+      pathToFileUri('C:\\shared\\common.yaml'),
     );
   });
 });
@@ -89,7 +89,7 @@ describe('round trips', () => {
     // URL keeps the base's encoding; a differently-encoded but equivalent URI
     // must normalize to the same canonical string.
     expect(normalizeFileUri('file:///c:/my%20specs/api.yaml')).toBe(
-      pathToFileUri('C:\\my specs\\api.yaml')
+      pathToFileUri('C:\\my specs\\api.yaml'),
     );
   });
 });

@@ -5,7 +5,10 @@
 // On load: references are resolved back to values from the keychain.
 // The JSON files on disk never contain actual credential values.
 
-use crate::models::types::{AuthState, CollectionItem, Collection, Environment, OAuth2Config, OAuthToken, ProxyConfig, SslConfig};
+use crate::models::types::{
+    AuthState, Collection, CollectionItem, Environment, OAuth2Config, OAuthToken, ProxyConfig,
+    SslConfig,
+};
 use std::path::Path;
 
 const SERVICE_NAME: &str = "nouto-desktop";
@@ -85,7 +88,9 @@ fn resolve_optional_ref(field: &mut Option<String>, ref_key: &Option<String>) {
     if let Some(ref key) = ref_key {
         match keyring::Entry::new(SERVICE_NAME, key) {
             Ok(entry) => match entry.get_password() {
-                Ok(value) => { *field = Some(value); }
+                Ok(value) => {
+                    *field = Some(value);
+                }
                 Err(keyring::Error::NoEntry) => {}
                 Err(e) => {
                     log::warn!("Failed to resolve secret '{}': {}", key, e);
@@ -197,7 +202,9 @@ fn resolve_oauth_token(token_data: &mut OAuthToken) {
     if let Some(ref ref_key) = token_data.access_token_ref.clone() {
         match keyring::Entry::new(SERVICE_NAME, ref_key) {
             Ok(entry) => match entry.get_password() {
-                Ok(value) => { token_data.access_token = value; }
+                Ok(value) => {
+                    token_data.access_token = value;
+                }
                 Err(keyring::Error::NoEntry) => {}
                 Err(e) => {
                     log::warn!("Failed to resolve secret '{}': {}", ref_key, e);
@@ -208,7 +215,10 @@ fn resolve_oauth_token(token_data: &mut OAuthToken) {
             }
         }
     }
-    resolve_optional_ref(&mut token_data.refresh_token, &token_data.refresh_token_ref.clone());
+    resolve_optional_ref(
+        &mut token_data.refresh_token,
+        &token_data.refresh_token_ref.clone(),
+    );
 }
 
 fn extract_proxy(proxy: &mut ProxyConfig, owner_id: &str) -> Vec<(String, String)> {
@@ -254,7 +264,7 @@ fn resolve_ssl(ssl: &mut SslConfig) {
 }
 
 /// Recursively extract auth secrets from a collection item tree.
-fn extract_items_auth(items: &mut Vec<CollectionItem>) -> Vec<(String, String)> {
+fn extract_items_auth(items: &mut [CollectionItem]) -> Vec<(String, String)> {
     let mut secrets = Vec::new();
 
     for item in items.iter_mut() {
@@ -282,7 +292,7 @@ fn extract_items_auth(items: &mut Vec<CollectionItem>) -> Vec<(String, String)> 
 
 /// Extract all auth secrets from a list of collections.
 /// Returns (keyring_key, secret_value) pairs to store in the OS keychain.
-pub fn extract_auth_secrets(collections: &mut Vec<Collection>) -> Vec<(String, String)> {
+pub fn extract_auth_secrets(collections: &mut [Collection]) -> Vec<(String, String)> {
     let mut secrets = Vec::new();
 
     for collection in collections.iter_mut() {
@@ -299,7 +309,7 @@ pub fn extract_auth_secrets(collections: &mut Vec<Collection>) -> Vec<(String, S
 
 /// Extract secret variables from environments.
 /// Returns (keyring_key, secret_value) pairs to store in the OS keychain.
-pub fn extract_env_secrets(environments: &mut Vec<Environment>) -> Vec<(String, String)> {
+pub fn extract_env_secrets(environments: &mut [Environment]) -> Vec<(String, String)> {
     let mut secrets = Vec::new();
 
     for env in environments.iter_mut() {
@@ -356,7 +366,7 @@ fn resolve_auth(auth: &mut AuthState) {
 }
 
 /// Recursively resolve auth secrets in a collection item tree.
-fn resolve_items_auth(items: &mut Vec<CollectionItem>) {
+fn resolve_items_auth(items: &mut [CollectionItem]) {
     for item in items.iter_mut() {
         match item {
             CollectionItem::Request(req) => {
@@ -379,7 +389,7 @@ fn resolve_items_auth(items: &mut Vec<CollectionItem>) {
 }
 
 /// Resolve all auth secrets in collections from the OS keychain.
-pub fn resolve_auth_secrets(collections: &mut Vec<Collection>) {
+pub fn resolve_auth_secrets(collections: &mut [Collection]) {
     for collection in collections.iter_mut() {
         if let Some(ref mut auth) = collection.auth {
             resolve_auth(auth);
@@ -391,7 +401,7 @@ pub fn resolve_auth_secrets(collections: &mut Vec<Collection>) {
 // ---------- Resolve environment secrets ----------
 
 /// Resolve secret variable refs from the OS keychain.
-pub fn resolve_env_secrets(environments: &mut Vec<Environment>) {
+pub fn resolve_env_secrets(environments: &mut [Environment]) {
     for env in environments.iter_mut() {
         for var in env.variables.iter_mut() {
             if let Some(ref ref_key) = var.secret_ref {
@@ -496,11 +506,17 @@ pub async fn migrate_plaintext_secrets(
                             match serde_json::to_string_pretty(&collections) {
                                 Ok(json) => {
                                     if let Err(e) = tokio::fs::write(collections_path, json).await {
-                                        errors.push(format!("Failed to write migrated collections: {}", e));
+                                        errors.push(format!(
+                                            "Failed to write migrated collections: {}",
+                                            e
+                                        ));
                                     }
                                 }
                                 Err(e) => {
-                                    errors.push(format!("Failed to serialize migrated collections: {}", e));
+                                    errors.push(format!(
+                                        "Failed to serialize migrated collections: {}",
+                                        e
+                                    ));
                                 }
                             }
                         }
@@ -531,7 +547,9 @@ pub async fn migrate_plaintext_secrets(
                 match serde_json::from_str::<serde_json::Value>(&content) {
                     Ok(mut env_data) => {
                         if let Some(envs_arr) = env_data.get("environments") {
-                            if let Ok(mut environments) = serde_json::from_value::<Vec<Environment>>(envs_arr.clone()) {
+                            if let Ok(mut environments) =
+                                serde_json::from_value::<Vec<Environment>>(envs_arr.clone())
+                            {
                                 let secrets = extract_env_secrets(&mut environments);
                                 if !secrets.is_empty() {
                                     let (stored, store_errors) = store_secrets(&secrets);
@@ -545,12 +563,20 @@ pub async fn migrate_plaintext_secrets(
 
                                     match serde_json::to_string_pretty(&env_data) {
                                         Ok(json) => {
-                                            if let Err(e) = tokio::fs::write(environments_path, json).await {
-                                                errors.push(format!("Failed to write migrated environments: {}", e));
+                                            if let Err(e) =
+                                                tokio::fs::write(environments_path, json).await
+                                            {
+                                                errors.push(format!(
+                                                    "Failed to write migrated environments: {}",
+                                                    e
+                                                ));
                                             }
                                         }
                                         Err(e) => {
-                                            errors.push(format!("Failed to serialize migrated environments: {}", e));
+                                            errors.push(format!(
+                                                "Failed to serialize migrated environments: {}",
+                                                e
+                                            ));
                                         }
                                     }
                                 }
@@ -585,7 +611,9 @@ pub async fn migrate_plaintext_secrets(
 
     log::info!(
         "Secret migration complete: {} migrated, {} skipped, {} errors",
-        migrated_count, skipped_count, errors.len()
+        migrated_count,
+        skipped_count,
+        errors.len()
     );
 
     MigrationResult {

@@ -22,6 +22,12 @@ pub struct MockServerState {
     routes: Arc<Mutex<Vec<MockRoute>>>,
 }
 
+impl Default for MockServerState {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl MockServerState {
     pub fn new() -> Self {
         Self {
@@ -54,7 +60,9 @@ pub async fn start_mock_server(
     {
         let tx = state.shutdown_tx.lock().await;
         if tx.is_some() {
-            return Err(AppError::Other("Mock server is already running".to_string()));
+            return Err(AppError::Other(
+                "Mock server is already running".to_string(),
+            ));
         }
     }
 
@@ -75,9 +83,12 @@ pub async fn start_mock_server(
     }
 
     // Emit starting status
-    let _ = app.emit("mockStatusChanged", serde_json::json!({
-        "data": { "status": "starting" }
-    }));
+    let _ = app.emit(
+        "mockStatusChanged",
+        serde_json::json!({
+            "data": { "status": "starting" }
+        }),
+    );
 
     let shared_routes = state.routes.clone();
     let app_clone = app.clone();
@@ -95,9 +106,12 @@ pub async fn start_mock_server(
         };
 
         // Emit running status
-        let _ = app_clone.emit("mockStatusChanged", serde_json::json!({
-            "data": { "status": "running" }
-        }));
+        let _ = app_clone.emit(
+            "mockStatusChanged",
+            serde_json::json!({
+                "data": { "status": "running" }
+            }),
+        );
 
         log::info!("Mock server listening on {}", addr);
 
@@ -144,9 +158,12 @@ pub async fn start_mock_server(
         }
 
         // Emit stopped status
-        let _ = app_clone.emit("mockStatusChanged", serde_json::json!({
-            "data": { "status": "stopped" }
-        }));
+        let _ = app_clone.emit(
+            "mockStatusChanged",
+            serde_json::json!({
+                "data": { "status": "stopped" }
+            }),
+        );
     });
 
     Ok(())
@@ -160,9 +177,12 @@ pub async fn stop_mock_server(
 ) -> Result<(), AppError> {
     let mut tx = state.shutdown_tx.lock().await;
     if let Some(sender) = tx.take() {
-        let _ = app.emit("mockStatusChanged", serde_json::json!({
-            "data": { "status": "stopping" }
-        }));
+        let _ = app.emit(
+            "mockStatusChanged",
+            serde_json::json!({
+                "data": { "status": "stopping" }
+            }),
+        );
         let _ = sender.send(true);
         Ok(())
     } else {
@@ -208,7 +228,9 @@ async fn handle_mock_request(
             return false;
         }
         // Match method
-        if route.method.as_str() != "*" && route.method.as_str().to_uppercase() != method.to_uppercase() {
+        if route.method.as_str() != "*"
+            && route.method.as_str().to_uppercase() != method.to_uppercase()
+        {
             return false;
         }
         // Match path (support :param style patterns)
@@ -241,7 +263,10 @@ async fn handle_mock_request(
     } else {
         (
             404,
-            format!("{{\"error\": \"No mock route matched\", \"method\": \"{}\", \"path\": \"{}\"}}", method, path),
+            format!(
+                "{{\"error\": \"No mock route matched\", \"method\": \"{}\", \"path\": \"{}\"}}",
+                method, path
+            ),
             vec![],
             None,
         )
@@ -253,7 +278,10 @@ async fn handle_mock_request(
     let mut response = Response::builder()
         .status(status_code)
         .header("Access-Control-Allow-Origin", "*")
-        .header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, PATCH, OPTIONS, HEAD")
+        .header(
+            "Access-Control-Allow-Methods",
+            "GET, POST, PUT, DELETE, PATCH, OPTIONS, HEAD",
+        )
         .header("Access-Control-Allow-Headers", "*");
 
     // Add custom headers from the route
@@ -264,7 +292,9 @@ async fn handle_mock_request(
     }
 
     // Ensure Content-Type is set
-    let has_content_type = headers.iter().any(|h| h.enabled && h.key.to_lowercase() == "content-type");
+    let has_content_type = headers
+        .iter()
+        .any(|h| h.enabled && h.key.to_lowercase() == "content-type");
     if !has_content_type {
         response = response.header("Content-Type", "application/json");
     }
@@ -283,14 +313,10 @@ async fn handle_mock_request(
 
     // Handle OPTIONS preflight
     if method == "OPTIONS" {
-        return Ok(response
-            .body(Full::new(bytes::Bytes::new()))
-            .unwrap());
+        return Ok(response.body(Full::new(bytes::Bytes::new())).unwrap());
     }
 
-    Ok(response
-        .body(Full::new(bytes::Bytes::from(body)))
-        .unwrap())
+    Ok(response.body(Full::new(bytes::Bytes::from(body))).unwrap())
 }
 
 /// Match a route path pattern against a request path
@@ -322,8 +348,7 @@ fn extract_path_params(pattern: &str, path: &str) -> HashMap<String, String> {
     let path_parts: Vec<&str> = path.split('/').filter(|s| !s.is_empty()).collect();
 
     for (p, r) in pattern_parts.iter().zip(path_parts.iter()) {
-        if p.starts_with(':') {
-            let name = &p[1..];
+        if let Some(name) = p.strip_prefix(':') {
             params.insert(name.to_string(), r.to_string());
         }
     }

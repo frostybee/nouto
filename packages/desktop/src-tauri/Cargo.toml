@@ -124,3 +124,10 @@ codegen-units = 1
 lto = true
 opt-level = "s"
 strip = true
+
+[lints.clippy]
+# Tauri command handlers and request builders legitimately take many
+# parameters / carry large payload variants; these lints are noise here.
+too_many_arguments = "allow"
+type_complexity = "allow"
+large_enum_variant = "allow"

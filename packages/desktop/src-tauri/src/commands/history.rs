@@ -14,7 +14,7 @@ fn history_payload(entries: &[serde_json::Value]) -> serde_json::Value {
 #[tauri::command]
 pub async fn get_history(app: AppHandle) -> Result<(), AppError> {
     let history = app.state::<HistoryStorage>();
-    let entries = history.load_all().await.map_err(|e| AppError::Storage(e))?;
+    let entries = history.load_all().await.map_err(AppError::Storage)?;
 
     app.emit("historyLoaded", history_payload(&entries))
         .map_err(|e| AppError::Other(format!("Failed to emit historyLoaded: {}", e)))?;
@@ -26,7 +26,7 @@ pub async fn get_history(app: AppHandle) -> Result<(), AppError> {
 #[tauri::command]
 pub async fn clear_history(app: AppHandle) -> Result<(), AppError> {
     let history = app.state::<HistoryStorage>();
-    history.clear().await.map_err(|e| AppError::Storage(e))?;
+    history.clear().await.map_err(AppError::Storage)?;
 
     app.emit("historyUpdated", history_payload(&[]))
         .map_err(|e| AppError::Other(format!("Failed to emit historyUpdated: {}", e)))?;
@@ -43,9 +43,9 @@ pub async fn delete_history_entry(data: serde_json::Value, app: AppHandle) -> Re
     }
 
     let history = app.state::<HistoryStorage>();
-    history.delete_entry(&id).await.map_err(|e| AppError::Storage(e))?;
+    history.delete_entry(&id).await.map_err(AppError::Storage)?;
 
-    let entries = history.load_all().await.map_err(|e| AppError::Storage(e))?;
+    let entries = history.load_all().await.map_err(AppError::Storage)?;
     app.emit("historyUpdated", history_payload(&entries))
         .map_err(|e| AppError::Other(format!("Failed to emit historyUpdated: {}", e)))?;
 
@@ -54,20 +54,25 @@ pub async fn delete_history_entry(data: serde_json::Value, app: AppHandle) -> Re
 
 /// Save a history entry to a collection: fetch the full entry and emit it for the frontend
 #[tauri::command]
-pub async fn save_history_to_collection(data: serde_json::Value, app: AppHandle) -> Result<(), AppError> {
+pub async fn save_history_to_collection(
+    data: serde_json::Value,
+    app: AppHandle,
+) -> Result<(), AppError> {
     let id = data["historyId"].as_str().unwrap_or("").to_string();
     if id.is_empty() {
         return Err(AppError::Other("No history entry ID provided".to_string()));
     }
 
     let history = app.state::<HistoryStorage>();
-    let entries = history.load_all().await.map_err(|e| AppError::Storage(e))?;
+    let entries = history.load_all().await.map_err(AppError::Storage)?;
     let entry = entries.into_iter().find(|e| e["id"].as_str() == Some(&id));
 
     match entry {
         Some(e) => {
             app.emit("historySaveToCollection", json!({ "data": e }))
-                .map_err(|e| AppError::Other(format!("Failed to emit historySaveToCollection: {}", e)))?;
+                .map_err(|e| {
+                    AppError::Other(format!("Failed to emit historySaveToCollection: {}", e))
+                })?;
         }
         None => {
             return Err(AppError::Other(format!("History entry '{}' not found", id)));
@@ -97,13 +102,15 @@ pub async fn get_history_entry(data: serde_json::Value, app: AppHandle) -> Resul
     }
 
     let history = app.state::<HistoryStorage>();
-    let entries = history.load_all().await.map_err(|e| AppError::Storage(e))?;
+    let entries = history.load_all().await.map_err(AppError::Storage)?;
     let entry = entries.into_iter().find(|e| e["id"].as_str() == Some(&id));
 
     match entry {
         Some(e) => {
             app.emit("historyEntryLoaded", json!({ "data": e }))
-                .map_err(|e| AppError::Other(format!("Failed to emit historyEntryLoaded: {}", e)))?;
+                .map_err(|e| {
+                    AppError::Other(format!("Failed to emit historyEntryLoaded: {}", e))
+                })?;
         }
         None => {
             return Err(AppError::Other(format!("History entry '{}' not found", id)));
@@ -117,19 +124,22 @@ pub async fn get_history_entry(data: serde_json::Value, app: AppHandle) -> Resul
 #[tauri::command]
 pub async fn get_history_stats(app: AppHandle) -> Result<(), AppError> {
     let history = app.state::<HistoryStorage>();
-    let entries = history.load_all().await.map_err(|e| AppError::Storage(e))?;
+    let entries = history.load_all().await.map_err(AppError::Storage)?;
 
     let total = entries.len();
     if total == 0 {
-        app.emit("historyStatsLoaded", json!({ "data": {
-            "totalRequests": 0,
-            "avgResponseTime": 0,
-            "errorRate": 0,
-            "timeRange": { "from": "", "to": "" },
-            "statusDistribution": { "2xx": 0, "3xx": 0, "4xx": 0, "5xx": 0, "error": 0 },
-            "topEndpoints": [],
-            "requestsPerDay": []
-        }}))
+        app.emit(
+            "historyStatsLoaded",
+            json!({ "data": {
+                "totalRequests": 0,
+                "avgResponseTime": 0,
+                "errorRate": 0,
+                "timeRange": { "from": "", "to": "" },
+                "statusDistribution": { "2xx": 0, "3xx": 0, "4xx": 0, "5xx": 0, "error": 0 },
+                "topEndpoints": [],
+                "requestsPerDay": []
+            }}),
+        )
         .map_err(|e| AppError::Other(format!("Failed to emit historyStatsLoaded: {}", e)))?;
         return Ok(());
     }
@@ -152,24 +162,26 @@ pub async fn get_history_stats(app: AppHandle) -> Result<(), AppError> {
 
     for entry in &entries {
         // Duration: stored as responseDuration
-        let duration = entry.get("responseDuration")
+        let duration = entry
+            .get("responseDuration")
             .and_then(|v| v.as_f64())
             .unwrap_or(0.0);
         total_duration += duration;
 
         // Status: stored as responseStatus
-        let status = entry.get("responseStatus")
+        let status = entry
+            .get("responseStatus")
             .and_then(|v| v.as_i64())
             .unwrap_or(0);
 
         let is_error;
-        if status >= 200 && status < 300 {
+        if (200..300).contains(&status) {
             s2xx += 1;
             is_error = false;
-        } else if status >= 300 && status < 400 {
+        } else if (300..400).contains(&status) {
             s3xx += 1;
             is_error = false;
-        } else if status >= 400 && status < 500 {
+        } else if (400..500).contains(&status) {
             s4xx += 1;
             is_error = true;
             error_count += 1;
@@ -185,11 +197,13 @@ pub async fn get_history_stats(app: AppHandle) -> Result<(), AppError> {
         }
 
         // Endpoint tracking
-        let method = entry.get("method")
+        let method = entry
+            .get("method")
             .and_then(|v| v.as_str())
             .unwrap_or("GET")
             .to_string();
-        let url = entry.get("url")
+        let url = entry
+            .get("url")
             .and_then(|v| v.as_str())
             .unwrap_or("")
             .to_string();
@@ -197,11 +211,14 @@ pub async fn get_history_stats(app: AppHandle) -> Result<(), AppError> {
             let ep = endpoint_map.entry((url, method)).or_insert((0, 0.0, 0));
             ep.0 += 1;
             ep.1 += duration;
-            if is_error { ep.2 += 1; }
+            if is_error {
+                ep.2 += 1;
+            }
         }
 
         // Timestamp for timeRange and requestsPerDay
-        let ts = entry.get("timestamp")
+        let ts = entry
+            .get("timestamp")
             .and_then(|v| v.as_str())
             .unwrap_or("");
         if !ts.is_empty() {
@@ -221,12 +238,23 @@ pub async fn get_history_stats(app: AppHandle) -> Result<(), AppError> {
     let time_to = timestamps.last().cloned().unwrap_or_default();
 
     // Top endpoints by count (top 10)
-    let mut ep_vec: Vec<((String, String), (usize, f64, usize))> = endpoint_map.into_iter().collect();
-    ep_vec.sort_by(|a, b| b.1.0.cmp(&a.1.0));
-    let top_endpoints: Vec<serde_json::Value> = ep_vec.iter().take(10)
+    let mut ep_vec: Vec<((String, String), (usize, f64, usize))> =
+        endpoint_map.into_iter().collect();
+    ep_vec.sort_by(|a, b| b.1 .0.cmp(&a.1 .0));
+    let top_endpoints: Vec<serde_json::Value> = ep_vec
+        .iter()
+        .take(10)
         .map(|((url, method), (count, total_dur, err_count))| {
-            let avg_dur = if *count > 0 { (total_dur / *count as f64) as i64 } else { 0 };
-            let ep_error_rate = if *count > 0 { (err_count * 100) / count } else { 0 };
+            let avg_dur = if *count > 0 {
+                (total_dur / *count as f64) as i64
+            } else {
+                0
+            };
+            let ep_error_rate = if *count > 0 {
+                (err_count * 100) / count
+            } else {
+                0
+            };
             json!({
                 "url": url,
                 "method": method,
@@ -240,25 +268,29 @@ pub async fn get_history_stats(app: AppHandle) -> Result<(), AppError> {
     // Requests per day sorted by date
     let mut rpd: Vec<(String, usize)> = day_map.into_iter().collect();
     rpd.sort_by(|a, b| a.0.cmp(&b.0));
-    let requests_per_day: Vec<serde_json::Value> = rpd.iter()
+    let requests_per_day: Vec<serde_json::Value> = rpd
+        .iter()
         .map(|(date, count)| json!({ "date": date, "count": count }))
         .collect();
 
-    app.emit("historyStatsLoaded", json!({ "data": {
-        "totalRequests": total,
-        "avgResponseTime": avg_response_time as i64,
-        "errorRate": error_rate,
-        "timeRange": { "from": time_from, "to": time_to },
-        "statusDistribution": {
-            "2xx": s2xx,
-            "3xx": s3xx,
-            "4xx": s4xx,
-            "5xx": s5xx,
-            "error": serr
-        },
-        "topEndpoints": top_endpoints,
-        "requestsPerDay": requests_per_day
-    }}))
+    app.emit(
+        "historyStatsLoaded",
+        json!({ "data": {
+            "totalRequests": total,
+            "avgResponseTime": avg_response_time as i64,
+            "errorRate": error_rate,
+            "timeRange": { "from": time_from, "to": time_to },
+            "statusDistribution": {
+                "2xx": s2xx,
+                "3xx": s3xx,
+                "4xx": s4xx,
+                "5xx": s5xx,
+                "error": serr
+            },
+            "topEndpoints": top_endpoints,
+            "requestsPerDay": requests_per_day
+        }}),
+    )
     .map_err(|e| AppError::Other(format!("Failed to emit historyStatsLoaded: {}", e)))?;
 
     Ok(())
@@ -273,10 +305,13 @@ pub async fn get_request_history(data: serde_json::Value, app: AppHandle) -> Res
     }
 
     let history = app.state::<HistoryStorage>();
-    let entries = history.load_all().await.map_err(|e| AppError::Storage(e))?;
-    let filtered: Vec<&serde_json::Value> = entries.iter()
-        .filter(|e| e.get("requestId").and_then(|v| v.as_str()) == Some(&request_id)
-            || e.get("request_id").and_then(|v| v.as_str()) == Some(&request_id))
+    let entries = history.load_all().await.map_err(AppError::Storage)?;
+    let filtered: Vec<&serde_json::Value> = entries
+        .iter()
+        .filter(|e| {
+            e.get("requestId").and_then(|v| v.as_str()) == Some(&request_id)
+                || e.get("request_id").and_then(|v| v.as_str()) == Some(&request_id)
+        })
         .collect();
 
     let filtered_owned: Vec<serde_json::Value> = filtered.into_iter().cloned().collect();
@@ -294,7 +329,7 @@ pub async fn get_drawer_history(data: serde_json::Value, app: AppHandle) -> Resu
     let search = data["search"].as_str().map(|s| s.to_lowercase());
 
     let history = app.state::<HistoryStorage>();
-    let mut entries = history.load_all().await.map_err(|e| AppError::Storage(e))?;
+    let mut entries = history.load_all().await.map_err(AppError::Storage)?;
 
     // Most recent first
     entries.reverse();
@@ -302,26 +337,39 @@ pub async fn get_drawer_history(data: serde_json::Value, app: AppHandle) -> Resu
     // Filter by search query if provided
     if let Some(ref query) = search {
         entries.retain(|e| {
-            let url = e.get("url").and_then(|v| v.as_str()).unwrap_or("").to_lowercase();
-            let method = e.get("method").and_then(|v| v.as_str()).unwrap_or("").to_lowercase();
-            let name = e.get("name").and_then(|v| v.as_str()).unwrap_or("").to_lowercase();
+            let url = e
+                .get("url")
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_lowercase();
+            let method = e
+                .get("method")
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_lowercase();
+            let name = e
+                .get("name")
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_lowercase();
             url.contains(query) || method.contains(query) || name.contains(query)
         });
     }
 
     let total = entries.len();
     let start = (page - 1) * page_size;
-    let page_entries: Vec<serde_json::Value> = entries.into_iter()
-        .skip(start)
-        .take(page_size)
-        .collect();
+    let page_entries: Vec<serde_json::Value> =
+        entries.into_iter().skip(start).take(page_size).collect();
 
-    app.emit("drawerHistoryLoaded", json!({ "data": {
-        "entries": page_entries,
-        "total": total,
-        "page": page,
-        "pageSize": page_size
-    }}))
+    app.emit(
+        "drawerHistoryLoaded",
+        json!({ "data": {
+            "entries": page_entries,
+            "total": total,
+            "page": page,
+            "pageSize": page_size
+        }}),
+    )
     .map_err(|e| AppError::Other(format!("Failed to emit drawerHistoryLoaded: {}", e)))?;
 
     Ok(())
@@ -334,30 +382,49 @@ pub async fn export_history(data: serde_json::Value, app: AppHandle) -> Result<(
 
     let format = data["format"].as_str().unwrap_or("json").to_string();
     let history = app.state::<HistoryStorage>();
-    let entries = history.load_all().await.map_err(|e| AppError::Storage(e))?;
+    let entries = history.load_all().await.map_err(AppError::Storage)?;
 
     let (content, default_name, filter_name, filter_ext) = if format == "csv" {
         let header = "timestamp,method,URL,status,duration,size";
-        let rows: Vec<String> = entries.iter().map(|e| {
-            let timestamp = e.get("timestamp").and_then(|v| v.as_str())
-                .or_else(|| e.get("createdAt").and_then(|v| v.as_str()))
-                .unwrap_or("");
-            let method = e.get("method").and_then(|v| v.as_str()).unwrap_or("");
-            let url = e.get("url").and_then(|v| v.as_str()).unwrap_or("");
-            let status = e.get("status").and_then(|v| v.as_i64()).unwrap_or(0);
-            let duration = e.get("duration").and_then(|v| v.as_i64()).unwrap_or(0);
-            let size = e.get("size").and_then(|v| v.as_u64()).unwrap_or(0);
-            format!("{},{},\"{}\",{},{},{}", timestamp, method, url.replace('"', "\"\""), status, duration, size)
-        }).collect();
+        let rows: Vec<String> = entries
+            .iter()
+            .map(|e| {
+                let timestamp = e
+                    .get("timestamp")
+                    .and_then(|v| v.as_str())
+                    .or_else(|| e.get("createdAt").and_then(|v| v.as_str()))
+                    .unwrap_or("");
+                let method = e.get("method").and_then(|v| v.as_str()).unwrap_or("");
+                let url = e.get("url").and_then(|v| v.as_str()).unwrap_or("");
+                let status = e.get("status").and_then(|v| v.as_i64()).unwrap_or(0);
+                let duration = e.get("duration").and_then(|v| v.as_i64()).unwrap_or(0);
+                let size = e.get("size").and_then(|v| v.as_u64()).unwrap_or(0);
+                format!(
+                    "{},{},\"{}\",{},{},{}",
+                    timestamp,
+                    method,
+                    url.replace('"', "\"\""),
+                    status,
+                    duration,
+                    size
+                )
+            })
+            .collect();
         let csv_content = format!("{}\n{}", header, rows.join("\n"));
         (csv_content, "history.csv".to_string(), "CSV Files", "csv")
     } else {
-        let json_content = serde_json::to_string_pretty(&entries)
-            .unwrap_or_else(|_| "[]".to_string());
-        (json_content, "history.json".to_string(), "JSON Files", "json")
+        let json_content =
+            serde_json::to_string_pretty(&entries).unwrap_or_else(|_| "[]".to_string());
+        (
+            json_content,
+            "history.json".to_string(),
+            "JSON Files",
+            "json",
+        )
     };
 
-    let file_path = app.dialog()
+    let file_path = app
+        .dialog()
         .file()
         .set_file_name(&default_name)
         .add_filter(filter_name, &[filter_ext])
@@ -366,9 +433,12 @@ pub async fn export_history(data: serde_json::Value, app: AppHandle) -> Result<(
     if let Some(path) = file_path {
         if let Some(path) = path.as_path() {
             tokio::fs::write(path, content).await?;
-            let _ = app.emit("showNotification", json!({
-                "data": { "level": "info", "message": "History exported successfully." }
-            }));
+            let _ = app.emit(
+                "showNotification",
+                json!({
+                    "data": { "level": "info", "message": "History exported successfully." }
+                }),
+            );
         }
     }
 
@@ -378,10 +448,7 @@ pub async fn export_history(data: serde_json::Value, app: AppHandle) -> Result<(
 /// Import pre-filtered history entries from the frontend
 #[tauri::command]
 pub async fn import_history(data: serde_json::Value, app: AppHandle) -> Result<(), AppError> {
-    let entries: Vec<serde_json::Value> = data["entries"]
-        .as_array()
-        .cloned()
-        .unwrap_or_default();
+    let entries: Vec<serde_json::Value> = data["entries"].as_array().cloned().unwrap_or_default();
 
     if entries.is_empty() {
         return Ok(());
@@ -389,10 +456,10 @@ pub async fn import_history(data: serde_json::Value, app: AppHandle) -> Result<(
 
     let history = app.state::<HistoryStorage>();
     for entry in &entries {
-        history.append(entry).await.map_err(|e| AppError::Storage(e))?;
+        history.append(entry).await.map_err(AppError::Storage)?;
     }
 
-    let all = history.load_all().await.map_err(|e| AppError::Storage(e))?;
+    let all = history.load_all().await.map_err(AppError::Storage)?;
     let _ = app.emit("historyUpdated", history_payload(&all));
     let _ = app.emit("showNotification", json!({
         "data": { "level": "info", "message": format!("Imported {} history entries.", entries.len()) }

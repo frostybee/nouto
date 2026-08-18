@@ -58,7 +58,9 @@ describe('generateCollectionFromOpenApi', () => {
     initImportExport({
       messageBus: { send: (m: any) => sent.push(m) } as any,
       getCollections: () => localCollections,
-      setCollections: (c) => { localCollections = c; },
+      setCollections: (c) => {
+        localCollections = c;
+      },
     });
   });
 
@@ -77,7 +79,7 @@ describe('generateCollectionFromOpenApi', () => {
 
     expect(notificationMocks.showNotification).toHaveBeenCalledWith(
       'info',
-      expect.stringContaining('Generated collection "Pet API')
+      expect.stringContaining('Generated collection "Pet API'),
     );
   });
 
@@ -100,13 +102,13 @@ describe('generateCollectionFromOpenApi', () => {
     await generateCollectionFromOpenApi(openSession('/tmp/pets.yaml', SPEC_YAML, 'yaml'));
     expect(notificationMocks.showNotification).toHaveBeenCalledWith(
       'info',
-      expect.stringMatching(/Found \d+ server\/path variables/)
+      expect.stringMatching(/Found \d+ server\/path variables/),
     );
   });
 
   it('reports parse failures without appending anything', async () => {
     const outcome = await generateCollectionFromOpenApi(
-      openSession('/tmp/bad.yaml', 'not: [valid openapi', 'yaml')
+      openSession('/tmp/bad.yaml', 'not: [valid openapi', 'yaml'),
     );
 
     expect(outcome.ok).toBe(false);
@@ -114,7 +116,7 @@ describe('generateCollectionFromOpenApi', () => {
     expect(sent).toHaveLength(0);
     expect(notificationMocks.showNotification).toHaveBeenCalledWith(
       'error',
-      expect.stringContaining('Generate Collection failed')
+      expect.stringContaining('Generate Collection failed'),
     );
   });
 
@@ -148,7 +150,11 @@ describe('generateCollectionFromOpenApi', () => {
       spec: {
         openapi: '3.1.0',
         info: { title: 'Bundled API', version: '2.0.0' },
-        paths: { '/pets': { get: { operationId: 'listPets', responses: { '200': { description: 'OK' } } } } },
+        paths: {
+          '/pets': {
+            get: { operationId: 'listPets', responses: { '200': { description: 'OK' } } },
+          },
+        },
       },
       externalRefsIncomplete: true,
     });
@@ -159,7 +165,7 @@ describe('generateCollectionFromOpenApi', () => {
     expect(collections()[0].name).toContain('Bundled API');
     expect(notificationMocks.showNotification).toHaveBeenCalledWith(
       'warning',
-      expect.stringContaining('may be incomplete')
+      expect.stringContaining('may be incomplete'),
     );
   });
 });

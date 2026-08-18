@@ -1,7 +1,11 @@
 <script lang="ts">
   import { SvelteMap } from 'svelte/reactivity';
   import { buildOutlineTree, outlineParseFailure } from '@nouto/core/services/openapi/outline';
-  import type { OutlineBuildResult, OutlineNode, OutlineParseFailure } from '@nouto/core/services/openapi/outline';
+  import type {
+    OutlineBuildResult,
+    OutlineNode,
+    OutlineParseFailure,
+  } from '@nouto/core/services/openapi/outline';
   import type { ExternalAnalysisResult } from '@nouto/core/services/openapi/externalRefs';
   import type { OpenApiAnalysis, OpenApiFormat } from '@nouto/core/services/openapi/types';
   import OpenApiOutlineNode from './OpenApiOutlineNode.svelte';
@@ -39,7 +43,7 @@
     oncontextaction?: (
       node: OutlineNode,
       id: OutlineActionId,
-      payload?: Record<string, unknown>
+      payload?: Record<string, unknown>,
     ) => void;
   }
   let {
@@ -75,7 +79,12 @@
       built = EMPTY_BUILD;
       builtKey = undefined;
     } else if (analysis.parsedSpec) {
-      built = buildOutlineTree(documentUri, analysis, { sortAlphabetically }, external ?? undefined);
+      built = buildOutlineTree(
+        documentUri,
+        analysis,
+        { sortAlphabetically },
+        external ?? undefined,
+      );
       builtKey = key;
     } else if (builtKey !== key) {
       built = EMPTY_BUILD;
@@ -98,7 +107,7 @@
    * no sessionId is supplied).
    */
   const expandOverridesBySession = new Map<string, SvelteMap<string, boolean>>();
-  let expandOverrides = $state(new SvelteMap<string, boolean>());
+  let expandOverrides = $state.raw(new SvelteMap<string, boolean>());
   $effect(() => {
     const key = sessionId ?? documentUri;
     let map = expandOverridesBySession.get(key);
@@ -136,15 +145,21 @@
 <div class="outline-pane">
   <div class="outline-header">Outline</div>
   {#if parseFailure}
-    {@const jump = parseFailure.offset !== undefined && onrevealoffset
-      ? () => onrevealoffset(parseFailure.offset!)
-      : undefined}
+    {@const jump =
+      parseFailure.offset !== undefined && onrevealoffset
+        ? () => onrevealoffset(parseFailure.offset!)
+        : undefined}
     <div class="outline-error" role="alert">
       <span class="codicon codicon-error" aria-hidden="true"></span>
       <div class="outline-error-text">
         <div class="outline-error-title">{parseFailure.title}</div>
         {#if jump}
-          <button type="button" class="outline-error-detail outline-error-link" onclick={jump} title="Go to the error">
+          <button
+            type="button"
+            class="outline-error-detail outline-error-link"
+            onclick={jump}
+            title="Go to the error"
+          >
             {parseFailure.detail}
           </button>
         {:else}
@@ -156,7 +171,9 @@
   {#if built.roots.length === 0}
     {#if !parseFailure}
       <div class="outline-empty" role="status" aria-live="polite">
-        {analysis ? 'No outline available for this document.' : 'Open an OpenAPI document to see its outline.'}
+        {analysis
+          ? 'No outline available for this document.'
+          : 'Open an OpenAPI document to see its outline.'}
       </div>
     {/if}
   {:else}
@@ -212,7 +229,8 @@
     align-items: flex-start;
     margin: 4px 8px 6px;
     padding: 6px 8px;
-    border: 1px solid var(--hf-inputValidation-errorBorder, var(--hf-editorError-foreground, #f44336));
+    border: 1px solid
+      var(--hf-inputValidation-errorBorder, var(--hf-editorError-foreground, #f44336));
     border-left-width: 3px;
     border-radius: 3px;
     background: var(--hf-inputValidation-errorBackground, rgba(244, 67, 54, 0.1));

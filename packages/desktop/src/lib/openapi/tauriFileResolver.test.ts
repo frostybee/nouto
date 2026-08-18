@@ -21,10 +21,10 @@ describe('tauriFileResolver', () => {
     it('delegates to core resolveExternalRefUri (WHATWG URL arithmetic)', () => {
       const base = pathToFileUri('C:\\specs\\api.yaml');
       expect(resolver.resolve(base, './schemas/common.yaml')).toBe(
-        pathToFileUri('C:\\specs\\schemas\\common.yaml')
+        pathToFileUri('C:\\specs\\schemas\\common.yaml'),
       );
       expect(resolver.resolve(base, '../shared/common.yaml')).toBe(
-        pathToFileUri('C:\\shared\\common.yaml')
+        pathToFileUri('C:\\shared\\common.yaml'),
       );
     });
   });
@@ -38,7 +38,7 @@ describe('tauriFileResolver', () => {
       expect(result).toEqual({ content: VALID_YAML + '# unsaved\n', format: 'yaml' });
       // openSession's own schema pass may invoke; the resolver must not read disk.
       expect(
-        tauriMocks.invoke.mock.calls.some(([command]) => command === 'read_openapi_ref_file')
+        tauriMocks.invoke.mock.calls.some(([command]) => command === 'read_openapi_ref_file'),
       ).toBe(false);
     });
 

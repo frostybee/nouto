@@ -1,10 +1,10 @@
 // Digest Authentication (RFC 7616)
 // Challenge-response flow: parse WWW-Authenticate, compute hash, build Authorization header
 
-use md5::Md5;
-use sha2::Sha256;
 use digest::Digest;
+use md5::Md5;
 use rand::Rng;
+use sha2::Sha256;
 
 pub struct DigestChallenge {
     pub realm: String,
@@ -29,7 +29,11 @@ pub fn parse_digest_challenge(www_authenticate: &str) -> Option<DigestChallenge>
     let re = regex::Regex::new(re_pattern).ok()?;
     for cap in re.captures_iter(param_str) {
         let key = cap[1].to_lowercase();
-        let value = cap.get(2).or(cap.get(3)).map(|m| m.as_str().to_string()).unwrap_or_default();
+        let value = cap
+            .get(2)
+            .or(cap.get(3))
+            .map(|m| m.as_str().to_string())
+            .unwrap_or_default();
         params.insert(key, value);
     }
 
@@ -81,7 +85,9 @@ pub fn compute_digest_auth(
     let ha2 = hash(&format!("{}:{}", method, uri));
 
     // Check if qop includes "auth"
-    let has_qop_auth = challenge.qop.as_ref()
+    let has_qop_auth = challenge
+        .qop
+        .as_ref()
         .map(|q| q.split(',').any(|s| s.trim() == "auth"))
         .unwrap_or(false);
 
@@ -95,7 +101,10 @@ pub fn compute_digest_auth(
     ];
 
     if has_qop_auth {
-        response = hash(&format!("{}:{}:{}:{}:auth:{}", ha1, challenge.nonce, nc, cnonce, ha2));
+        response = hash(&format!(
+            "{}:{}:{}:{}:auth:{}",
+            ha1, challenge.nonce, nc, cnonce, ha2
+        ));
         parts.push("qop=auth".to_string());
         parts.push(format!("nc={}", nc));
         parts.push(format!("cnonce=\"{}\"", cnonce));

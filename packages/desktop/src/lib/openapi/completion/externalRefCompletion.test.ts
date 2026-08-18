@@ -93,20 +93,22 @@ describe('crossFileRefTargets', () => {
       FROM_URI,
       partial,
       'schema',
-      makeResolver({ [COMMON_URI]: COMMON_YAML }, loads)
+      makeResolver({ [COMMON_URI]: COMMON_YAML }, loads),
     );
     expect(targets).toEqual(['#/components/schemas/Pet', '#/components/schemas/Toy']);
   });
 
   it('returns [] for unresolvable or unparsable files', async () => {
-    expect(await crossFileRefTargets(FROM_URI, partial, 'schema', makeResolver({}, []))).toEqual([]);
+    expect(await crossFileRefTargets(FROM_URI, partial, 'schema', makeResolver({}, []))).toEqual(
+      [],
+    );
     expect(
       await crossFileRefTargets(
         FROM_URI,
         partial,
         'schema',
-        makeResolver({ [COMMON_URI]: '{{{{not yaml' }, [])
-      )
+        makeResolver({ [COMMON_URI]: '{{{{not yaml' }, []),
+      ),
     ).toEqual([]);
   });
 

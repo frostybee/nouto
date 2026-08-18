@@ -1,16 +1,37 @@
 import { save as saveDialog, open as openDialog } from '@tauri-apps/plugin-dialog';
 import { writeTextFile, readTextFile } from '@tauri-apps/plugin-fs';
 import {
-  collections as collectionsStore, setCollections, findItemRecursive,
+  collections as collectionsStore,
+  setCollections,
+  findItemRecursive,
 } from '@nouto/ui/stores/collections.svelte';
 import { addEnvironment, updateEnvironmentVariables } from '@nouto/ui/stores/environment.svelte';
-import { setMethod, setUrl, setParams, setHeaders, setAuth, setBody, request as requestStore } from '@nouto/ui/stores';
+import {
+  setMethod,
+  setUrl,
+  setParams,
+  setHeaders,
+  setAuth,
+  setBody,
+  request as requestStore,
+} from '@nouto/ui/stores';
 import { showNotification } from '@nouto/ui/stores/notifications.svelte';
 import { benchmarkState } from '@nouto/ui/stores/benchmark.svelte';
-import { mockServerState, initMockServer as initMockStore } from '@nouto/ui/stores/mockServer.svelte';
 import {
-  isFolder, isRequest, generateId, deriveNameFromUrl, parseCurl, isCurlCommand,
-  type Collection, type CollectionItem, type SavedRequest, type Folder,
+  mockServerState,
+  initMockServer as initMockStore,
+} from '@nouto/ui/stores/mockServer.svelte';
+import {
+  isFolder,
+  isRequest,
+  generateId,
+  deriveNameFromUrl,
+  parseCurl,
+  isCurlCommand,
+  type Collection,
+  type CollectionItem,
+  type SavedRequest,
+  type Folder,
 } from '@nouto/core';
 import { InsomniaImportService } from '@nouto/core/services/InsomniaImportService';
 import { HoppscotchImportService } from '@nouto/core/services/HoppscotchImportService';
@@ -51,7 +72,9 @@ export function initImportExport(deps: {
   setCollectionsLocal = deps.setCollections;
 }
 
-function persistCollections(data: Collection[] = $state.snapshot(collectionsStore()) as Collection[]) {
+function persistCollections(
+  data: Collection[] = $state.snapshot(collectionsStore()) as Collection[],
+) {
   bus.send({ type: 'saveCollections', data: $state.snapshot(data) } as any);
 }
 
@@ -65,9 +88,7 @@ function uniquifyCollectionName(name: string | undefined, usedNames: Set<string>
   let suffix = 1;
 
   while (usedNames.has(candidate.toLowerCase())) {
-    candidate = suffix === 1
-      ? `${baseName} (imported)`
-      : `${baseName} (imported ${suffix})`;
+    candidate = suffix === 1 ? `${baseName} (imported)` : `${baseName} (imported ${suffix})`;
     suffix++;
   }
 
@@ -161,7 +182,7 @@ function appendImportedCollections(importedCollections: Collection[]): Collectio
  * handleImportAuto.
  */
 export async function generateCollectionFromOpenApi(
-  sessionId: string
+  sessionId: string,
 ): Promise<{ ok: boolean; message: string }> {
   const session = getOpenApiSession(sessionId);
   if (!session?.format) {
@@ -169,7 +190,11 @@ export async function generateCollectionFromOpenApi(
   }
   try {
     let result;
-    if (session.documentUri && session.externalAnalysis && session.externalAnalysis.externalRefs.size > 0) {
+    if (
+      session.documentUri &&
+      session.externalAnalysis &&
+      session.externalAnalysis.externalRefs.size > 0
+    ) {
       const bundled = await bundleSpecForRender(session);
       result = bundled.spec
         ? openApiImportService.importFromSpec(bundled.spec)
@@ -177,7 +202,7 @@ export async function generateCollectionFromOpenApi(
       if (bundled.externalRefsIncomplete) {
         showNotification(
           'warning',
-          'Some referenced files could not be fully resolved; the generated collection may be incomplete.'
+          'Some referenced files could not be fully resolved; the generated collection may be incomplete.',
         );
       }
     } else {
@@ -189,7 +214,7 @@ export async function generateCollectionFromOpenApi(
     if (result.variables && result.variables.variables.length > 0) {
       showNotification(
         'info',
-        `Found ${result.variables.variables.length} server/path variables. Add them manually to an environment.`
+        `Found ${result.variables.variables.length} server/path variables. Add them manually to an environment.`,
       );
     }
     return { ok: true, message };
@@ -203,7 +228,7 @@ export async function generateCollectionFromOpenApi(
 function regenerateIds(collection: any): Collection {
   const now = new Date().toISOString();
   function regenItems(items: any[]): any[] {
-    return items.map(item => {
+    return items.map((item) => {
       if (item.type === 'folder' && item.children) {
         return { ...item, id: generateId(), children: regenItems(item.children) };
       }
@@ -241,33 +266,60 @@ function convertToPostmanCollection(col: Collection): any {
     result.auth = convertAuthToPostman(col.auth);
   }
   if (col.headers?.length) {
-    result.header = (col.headers as any[]).map((h: any) => ({ key: h.key, value: h.value, disabled: !h.enabled }));
+    result.header = (col.headers as any[]).map((h: any) => ({
+      key: h.key,
+      value: h.value,
+      disabled: !h.enabled,
+    }));
   }
   if (col.variables?.length) {
-    result.variable = (col.variables as any[]).map((v: any) => ({ key: v.key, value: v.value, disabled: !v.enabled }));
+    result.variable = (col.variables as any[]).map((v: any) => ({
+      key: v.key,
+      value: v.value,
+      disabled: !v.enabled,
+    }));
   }
   return result;
 }
 
 function convertItemsToPostman(items: CollectionItem[]): any[] {
-  return items.map(item => {
+  return items.map((item) => {
     if (isFolder(item)) {
-      const folder: any = { name: item.name, id: item.id, item: convertItemsToPostman(item.children) };
+      const folder: any = {
+        name: item.name,
+        id: item.id,
+        item: convertItemsToPostman(item.children),
+      };
       if (item.auth && item.auth.type !== 'none') folder.auth = convertAuthToPostman(item.auth);
       return folder;
     }
     const req = item as SavedRequest;
     const enabledParams = (req.params || []).filter((p: any) => p.enabled);
-    const qs = enabledParams.length > 0
-      ? '?' + enabledParams.map((p: any) => `${encodeURIComponent(p.key)}=${encodeURIComponent(p.value)}`).join('&')
-      : '';
+    const qs =
+      enabledParams.length > 0
+        ? '?' +
+          enabledParams
+            .map((p: any) => `${encodeURIComponent(p.key)}=${encodeURIComponent(p.value)}`)
+            .join('&')
+        : '';
     return {
       name: req.name,
       id: req.id,
       request: {
         method: req.method,
-        url: { raw: req.url + qs, query: (req.params || []).map((p: any) => ({ key: p.key, value: p.value, disabled: !p.enabled })) },
-        header: (req.headers || []).map((h: any) => ({ key: h.key, value: h.value, disabled: !h.enabled })),
+        url: {
+          raw: req.url + qs,
+          query: (req.params || []).map((p: any) => ({
+            key: p.key,
+            value: p.value,
+            disabled: !p.enabled,
+          })),
+        },
+        header: (req.headers || []).map((h: any) => ({
+          key: h.key,
+          value: h.value,
+          disabled: !h.enabled,
+        })),
         auth: convertAuthToPostman(req.auth),
         body: convertBodyToPostman(req.body),
         description: req.description,
@@ -279,23 +331,65 @@ function convertItemsToPostman(items: CollectionItem[]): any[] {
 function convertAuthToPostman(auth: any): any {
   if (!auth) return { type: 'noauth' };
   switch (auth.type) {
-    case 'basic': return { type: 'basic', basic: [{ key: 'username', value: auth.username || '' }, { key: 'password', value: auth.password || '' }] };
-    case 'bearer': return { type: 'bearer', bearer: [{ key: 'token', value: auth.token || '' }] };
-    case 'apikey': return { type: 'apikey', apikey: [{ key: 'key', value: auth.apiKeyName || '' }, { key: 'value', value: auth.apiKeyValue || '' }, { key: 'in', value: auth.apiKeyIn || 'header' }] };
-    default: return { type: 'noauth' };
+    case 'basic':
+      return {
+        type: 'basic',
+        basic: [
+          { key: 'username', value: auth.username || '' },
+          { key: 'password', value: auth.password || '' },
+        ],
+      };
+    case 'bearer':
+      return { type: 'bearer', bearer: [{ key: 'token', value: auth.token || '' }] };
+    case 'apikey':
+      return {
+        type: 'apikey',
+        apikey: [
+          { key: 'key', value: auth.apiKeyName || '' },
+          { key: 'value', value: auth.apiKeyValue || '' },
+          { key: 'in', value: auth.apiKeyIn || 'header' },
+        ],
+      };
+    default:
+      return { type: 'noauth' };
   }
 }
 
 function convertBodyToPostman(body: any): any {
   if (!body) return { mode: 'none' };
   switch (body.type) {
-    case 'json': return { mode: 'raw', raw: body.content, options: { raw: { language: 'json' } } };
-    case 'text': return { mode: 'raw', raw: body.content, options: { raw: { language: 'text' } } };
-    case 'xml': return { mode: 'raw', raw: body.content, options: { raw: { language: 'xml' } } };
-    case 'x-www-form-urlencoded': return { mode: 'urlencoded', urlencoded: (body.formItems || []).map((p: any) => ({ key: p.key, value: p.value, disabled: !p.enabled })) };
-    case 'form-data': return { mode: 'formdata', formdata: (body.formItems || []).map((p: any) => ({ key: p.key, value: p.value, disabled: !p.enabled, type: p.type || 'text' })) };
-    case 'graphql': return { mode: 'graphql', graphql: { query: body.content, variables: body.graphqlVariables || '' } };
-    default: return { mode: 'none' };
+    case 'json':
+      return { mode: 'raw', raw: body.content, options: { raw: { language: 'json' } } };
+    case 'text':
+      return { mode: 'raw', raw: body.content, options: { raw: { language: 'text' } } };
+    case 'xml':
+      return { mode: 'raw', raw: body.content, options: { raw: { language: 'xml' } } };
+    case 'x-www-form-urlencoded':
+      return {
+        mode: 'urlencoded',
+        urlencoded: (body.formItems || []).map((p: any) => ({
+          key: p.key,
+          value: p.value,
+          disabled: !p.enabled,
+        })),
+      };
+    case 'form-data':
+      return {
+        mode: 'formdata',
+        formdata: (body.formItems || []).map((p: any) => ({
+          key: p.key,
+          value: p.value,
+          disabled: !p.enabled,
+          type: p.type || 'text',
+        })),
+      };
+    case 'graphql':
+      return {
+        mode: 'graphql',
+        graphql: { query: body.content, variables: body.graphqlVariables || '' },
+      };
+    default:
+      return { mode: 'none' };
   }
 }
 
@@ -307,7 +401,7 @@ export async function handleExportNative(itemId?: string) {
   let defaultName: string;
 
   if (itemId) {
-    const col = cols.find(c => c.id === itemId);
+    const col = cols.find((c) => c.id === itemId);
     if (!col) {
       showNotification('error', 'Collection not found.');
       return;
@@ -385,11 +479,17 @@ export async function handleExportAllNative() {
 
 export async function handleExportFolder(folderId: string, collectionId: string) {
   const cols = $state.snapshot(collectionsStore()) as Collection[];
-  const col = cols.find(c => c.id === collectionId);
-  if (!col) { showNotification('error', 'Collection not found.'); return; }
+  const col = cols.find((c) => c.id === collectionId);
+  if (!col) {
+    showNotification('error', 'Collection not found.');
+    return;
+  }
 
   const folder = findItemRecursive(col.items, folderId) as Folder | null;
-  if (!folder || !isFolder(folder)) { showNotification('error', 'Folder not found.'); return; }
+  if (!folder || !isFolder(folder)) {
+    showNotification('error', 'Folder not found.');
+    return;
+  }
 
   const exportData = {
     _format: 'nouto',
@@ -429,9 +529,7 @@ export async function handleExportFolder(folderId: string, collectionId: string)
 
 export async function handleExportPostman(collectionIds?: string[]) {
   const cols = $state.snapshot(collectionsStore()) as Collection[];
-  const toExport = collectionIds
-    ? cols.filter(c => collectionIds.includes(c.id))
-    : cols;
+  const toExport = collectionIds ? cols.filter((c) => collectionIds.includes(c.id)) : cols;
 
   if (toExport.length === 0) {
     showNotification('info', 'No collections to export.');
@@ -460,16 +558,16 @@ export async function handleExportHar(collectionId?: string) {
 
   let collection: Collection | undefined;
   if (collectionId) {
-    collection = cols.find(c => c.id === collectionId);
+    collection = cols.find((c) => c.id === collectionId);
   } else {
-    const items = cols.map(c => ({ label: c.name, value: c.id }));
+    const items = cols.map((c) => ({ label: c.name, value: c.id }));
     if (items.length === 0) {
       showNotification('info', 'No collections to export.');
       return;
     }
     const picked = await showLocalQuickPick('Export as HAR', items);
     if (!picked) return;
-    collection = cols.find(c => c.id === picked);
+    collection = cols.find((c) => c.id === picked);
   }
 
   if (!collection) {
@@ -497,16 +595,16 @@ export async function handleGenerateOpenApi(collectionId?: string) {
 
   let collection: Collection | undefined;
   if (collectionId) {
-    collection = cols.find(c => c.id === collectionId);
+    collection = cols.find((c) => c.id === collectionId);
   } else {
-    const items = cols.map(c => ({ label: c.name, value: c.id }));
+    const items = cols.map((c) => ({ label: c.name, value: c.id }));
     if (items.length === 0) {
       showNotification('info', 'No collections to generate an OpenAPI specification from.');
       return;
     }
     const picked = await showLocalQuickPick('Generate OpenAPI from Collection', items);
     if (!picked) return;
-    collection = cols.find(c => c.id === picked);
+    collection = cols.find((c) => c.id === picked);
   }
 
   if (!collection) {
@@ -585,7 +683,10 @@ export async function handleImportAuto() {
           const imported = appendImportedCollections([result.collection]);
           showNotification('info', `Imported OpenAPI collection: ${imported[0].name}`);
           if (result.variables) {
-            showNotification('info', `Found ${result.variables.variables.length} variables. Add them manually to an environment.`);
+            showNotification(
+              'info',
+              `Found ${result.variables.variables.length} variables. Add them manually to an environment.`,
+            );
           }
           return;
         } catch {
@@ -593,11 +694,16 @@ export async function handleImportAuto() {
             const result = insomniaImportService.importFromString(content);
             if (result.collections.length > 0) {
               const imported = appendImportedCollections(result.collections);
-              const names = imported.map(c => c.name).join(', ');
-              showNotification('info', `Imported ${imported.length} Insomnia collection(s): ${names}`);
+              const names = imported.map((c) => c.name).join(', ');
+              showNotification(
+                'info',
+                `Imported ${imported.length} Insomnia collection(s): ${names}`,
+              );
               return;
             }
-          } catch {}
+          } catch {
+            // Not Insomnia either; fall through to the generic error below.
+          }
         }
         showNotification('error', 'Failed to parse YAML file as OpenAPI or Insomnia format.');
         return;
@@ -625,14 +731,19 @@ export async function handleImportAuto() {
       importedCollections = [result.collection];
       formatName = 'OpenAPI';
       if (result.variables) {
-        showNotification('info', `Found ${result.variables.variables.length} server/path variables.`);
+        showNotification(
+          'info',
+          `Found ${result.variables.variables.length} server/path variables.`,
+        );
       }
     } else if (parsed._type === 'export' && parsed.resources) {
       const result = insomniaImportService.importFromString(content);
       importedCollections = result.collections;
       formatName = 'Insomnia';
-    } else if ((parsed.v !== undefined && (parsed.folders || parsed.requests)) ||
-               (Array.isArray(parsed) && parsed[0]?.folders !== undefined)) {
+    } else if (
+      (parsed.v !== undefined && (parsed.folders || parsed.requests)) ||
+      (Array.isArray(parsed) && parsed[0]?.folders !== undefined)
+    ) {
       const result = hoppscotchImportService.importFromString(content);
       importedCollections = result.collections;
       formatName = 'Hoppscotch';
@@ -640,8 +751,12 @@ export async function handleImportAuto() {
       const result = harImportService.importFromString(content);
       importedCollections = [result.collection];
       formatName = 'HAR';
-    } else if (parsed.client === 'Thunder Client' || parsed.colName || parsed._id ||
-               (Array.isArray(parsed) && parsed[0]?.colName)) {
+    } else if (
+      parsed.client === 'Thunder Client' ||
+      parsed.colName ||
+      parsed._id ||
+      (Array.isArray(parsed) && parsed[0]?.colName)
+    ) {
       const result = thunderClientImportService.importFromString(content);
       importedCollections = result.collections;
       formatName = 'Thunder Client';
@@ -649,7 +764,10 @@ export async function handleImportAuto() {
       showNotification('info', 'This looks like a Postman Environment file, not a collection.');
       return;
     } else {
-      showNotification('error', 'Could not detect collection format. Supported: Nouto, Postman, OpenAPI, Insomnia, Hoppscotch, HAR, Thunder Client, Bruno.');
+      showNotification(
+        'error',
+        'Could not detect collection format. Supported: Nouto, Postman, OpenAPI, Insomnia, Hoppscotch, HAR, Thunder Client, Bruno.',
+      );
       return;
     }
 
@@ -660,7 +778,7 @@ export async function handleImportAuto() {
 
     const imported = appendImportedCollections(importedCollections);
 
-    const names = imported.map(c => c.name).join(', ');
+    const names = imported.map((c) => c.name).join(', ');
     showNotification('info', `Imported ${imported.length} ${formatName} collection(s): ${names}`);
   } catch (e: any) {
     showNotification('error', `Import failed: ${e.message || e}`);
@@ -704,7 +822,7 @@ export async function handleImportThunderClientFolder() {
     }
 
     const imported = appendImportedCollections(result.collections);
-    const names = imported.map(c => c.name).join(', ');
+    const names = imported.map((c) => c.name).join(', ');
     showNotification('info', `Imported ${imported.length} Thunder Client collection(s): ${names}`);
   } catch (e: any) {
     showNotification('error', `Thunder Client folder import failed: ${e.message || e}`);
@@ -768,15 +886,21 @@ export async function handleImportFromUrl() {
           } else if (parsed._type === 'export' && parsed.resources) {
             const result = insomniaImportService.importFromString(bodyStr);
             importedCollections = result.collections;
-          } else if ((parsed.v !== undefined && (parsed.folders || parsed.requests)) ||
-                     (Array.isArray(parsed) && parsed[0]?.folders !== undefined)) {
+          } else if (
+            (parsed.v !== undefined && (parsed.folders || parsed.requests)) ||
+            (Array.isArray(parsed) && parsed[0]?.folders !== undefined)
+          ) {
             const result = hoppscotchImportService.importFromString(bodyStr);
             importedCollections = result.collections;
           } else if (parsed.log && (parsed.log.entries || parsed.log.version)) {
             const result = harImportService.importFromString(bodyStr);
             importedCollections = [result.collection];
-          } else if (parsed.client === 'Thunder Client' || parsed.colName || parsed._id ||
-                     (Array.isArray(parsed) && parsed[0]?.colName)) {
+          } else if (
+            parsed.client === 'Thunder Client' ||
+            parsed.colName ||
+            parsed._id ||
+            (Array.isArray(parsed) && parsed[0]?.colName)
+          ) {
             const result = thunderClientImportService.importFromString(bodyStr);
             importedCollections = result.collections;
           } else {
@@ -830,7 +954,10 @@ export async function handleExportHistory() {
         }
       });
       bus.send({ type: 'getHistory' } as any);
-      setTimeout(() => { unsub(); resolve([]); }, 5000);
+      setTimeout(() => {
+        unsub();
+        resolve([]);
+      }, 5000);
     });
 
     if (entries.length === 0) {
@@ -914,12 +1041,15 @@ export async function handleImportHistory() {
         }
       });
       bus.send({ type: 'getHistory' });
-      setTimeout(() => { unsub(); resolve([]); }, 5000);
+      setTimeout(() => {
+        unsub();
+        resolve([]);
+      }, 5000);
     });
 
     const existingIds = new Set(existingEntries.map((e: any) => e.id));
-    const newEntries = data.entries.filter((e: any) =>
-      e.id && e.timestamp && e.method && e.url && !existingIds.has(e.id)
+    const newEntries = data.entries.filter(
+      (e: any) => e.id && e.timestamp && e.method && e.url && !existingIds.has(e.id),
     );
 
     if (newEntries.length === 0) {
@@ -929,7 +1059,10 @@ export async function handleImportHistory() {
 
     bus.send({ type: 'importHistory', data: { entries: newEntries } });
     bus.send({ type: 'getHistory' });
-    showNotification('info', `Imported ${newEntries.length} history entries (${data.entries.length - newEntries.length} duplicates skipped).`);
+    showNotification(
+      'info',
+      `Imported ${newEntries.length} history entries (${data.entries.length - newEntries.length} duplicates skipped).`,
+    );
   } catch (e: any) {
     showNotification('error', `History import failed: ${e.message || e}`);
   }
@@ -1003,25 +1136,33 @@ export async function handleExportBenchmarkResults(data: any) {
 
   if (format === 'csv') {
     const header = '#,Status,StatusText,Duration(ms),Size,Success,Error';
-    const rows = iterations.map((r: any, i: number) =>
-      `${i + 1},${r.status},${r.statusText || ''},${r.duration},${r.size},${r.success ? 'Yes' : 'No'},"${(r.error || '').replace(/"/g, '""')}"`
+    const rows = iterations.map(
+      (r: any, i: number) =>
+        `${i + 1},${r.status},${r.statusText || ''},${r.duration},${r.size},${r.success ? 'Yes' : 'No'},"${(r.error || '').replace(/"/g, '""')}"`,
     );
     content = [header, ...rows].join('\n');
     defaultName = `${requestName.replace(/[^a-zA-Z0-9]/g, '_')}_benchmark.csv`;
   } else {
-    content = JSON.stringify({
-      requestName,
-      method,
-      url,
-      config: $state.snapshot(benchmarkState.config),
-      statistics,
-      iterations,
-    }, null, 2);
+    content = JSON.stringify(
+      {
+        requestName,
+        method,
+        url,
+        config: $state.snapshot(benchmarkState.config),
+        statistics,
+        iterations,
+      },
+      null,
+      2,
+    );
     defaultName = `${requestName.replace(/[^a-zA-Z0-9]/g, '_')}_benchmark.json`;
   }
 
   try {
-    const filePath = await saveDialog({ defaultPath: defaultName, filters: [{ name: 'All Files', extensions: ['*'] }] });
+    const filePath = await saveDialog({
+      defaultPath: defaultName,
+      filters: [{ name: 'All Files', extensions: ['*'] }],
+    });
     if (filePath) {
       await writeTextFile(filePath, content);
       showNotification('info', 'Benchmark results exported successfully.');
@@ -1038,11 +1179,11 @@ export async function handleImportCollectionAsMocks() {
     return;
   }
 
-  const items = collections.map(c => ({ label: c.name, value: c.id }));
+  const items = collections.map((c) => ({ label: c.name, value: c.id }));
   const picked = await showLocalQuickPick('Select a collection to import as mock routes', items);
   if (!picked) return;
 
-  const col = collections.find(c => c.id === picked);
+  const col = collections.find((c) => c.id === picked);
   if (!col) return;
 
   function getAllRequests(items: any[]): any[] {
@@ -1056,11 +1197,13 @@ export async function handleImportCollectionAsMocks() {
 
   const requests = getAllRequests(col.items);
   const routes = requests.map((r: any) => {
-    let path = '/';
+    let path: string;
     try {
       const url = new URL(r.url.startsWith('http') ? r.url : `http://localhost${r.url}`);
       path = url.pathname || '/';
-    } catch { path = r.url || '/'; }
+    } catch {
+      path = r.url || '/';
+    }
 
     return {
       id: generateId(),

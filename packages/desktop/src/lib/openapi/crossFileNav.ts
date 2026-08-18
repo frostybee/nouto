@@ -14,7 +14,7 @@ import { fileUriToPath } from './pathUtils';
  */
 export async function openReferencedFileAndReveal(
   targetFileUri: string,
-  targetPointer: string
+  targetPointer: string,
 ): Promise<boolean> {
   let path: string;
   try {

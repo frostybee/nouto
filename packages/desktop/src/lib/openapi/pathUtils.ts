@@ -40,7 +40,7 @@ export function pathToFileUri(path: string): string {
   const encoded = p
     .split('/')
     .map((segment, index) =>
-      index === 1 && WINDOWS_DRIVE_SEGMENT.test(segment) ? segment : encodeURIComponent(segment)
+      index === 1 && WINDOWS_DRIVE_SEGMENT.test(segment) ? segment : encodeURIComponent(segment),
     )
     .join('/');
   return `file://${authority}${encoded}`;

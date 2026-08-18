@@ -38,7 +38,7 @@ describe('openReferencedFileAndReveal', () => {
 
     const ok = await openReferencedFileAndReveal(
       pathToFileUri('C:\\specs\\common.yaml'),
-      '/components/schemas/Pet'
+      '/components/schemas/Pet',
     );
     expect(ok).toBe(true);
     expect(activeSessionId()).toBe(target);

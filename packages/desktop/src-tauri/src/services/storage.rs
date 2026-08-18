@@ -80,10 +80,17 @@ impl StorageService {
         std::mem::take(&mut *self.recovered.lock().unwrap_or_else(|e| e.into_inner()))
     }
 
-    async fn load_or_recover(&self, path: &Path, default: impl FnOnce() -> Value) -> Result<Value, String> {
+    async fn load_or_recover(
+        &self,
+        path: &Path,
+        default: impl FnOnce() -> Value,
+    ) -> Result<Value, String> {
         let (value, backup) = read_json_or_recover(path, default).await?;
         if let Some(backup) = backup {
-            self.recovered.lock().unwrap_or_else(|e| e.into_inner()).push(backup);
+            self.recovered
+                .lock()
+                .unwrap_or_else(|e| e.into_inner())
+                .push(backup);
         }
         Ok(value)
     }
@@ -143,9 +150,10 @@ impl StorageService {
 
     /// Load environments from disk. Returns default structure if the file doesn't exist.
     pub async fn load_environments(&self) -> Result<Value, String> {
-        self.load_or_recover(&self.environments_path(), || {
-            serde_json::json!({ "environments": [], "activeId": null })
-        })
+        self.load_or_recover(
+            &self.environments_path(),
+            || serde_json::json!({ "environments": [], "activeId": null }),
+        )
         .await
     }
 
@@ -210,7 +218,7 @@ pub struct RecentProject {
 }
 
 /// Load recent projects from `<base_dir>/nouto/recent-projects.json`
-pub async fn load_recent_projects(base_dir: &PathBuf) -> Vec<RecentProject> {
+pub async fn load_recent_projects(base_dir: &Path) -> Vec<RecentProject> {
     let path = base_dir.join("nouto").join("recent-projects.json");
     if !path.exists() {
         return Vec::new();
@@ -222,10 +230,7 @@ pub async fn load_recent_projects(base_dir: &PathBuf) -> Vec<RecentProject> {
 }
 
 /// Save recent projects list to disk
-async fn save_recent_projects(
-    base_dir: &PathBuf,
-    projects: &[RecentProject],
-) -> Result<(), String> {
+async fn save_recent_projects(base_dir: &Path, projects: &[RecentProject]) -> Result<(), String> {
     let dir = base_dir.join("nouto");
     fs::create_dir_all(&dir)
         .await
@@ -239,7 +244,7 @@ async fn save_recent_projects(
 
 /// Add or update a recent project entry. Caps at MAX_RECENT_PROJECTS.
 pub async fn add_recent_project(
-    base_dir: &PathBuf,
+    base_dir: &Path,
     path: &str,
     name: &str,
 ) -> Result<Vec<RecentProject>, String> {
@@ -267,7 +272,7 @@ pub async fn add_recent_project(
 
 /// Remove a recent project by path
 pub async fn remove_recent_project(
-    base_dir: &PathBuf,
+    base_dir: &Path,
     path: &str,
 ) -> Result<Vec<RecentProject>, String> {
     let mut projects = load_recent_projects(base_dir).await;
@@ -277,12 +282,12 @@ pub async fn remove_recent_project(
 }
 
 /// Clear all recent projects
-pub async fn clear_recent_projects(base_dir: &PathBuf) -> Result<(), String> {
+pub async fn clear_recent_projects(base_dir: &Path) -> Result<(), String> {
     save_recent_projects(base_dir, &[]).await
 }
 
 /// Get the last opened project path (first entry in recent projects)
-pub async fn get_last_project_path(base_dir: &PathBuf) -> Option<String> {
+pub async fn get_last_project_path(base_dir: &Path) -> Option<String> {
     let projects = load_recent_projects(base_dir).await;
     projects.first().map(|p| p.path.clone())
 }
@@ -333,7 +338,10 @@ impl ProjectStorageService {
     ) -> Result<T, String> {
         let (value, backup) = read_json_or_recover(path, default).await?;
         if let Some(backup) = backup {
-            self.recovered.lock().unwrap_or_else(|e| e.into_inner()).push(backup);
+            self.recovered
+                .lock()
+                .unwrap_or_else(|e| e.into_inner())
+                .push(backup);
         }
         Ok(value)
     }
@@ -437,11 +445,7 @@ impl ProjectStorageService {
             match self.load_collection_from_dir(&entry.path()).await {
                 Ok(Some(c)) => collections.push(c),
                 Ok(None) => {}
-                Err(e) => log::warn!(
-                    "Failed to load collection {:?}: {}",
-                    entry.file_name(),
-                    e
-                ),
+                Err(e) => log::warn!("Failed to load collection {:?}: {}", entry.file_name(), e),
             }
         }
 
@@ -543,12 +547,14 @@ impl ProjectStorageService {
                 continue;
             }
 
-            match self.load_or_recover(&folder_meta_path, || Value::Null).await {
+            match self
+                .load_or_recover(&folder_meta_path, || Value::Null)
+                .await
+            {
                 Ok(Value::Null) => {}
                 Ok(mut folder_meta) => {
                     let folder_order = self.load_order(path).await;
-                    let children =
-                        Box::pin(self.load_items_from_dir(path, &folder_order)).await?;
+                    let children = Box::pin(self.load_items_from_dir(path, &folder_order)).await?;
 
                     if let Value::Object(ref mut obj) = folder_meta {
                         obj.insert("type".to_string(), Value::String("folder".to_string()));
@@ -843,9 +849,10 @@ impl ProjectStorageService {
     }
 
     pub async fn load_environments(&self) -> Result<Value, String> {
-        self.load_or_recover(&self.environments_path(), || {
-            serde_json::json!({ "environments": [], "activeId": null })
-        })
+        self.load_or_recover(
+            &self.environments_path(),
+            || serde_json::json!({ "environments": [], "activeId": null }),
+        )
         .await
     }
 
@@ -938,7 +945,10 @@ mod tests {
             .filter(|e| e.file_name().to_string_lossy().contains(CORRUPT_MARKER))
             .collect();
         assert_eq!(backups.len(), 1);
-        assert_eq!(std::fs::read_to_string(backups[0].path()).unwrap(), "{ not json");
+        assert_eq!(
+            std::fs::read_to_string(backups[0].path()).unwrap(),
+            "{ not json"
+        );
 
         let recovered = svc.take_recovered();
         assert_eq!(recovered.len(), 1);
@@ -975,12 +985,19 @@ mod tests {
 
         // Corrupt the request file on disk.
         let dir = tmp.path().join(".nouto").join("collections");
-        let coll_dir = std::fs::read_dir(&dir).unwrap().next().unwrap().unwrap().path();
+        let coll_dir = std::fs::read_dir(&dir)
+            .unwrap()
+            .next()
+            .unwrap()
+            .unwrap()
+            .path();
         let req_file = std::fs::read_dir(&coll_dir)
             .unwrap()
             .filter_map(|e| e.ok())
             .map(|e| e.path())
-            .find(|p| p.file_name().unwrap() != COLLECTION_META && p.file_name().unwrap() != ORDER_FILE)
+            .find(|p| {
+                p.file_name().unwrap() != COLLECTION_META && p.file_name().unwrap() != ORDER_FILE
+            })
             .unwrap();
         std::fs::write(&req_file, "{ broken").unwrap();
 

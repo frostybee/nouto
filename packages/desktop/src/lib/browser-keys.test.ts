@@ -8,7 +8,9 @@ function key(init: KeyboardEventInit & { key: string }): KeyboardEvent {
 describe('isSuppressedBrowserKey', () => {
   it('suppresses Ctrl+F, Ctrl+G and Ctrl+P on windows', () => {
     expect(isSuppressedBrowserKey(key({ key: 'f', ctrlKey: true }), 'windows')).toBe(true);
-    expect(isSuppressedBrowserKey(key({ key: 'G', ctrlKey: true, shiftKey: true }), 'windows')).toBe(true);
+    expect(
+      isSuppressedBrowserKey(key({ key: 'G', ctrlKey: true, shiftKey: true }), 'windows'),
+    ).toBe(true);
     expect(isSuppressedBrowserKey(key({ key: 'p', ctrlKey: true }), 'windows')).toBe(true);
   });
 
@@ -26,13 +28,23 @@ describe('isSuppressedBrowserKey', () => {
 
   it('only suppresses reload when asked', () => {
     expect(isSuppressedBrowserKey(key({ key: 'r', ctrlKey: true }), 'windows')).toBe(false);
-    expect(isSuppressedBrowserKey(key({ key: 'r', ctrlKey: true }), 'windows', { reload: true })).toBe(true);
-    expect(isSuppressedBrowserKey(key({ key: 'R', ctrlKey: true, shiftKey: true }), 'windows', { reload: true })).toBe(true);
+    expect(
+      isSuppressedBrowserKey(key({ key: 'r', ctrlKey: true }), 'windows', { reload: true }),
+    ).toBe(true);
+    expect(
+      isSuppressedBrowserKey(key({ key: 'R', ctrlKey: true, shiftKey: true }), 'windows', {
+        reload: true,
+      }),
+    ).toBe(true);
   });
 
   it('ignores combos with Alt or both modifiers, and app shortcuts', () => {
-    expect(isSuppressedBrowserKey(key({ key: 'f', ctrlKey: true, altKey: true }), 'windows')).toBe(false);
-    expect(isSuppressedBrowserKey(key({ key: 'f', ctrlKey: true, metaKey: true }), 'windows')).toBe(false);
+    expect(isSuppressedBrowserKey(key({ key: 'f', ctrlKey: true, altKey: true }), 'windows')).toBe(
+      false,
+    );
+    expect(isSuppressedBrowserKey(key({ key: 'f', ctrlKey: true, metaKey: true }), 'windows')).toBe(
+      false,
+    );
     expect(isSuppressedBrowserKey(key({ key: 'w', ctrlKey: true }), 'windows')).toBe(false);
     expect(isSuppressedBrowserKey(key({ key: 'z', ctrlKey: true }), 'windows')).toBe(false);
   });

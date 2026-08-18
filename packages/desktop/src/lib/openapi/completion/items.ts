@@ -50,7 +50,7 @@ export function buildKeySuggestions(
   ctx: Extract<DetectedContext, { mode: 'key' }>,
   version: OpenApiVersion,
   analysis: OpenApiAnalysis,
-  opts: SuggestionOptions
+  opts: SuggestionOptions,
 ): KeySuggestion[] {
   const isYaml = !opts.full;
   const existingKeys = siblingKeys(analysis, ctx.containerPointer);
@@ -96,7 +96,7 @@ export function buildValueSuggestions(
   ctx: Extract<DetectedContext, { mode: 'value' }>,
   version: OpenApiVersion,
   analysis: OpenApiAnalysis,
-  opts: SuggestionOptions
+  opts: SuggestionOptions,
 ): ValueSuggestion[] {
   const isYaml = !opts.full;
 
@@ -123,7 +123,11 @@ export function buildValueSuggestions(
 /* Builders (shared with the VS Code provider via core's completion/suggest)  */
 /* -------------------------------------------------------------------------- */
 
-function enumSuggestion(value: EnumValueEntry, inQuotes: boolean, isYaml: boolean): ValueSuggestion {
+function enumSuggestion(
+  value: EnumValueEntry,
+  inQuotes: boolean,
+  isYaml: boolean,
+): ValueSuggestion {
   const needsQuotes = !isYaml && !inQuotes;
   return {
     label: value.value,
@@ -139,4 +143,3 @@ function refSuggestion(target: string, inQuotes: boolean, isYaml: boolean): Valu
   const insertText = inQuotes ? target : isYaml ? `'${target}'` : `"${target}"`;
   return { label: target, insertText, kind: 'ref' };
 }
-

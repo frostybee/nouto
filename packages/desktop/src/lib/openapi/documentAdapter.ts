@@ -30,7 +30,10 @@ export function sessionLabel(session: Pick<OpenApiSessionState, 'documentUri'>):
  * Shared open path: focuses an existing session for the same file (no
  * duplicate tabs), otherwise reads the file and opens a new session.
  */
-async function openPath(path: string, options: { warnIfNotOpenApi?: boolean } = {}): Promise<boolean> {
+async function openPath(
+  path: string,
+  options: { warnIfNotOpenApi?: boolean } = {},
+): Promise<boolean> {
   const existing = findSessionByPath(path);
   if (existing) {
     setActiveSessionId(existing.id);
@@ -54,7 +57,11 @@ async function openPath(path: string, options: { warnIfNotOpenApi?: boolean } = 
 }
 
 export async function openFile(): Promise<boolean> {
-  const selected = await openDialog({ multiple: false, filters: FILTERS, title: 'Open OpenAPI Document' });
+  const selected = await openDialog({
+    multiple: false,
+    filters: FILTERS,
+    title: 'Open OpenAPI Document',
+  });
   if (!selected) return false;
   return openPath(selected as string);
 }
@@ -87,7 +94,11 @@ export function newDocument(): void {
 export async function openExampleDocument(): Promise<void> {
   const picked = await showLocalQuickPick(
     'Open Example Specification',
-    OPENAPI_EXAMPLE_SPECS.map((s) => ({ label: s.label, description: s.description, value: s.key }))
+    OPENAPI_EXAMPLE_SPECS.map((s) => ({
+      label: s.label,
+      description: s.description,
+      value: s.key,
+    })),
   );
   if (!picked) return;
   const spec = OPENAPI_EXAMPLE_SPECS.find((s) => s.key === picked);
@@ -125,7 +136,7 @@ export async function saveDocumentAs(id?: string): Promise<boolean> {
   if (collision && collision.id !== session.id) {
     showNotification(
       'error',
-      `"${sessionLabel({ documentUri: path })}" is already open in another tab. Close that tab first, or choose a different name.`
+      `"${sessionLabel({ documentUri: path })}" is already open in another tab. Close that tab first, or choose a different name.`,
     );
     return false;
   }
@@ -149,7 +160,9 @@ export async function confirmDiscardIfDirty(promptContext: string, id?: string):
   const targetId = id ?? activeSessionId();
   const session = targetId ? getSession(targetId) : undefined;
   if (!session?.dirty) return true;
-  const choice = await showLocalSaveDiscardCancel(`${promptContext} has unsaved changes. Save before continuing?`);
+  const choice = await showLocalSaveDiscardCancel(
+    `${promptContext} has unsaved changes. Save before continuing?`,
+  );
   if (choice === 'cancel') return false;
   if (choice === 'save') return saveDocument(session.id);
   return true;
@@ -167,7 +180,7 @@ export async function confirmDiscardAllDirty(promptContext: string): Promise<boo
   if (dirty.length === 0) return true;
   if (dirty.length === 1) return confirmDiscardIfDirty(promptContext, dirty[0].id);
   const choice = await showLocalSaveDiscardCancel(
-    `${dirty.length} OpenAPI documents have unsaved changes. Save all before continuing?`
+    `${dirty.length} OpenAPI documents have unsaved changes. Save all before continuing?`,
   );
   if (choice === 'cancel') return false;
   if (choice === 'discard') return true;

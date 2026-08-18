@@ -10,10 +10,7 @@ import { buildPointerMap } from '@nouto/core/services/openapi/pointerMap';
 import { settings } from '@nouto/ui/stores/settings.svelte';
 import { getSession, type OpenApiSessionState } from '../../lib/openapi/session.svelte';
 import { detectJsonContext, detectYamlContext } from '../../lib/openapi/completion/context';
-import {
-  buildKeySuggestions,
-  buildValueSuggestions,
-} from '../../lib/openapi/completion/items';
+import { buildKeySuggestions, buildValueSuggestions } from '../../lib/openapi/completion/items';
 import type { KeySuggestion, ValueSuggestion } from '../../lib/openapi/completion/items';
 import { resolveHoverDocs } from '../../lib/openapi/hoverDocs';
 import { buildQuickFixes } from '../../lib/openapi/quickFixes';
@@ -62,7 +59,7 @@ function modelFormat(model: monaco.editor.ITextModel): OpenApiFormat {
 export function offsetsToRange(
   model: monaco.editor.ITextModel,
   from: number,
-  to: number
+  to: number,
 ): monaco.Range {
   const start = model.getPositionAt(from);
   const end = model.getPositionAt(to);
@@ -103,11 +100,11 @@ async function appendCrossFileSuggestions(
   session: OpenApiSessionState,
   parentKind: Parameters<typeof enumerateRefTargets>[1],
   inQuotes: boolean,
-  isYaml: boolean
+  isYaml: boolean,
 ): Promise<void> {
   if (!settings.openApiExternalRefsEnabled || !session.documentUri) return;
   const before = model.getValueInRange(
-    new monaco.Range(position.lineNumber, 1, position.lineNumber, position.column)
+    new monaco.Range(position.lineNumber, 1, position.lineNumber, position.column),
   );
   const typed = typedRefValue(before);
   if (!typed) return;
@@ -116,7 +113,7 @@ async function appendCrossFileSuggestions(
     position.lineNumber,
     typed.startCharacter + 1,
     position.lineNumber,
-    position.column
+    position.column,
   );
   const item = (ref: string): monaco.languages.CompletionItem => ({
     label: ref,
@@ -180,24 +177,22 @@ const completionProvider: monaco.languages.CompletionItemProvider = {
       position.lineNumber,
       word.startColumn,
       position.lineNumber,
-      word.endColumn
+      word.endColumn,
     );
 
     if (ctx.mode === 'value') {
       const values = buildValueSuggestions(ctx, version, analysis, { full });
-      const suggestions = values.map(
-        (value: ValueSuggestion): monaco.languages.CompletionItem => ({
-          label: value.label,
-          kind:
-            value.kind === 'ref'
-              ? monaco.languages.CompletionItemKind.Reference
-              : monaco.languages.CompletionItemKind.EnumMember,
-          insertText: value.insertText,
-          range: defaultRange,
-          documentation: value.docs ? { value: value.docs } : undefined,
-          filterText: value.label,
-        })
-      );
+      const suggestions = values.map((value: ValueSuggestion): monaco.languages.CompletionItem => ({
+        label: value.label,
+        kind:
+          value.kind === 'ref'
+            ? monaco.languages.CompletionItemKind.Reference
+            : monaco.languages.CompletionItemKind.EnumMember,
+        insertText: value.insertText,
+        range: defaultRange,
+        documentation: value.docs ? { value: value.docs } : undefined,
+        filterText: value.label,
+      }));
       if (ctx.propertyName === '$ref') {
         await appendCrossFileSuggestions(
           suggestions,
@@ -206,7 +201,7 @@ const completionProvider: monaco.languages.CompletionItemProvider = {
           session,
           ctx.parentKind,
           ctx.inQuotes,
-          format === 'yaml'
+          format === 'yaml',
         );
       }
       return { suggestions };
@@ -218,19 +213,17 @@ const completionProvider: monaco.languages.CompletionItemProvider = {
         : defaultRange;
     const keys = buildKeySuggestions(ctx, version, analysis, { full });
     return {
-      suggestions: keys.map(
-        (key: KeySuggestion): monaco.languages.CompletionItem => ({
-          label: key.name,
-          kind: keySuggestionKind(key.kind),
-          insertText: key.snippet,
-          insertTextRules: key.isSnippet
-            ? monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet
-            : undefined,
-          range,
-          documentation: key.docs ? { value: key.docs } : undefined,
-          detail: key.detail,
-        })
-      ),
+      suggestions: keys.map((key: KeySuggestion): monaco.languages.CompletionItem => ({
+        label: key.name,
+        kind: keySuggestionKind(key.kind),
+        insertText: key.snippet,
+        insertTextRules: key.isSnippet
+          ? monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet
+          : undefined,
+        range,
+        documentation: key.docs ? { value: key.docs } : undefined,
+        detail: key.detail,
+      })),
     };
   },
 };
@@ -271,27 +264,25 @@ const codeActionProvider: monaco.languages.CodeActionProvider = {
       session.diagnostics,
       analysis,
       map,
-      requested
+      requested,
     );
-    const actions = candidates.map(
-      (candidate): monaco.languages.CodeAction => ({
-        title: candidate.title,
-        kind: 'quickfix',
-        diagnostics: context.markers.filter((marker) => markerCode(marker) === candidate.code),
-        edit: {
-          edits: candidate.edits.map((edit) => ({
-            resource: model.uri,
-            // Stale actions (user kept typing before clicking) are rejected
-            // instead of mis-applied.
-            versionId: model.getVersionId(),
-            textEdit: {
-              range: offsetsToRange(model, edit.offset, edit.offset + edit.length),
-              text: edit.text,
-            },
-          })),
-        },
-      })
-    );
+    const actions = candidates.map((candidate): monaco.languages.CodeAction => ({
+      title: candidate.title,
+      kind: 'quickfix',
+      diagnostics: context.markers.filter((marker) => markerCode(marker) === candidate.code),
+      edit: {
+        edits: candidate.edits.map((edit) => ({
+          resource: model.uri,
+          // Stale actions (user kept typing before clicking) are rejected
+          // instead of mis-applied.
+          versionId: model.getVersionId(),
+          textEdit: {
+            range: offsetsToRange(model, edit.offset, edit.offset + edit.length),
+            text: edit.text,
+          },
+        })),
+      },
+    }));
     // Cross-file fixes (Phase 5): side-effecting apply() dispatched through
     // a command — they edit ANOTHER document or create a file, which a
     // CodeAction.edit on this model cannot express.
@@ -347,7 +338,7 @@ const definitionProvider: monaco.languages.DefinitionProvider = {
       session.analysis,
       model.getOffsetAt(position),
       fromUri,
-      tauriFileResolver
+      tauriFileResolver,
     );
     if (!def) return undefined;
     if (def.kind === 'internal') {

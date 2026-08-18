@@ -9,13 +9,13 @@ mod tray;
 
 pub use commands::*;
 use services::grpc_client::init_grpc_pool_cache;
-use services::storage::StorageService;
 use services::history_storage::HistoryStorage;
-use services::ws_session_storage::WsSessionStorage;
 use services::runner_history::RunnerHistory;
+use services::storage::StorageService;
+use services::ws_session_storage::WsSessionStorage;
+use state::AppState;
 use std::sync::atomic::Ordering;
 use tauri::{Emitter, Listener, Manager};
-use state::AppState;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -38,7 +38,8 @@ pub fn run() {
     // Initialize GraphQL subscription registry
     let gql_sub_registry = commands::init_gql_sub_registry();
     // Initialize project directory state
-    let project_dir_state: commands::ProjectDirState = std::sync::Arc::new(tokio::sync::Mutex::new(None));
+    let project_dir_state: commands::ProjectDirState =
+        std::sync::Arc::new(tokio::sync::Mutex::new(None));
     // Initialize file watcher state
     let file_watcher_state = services::file_watcher::init_file_watcher_state();
     let last_write_timestamp = services::file_watcher::init_last_write_timestamp();
@@ -49,34 +50,36 @@ pub fn run() {
 
     tauri::Builder::default()
         // CRITICAL: Single instance plugin MUST be first
-        .plugin(
-            tauri_plugin_single_instance::init(|app, args, cwd| {
-                log::info!("Second instance detected");
-                log::debug!("Second instance args: {:?}", args);
-                log::debug!("Second instance cwd: {}", cwd);
+        .plugin(tauri_plugin_single_instance::init(|app, args, cwd| {
+            log::info!("Second instance detected");
+            log::debug!("Second instance args: {:?}", args);
+            log::debug!("Second instance cwd: {}", cwd);
 
-                // Restore and focus the existing window
-                #[cfg(desktop)]
-                {
-                    if let Some(window) = app.get_webview_window("main") {
-                        let _ = window.unminimize();
-                        let _ = window.show();
-                        let _ = window.set_focus();
-                    }
+            // Restore and focus the existing window
+            #[cfg(desktop)]
+            {
+                if let Some(window) = app.get_webview_window("main") {
+                    let _ = window.unminimize();
+                    let _ = window.show();
+                    let _ = window.set_focus();
                 }
-            })
-        )
+            }
+        }))
         // Logging goes second so every later plugin's setup is captured.
         .plugin({
             #[allow(unused_mut)]
             let mut targets = vec![
                 tauri_plugin_log::Target::new(tauri_plugin_log::TargetKind::Stdout),
-                tauri_plugin_log::Target::new(tauri_plugin_log::TargetKind::LogDir { file_name: None }),
+                tauri_plugin_log::Target::new(tauri_plugin_log::TargetKind::LogDir {
+                    file_name: None,
+                }),
             ];
             // Excluded on Linux where WebKitGTK's webview does not exist during
             // setup(), and app.emit() deadlocks on the IPC socket.
             #[cfg(not(target_os = "linux"))]
-            targets.push(tauri_plugin_log::Target::new(tauri_plugin_log::TargetKind::Webview));
+            targets.push(tauri_plugin_log::Target::new(
+                tauri_plugin_log::TargetKind::Webview,
+            ));
             // Third-party crates (rustls, keyring, tao) stay at Info; only the
             // app crate gets Debug in dev builds.
             tauri_plugin_log::Builder::new()
@@ -161,7 +164,9 @@ pub fn run() {
         })
         .setup(|app| {
             // Initialize StorageService with app data directory
-            let app_data_dir = app.path().app_data_dir()
+            let app_data_dir = app
+                .path()
+                .app_data_dir()
                 .expect("Failed to resolve app data directory");
             let storage = StorageService::new(app_data_dir.clone());
             app.manage(storage);
@@ -174,7 +179,9 @@ pub fn run() {
 
             // Set window icon (needed for dev mode; production uses bundle icon)
             if let Some(main_window) = app.get_webview_window("main") {
-                if let Ok(icon) = tauri::image::Image::from_bytes(include_bytes!("../icons/icon.png")) {
+                if let Ok(icon) =
+                    tauri::image::Image::from_bytes(include_bytes!("../icons/icon.png"))
+                {
                     let _ = main_window.set_icon(icon);
                 }
             }
@@ -308,7 +315,10 @@ pub fn run() {
             // macOS keeps the process alive after the main window is hidden, so a
             // dock-icon click has to bring it back itself.
             #[cfg(target_os = "macos")]
-            tauri::RunEvent::Reopen { has_visible_windows, .. } => {
+            tauri::RunEvent::Reopen {
+                has_visible_windows,
+                ..
+            } => {
                 if !has_visible_windows {
                     if let Some(window) = app_handle.get_webview_window("main") {
                         let _ = window.unminimize();

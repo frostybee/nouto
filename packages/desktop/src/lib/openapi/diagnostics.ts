@@ -33,7 +33,7 @@ interface RustSchemaDiagnostic {
 export function computeSyncDiagnostics(
   content: string,
   format: OpenApiFormat,
-  analysis: OpenApiAnalysis | null
+  analysis: OpenApiAnalysis | null,
 ): OpenApiDiagnostic[] {
   const diagnostics = buildSyntaxDiagnostics(content, format);
   if (!analysis) return diagnostics;
@@ -53,7 +53,7 @@ export function computeSyncDiagnostics(
  */
 export async function fetchSchemaDiagnostics(
   parsedSpec: object,
-  version: OpenApiVersion
+  version: OpenApiVersion,
 ): Promise<OpenApiDiagnostic[]> {
   try {
     const result = await invoke<RustSchemaDiagnostic[]>('validate_openapi_schema', {
@@ -93,7 +93,9 @@ interface RustExampleDiagnostic {
  * so the per-rule severity settings apply; rules set to Off are not even
  * sent. Never throws: resolves [] on any failure, like fetchSchemaDiagnostics.
  */
-export async function fetchExampleDiagnostics(analysis: OpenApiAnalysis): Promise<OpenApiDiagnostic[]> {
+export async function fetchExampleDiagnostics(
+  analysis: OpenApiAnalysis,
+): Promise<OpenApiDiagnostic[]> {
   if (!settings.openApiLintEnabled || !analysis.parsedSpec || !analysis.version) return [];
   const options = lintOptionsFromSettings(settings.openApiLintRules);
   const severityFor = new Map<string, 'error' | 'warning' | 'off'>();
@@ -101,7 +103,7 @@ export async function fetchExampleDiagnostics(analysis: OpenApiAnalysis): Promis
     if (rule.hostValidated) severityFor.set(rule.id, effectiveSeverity(rule, options));
   }
   const sites: ExampleSite[] = collectExampleSites(analysis).filter(
-    (site) => severityFor.get(site.rule) !== undefined && severityFor.get(site.rule) !== 'off'
+    (site) => severityFor.get(site.rule) !== undefined && severityFor.get(site.rule) !== 'off',
   );
   if (sites.length === 0) return [];
   try {

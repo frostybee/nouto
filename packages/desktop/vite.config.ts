@@ -7,19 +7,48 @@ import { resolve } from 'path';
 // but get pulled in transitively via barrel exports. We replace them with
 // empty stubs so they don't break the browser bundle.
 const nodeBuiltins = [
-  'url', 'http', 'http2', 'https', 'tls', 'zlib', 'net', 'dns', 'stream',
-  'crypto', 'fs', 'fs/promises', 'path', 'vm', 'buffer', 'events',
-  'child_process', 'os', 'util', 'assert', 'querystring',
+  'url',
+  'http',
+  'http2',
+  'https',
+  'tls',
+  'zlib',
+  'net',
+  'dns',
+  'stream',
+  'crypto',
+  'fs',
+  'fs/promises',
+  'path',
+  'vm',
+  'buffer',
+  'events',
+  'child_process',
+  'os',
+  'util',
+  'assert',
+  'querystring',
 ];
 
 // Node-only npm packages that are pulled in transitively by @nouto/core
 // but are never used in the browser frontend. Stub them out like builtins.
 const nodeOnlyPackages = [
   'ws',
-  'agent-base', 'http-proxy-agent', 'https-proxy-agent',
-  'socks', 'socks-proxy-agent',
-  'axios', 'follow-redirects', 'form-data', 'combined-stream', 'delayed-stream', 'mime-types',
-  '@grpc/grpc-js', '@grpc/proto-loader', 'protobufjs', 'protobufjs/ext/descriptor',
+  'agent-base',
+  'http-proxy-agent',
+  'https-proxy-agent',
+  'socks',
+  'socks-proxy-agent',
+  'axios',
+  'follow-redirects',
+  'form-data',
+  'combined-stream',
+  'delayed-stream',
+  'mime-types',
+  '@grpc/grpc-js',
+  '@grpc/proto-loader',
+  'protobufjs',
+  'protobufjs/ext/descriptor',
 ];
 
 // Rollup plugin that resolves Node.js builtins and node-only packages to stub modules.
@@ -43,7 +72,13 @@ function nodeBuiltinStubs(): Plugin {
       const mod = id.slice(PREFIX.length);
 
       // Node.js HTTP proxy/agent packages: stub with a no-op constructor
-      if (mod === 'agent-base' || mod === 'http-proxy-agent' || mod === 'https-proxy-agent' || mod === 'socks-proxy-agent' || mod === 'socks') {
+      if (
+        mod === 'agent-base' ||
+        mod === 'http-proxy-agent' ||
+        mod === 'https-proxy-agent' ||
+        mod === 'socks-proxy-agent' ||
+        mod === 'socks'
+      ) {
         return `
           function Agent() {}
           Agent.prototype.destroy = function() {};

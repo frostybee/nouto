@@ -1,14 +1,15 @@
 // Collection Runner command handlers for Tauri
 // Executes a sequence of HTTP requests from a collection, emitting progress events
 
+use super::ProjectDirState;
 use crate::error::AppError;
 use crate::models::types::{
-    AuthState, AuthType, CollectionRunConfig, CollectionRunRequestResult,
-    CollectionRunResult, HttpMethod, KeyValue,
+    AuthState, AuthType, CollectionRunConfig, CollectionRunRequestResult, CollectionRunResult,
+    HttpMethod, KeyValue,
 };
 use crate::services::http_client::{HttpClient, HttpRequestConfig};
-use crate::services::storage::{StorageService, ProjectStorageService};
 use crate::services::runner_history::RunnerHistory as RunnerHistorySvc;
+use crate::services::storage::{ProjectStorageService, StorageService};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
@@ -16,7 +17,6 @@ use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use tauri::{AppHandle, Emitter, Manager};
-use super::ProjectDirState;
 
 /// Registry for cancelling in-flight collection runs (newtype to avoid Tauri manage collision)
 pub struct RunnerRegistry(pub Arc<AtomicBool>);
@@ -54,27 +54,39 @@ pub async fn start_collection_run(
     let project_path: Option<PathBuf> = project_dir.lock().await.clone();
     let (collections_json, environments_json) = if let Some(ref dir) = project_path {
         let project_storage = ProjectStorageService::new(dir.clone());
-        let cols = project_storage.load_collections().await
+        let cols = project_storage
+            .load_collections()
+            .await
             .unwrap_or(serde_json::json!([]));
-        let envs = project_storage.load_environments().await.unwrap_or(Value::Null);
+        let envs = project_storage
+            .load_environments()
+            .await
+            .unwrap_or(Value::Null);
         (cols, envs)
     } else {
         let storage = app.state::<StorageService>();
-        let cols = storage.load_collections().await.map_err(|e| AppError::Storage(e))?;
+        let cols = storage
+            .load_collections()
+            .await
+            .map_err(AppError::Storage)?;
         let envs = storage.load_environments().await.unwrap_or(Value::Null);
         (cols, envs)
     };
-    let mut env_variables = build_env_variable_map(&environments_json, data.environment_id.as_deref());
+    let mut env_variables =
+        build_env_variable_map(&environments_json, data.environment_id.as_deref());
 
     // Find the target collection
-    let collections = collections_json.as_array()
+    let collections = collections_json
+        .as_array()
         .ok_or_else(|| AppError::Other("Collections is not an array".to_string()))?;
 
-    let collection = collections.iter()
+    let collection = collections
+        .iter()
         .find(|c| c.get("id").and_then(|v| v.as_str()) == Some(&data.collection_id))
         .ok_or_else(|| AppError::Other("Collection not found".to_string()))?;
 
-    let collection_name = collection.get("name")
+    let collection_name = collection
+        .get("name")
         .and_then(|v| v.as_str())
         .unwrap_or("Unknown")
         .to_string();
@@ -85,10 +97,14 @@ pub async fn start_collection_run(
 
     // Recursively collect all requests from items
     let items = if let Some(folder_id) = &data.folder_id {
-        find_folder_items(collection.get("items").and_then(|v| v.as_array()), folder_id)
-            .ok_or_else(|| AppError::Other("Folder not found".to_string()))?
+        find_folder_items(
+            collection.get("items").and_then(|v| v.as_array()),
+            folder_id,
+        )
+        .ok_or_else(|| AppError::Other("Folder not found".to_string()))?
     } else {
-        collection.get("items")
+        collection
+            .get("items")
             .and_then(|v| v.as_array())
             .cloned()
             .unwrap_or_default()
@@ -97,11 +113,14 @@ pub async fn start_collection_run(
     let all_requests = collect_requests(&items);
 
     // Filter and order by request_ids
-    let request_map: HashMap<&str, &Value> = all_requests.iter()
+    let request_map: HashMap<&str, &Value> = all_requests
+        .iter()
         .filter_map(|r| r.get("id").and_then(|v| v.as_str()).map(|id| (id, *r)))
         .collect();
 
-    let ordered_requests: Vec<&Value> = data.request_ids.iter()
+    let ordered_requests: Vec<&Value> = data
+        .request_ids
+        .iter()
         .filter_map(|id| request_map.get(id.as_str()).copied())
         .collect();
 
@@ -129,21 +148,24 @@ pub async fn start_collection_run(
         let http_client = match HttpClient::new() {
             Ok(c) => c,
             Err(e) => {
-                let _ = app.emit("collectionRunComplete", serde_json::json!({
-                    "data": {
-                        "collectionId": collection_id,
-                        "collectionName": collection_name,
-                        "startedAt": started_at,
-                        "completedAt": chrono::Utc::now().to_rfc3339(),
-                        "totalRequests": total,
-                        "passedRequests": 0,
-                        "failedRequests": total,
-                        "skippedRequests": 0,
-                        "totalDuration": 0,
-                        "results": [],
-                        "stoppedEarly": true
-                    }
-                }));
+                let _ = app.emit(
+                    "collectionRunComplete",
+                    serde_json::json!({
+                        "data": {
+                            "collectionId": collection_id,
+                            "collectionName": collection_name,
+                            "startedAt": started_at,
+                            "completedAt": chrono::Utc::now().to_rfc3339(),
+                            "totalRequests": total,
+                            "passedRequests": 0,
+                            "failedRequests": total,
+                            "skippedRequests": 0,
+                            "totalDuration": 0,
+                            "results": [],
+                            "stoppedEarly": true
+                        }
+                    }),
+                );
                 log::error!("Failed to create HTTP client: {}", e);
                 return;
             }
@@ -192,28 +214,48 @@ pub async fn start_collection_run(
                     effective_request = substitute_data_variables(&effective_request, row);
                 }
 
-                let req_name = effective_request.get("name").and_then(|v| v.as_str()).unwrap_or("").to_string();
-                let req_id = effective_request.get("id").and_then(|v| v.as_str()).unwrap_or("").to_string();
-                let req_method_str = effective_request.get("method").and_then(|v| v.as_str()).unwrap_or("GET").to_string();
-                let req_url = effective_request.get("url").and_then(|v| v.as_str()).unwrap_or("").to_string();
+                let req_name = effective_request
+                    .get("name")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("")
+                    .to_string();
+                let req_id = effective_request
+                    .get("id")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("")
+                    .to_string();
+                let req_method_str = effective_request
+                    .get("method")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("GET")
+                    .to_string();
+                let req_url = effective_request
+                    .get("url")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("")
+                    .to_string();
 
                 // Emit progress
-                let _ = app.emit("collectionRunProgress", serde_json::json!({
-                    "data": {
-                        "current": global_index + 1,
-                        "total": total,
-                        "requestName": req_name
-                    }
-                }));
-
-                // Resolve script chain (collection -> folders -> request)
-                let (mut pre_scripts, mut post_scripts) = resolve_script_chain(
-                    &collection, &req_id
+                let _ = app.emit(
+                    "collectionRunProgress",
+                    serde_json::json!({
+                        "data": {
+                            "current": global_index + 1,
+                            "total": total,
+                            "requestName": req_name
+                        }
+                    }),
                 );
 
+                // Resolve script chain (collection -> folders -> request)
+                let (mut pre_scripts, mut post_scripts) =
+                    resolve_script_chain(&collection, &req_id);
+
                 // Add request-level scripts
-                let script_inheritance = effective_request.get("scriptInheritance")
-                    .and_then(|v| v.as_str()).unwrap_or("inherit");
+                let script_inheritance = effective_request
+                    .get("scriptInheritance")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("inherit");
                 if script_inheritance == "own" {
                     // Only use request's own scripts
                     pre_scripts.clear();
@@ -233,12 +275,14 @@ pub async fn start_collection_run(
                 }
 
                 // Build script context environment data
-                let env_vars_for_script: Vec<Value> = env_variables.iter()
+                let env_vars_for_script: Vec<Value> = env_variables
+                    .iter()
                     .map(|(k, v)| serde_json::json!({"key": k, "value": v, "enabled": true}))
                     .collect();
                 let script_env = serde_json::json!({ "variables": env_vars_for_script });
 
-                let mut all_test_results: Vec<crate::services::script_engine::ScriptTestResult> = Vec::new();
+                let mut all_test_results: Vec<crate::services::script_engine::ScriptTestResult> =
+                    Vec::new();
                 let mut all_logs: Vec<crate::services::script_engine::ScriptLogEntry> = Vec::new();
                 let mut script_error: Option<String> = None;
 
@@ -273,12 +317,16 @@ pub async fn start_collection_run(
                     };
 
                     let result = crate::services::script_engine::ScriptEngine::execute_pre_request(
-                        script_code, &ctx
-                    ).await;
+                        script_code,
+                        &ctx,
+                    )
+                    .await;
 
                     if !result.cookie_mutations.is_empty() {
-                        let _ = app.emit("cookieMutations",
-                            serde_json::json!({ "data": result.cookie_mutations }));
+                        let _ = app.emit(
+                            "cookieMutations",
+                            serde_json::json!({ "data": result.cookie_mutations }),
+                        );
                     }
 
                     all_logs.extend(result.logs);
@@ -334,7 +382,8 @@ pub async fn start_collection_run(
                             let env_vars_for_post: Vec<Value> = env_variables.iter()
                                 .map(|(k, v)| serde_json::json!({"key": k, "value": v, "enabled": true}))
                                 .collect();
-                            let script_env_post = serde_json::json!({ "variables": env_vars_for_post });
+                            let script_env_post =
+                                serde_json::json!({ "variables": env_vars_for_post });
 
                             for (_source_name, script_code) in &post_scripts {
                                 let request_json = serde_json::json!({
@@ -385,22 +434,37 @@ pub async fn start_collection_run(
                         }
 
                         // Convert script engine types to runner types for the result
-                        let test_results_for_result: Option<Vec<crate::models::types::ScriptTestResult>> =
-                            if all_test_results.is_empty() { None } else {
-                                Some(all_test_results.iter().map(|t| crate::models::types::ScriptTestResult {
-                                    name: t.name.clone(),
-                                    passed: t.passed,
-                                    error: t.error.clone(),
-                                }).collect())
-                            };
+                        let test_results_for_result: Option<
+                            Vec<crate::models::types::ScriptTestResult>,
+                        > = if all_test_results.is_empty() {
+                            None
+                        } else {
+                            Some(
+                                all_test_results
+                                    .iter()
+                                    .map(|t| crate::models::types::ScriptTestResult {
+                                        name: t.name.clone(),
+                                        passed: t.passed,
+                                        error: t.error.clone(),
+                                    })
+                                    .collect(),
+                            )
+                        };
 
                         let logs_for_result: Option<Vec<crate::models::types::ScriptLogEntry>> =
-                            if all_logs.is_empty() { None } else {
-                                Some(all_logs.iter().map(|l| crate::models::types::ScriptLogEntry {
-                                    level: l.level.clone(),
-                                    args: vec![l.message.clone()],
-                                    timestamp: chrono::Utc::now().timestamp_millis(),
-                                }).collect())
+                            if all_logs.is_empty() {
+                                None
+                            } else {
+                                Some(
+                                    all_logs
+                                        .iter()
+                                        .map(|l| crate::models::types::ScriptLogEntry {
+                                            level: l.level.clone(),
+                                            args: vec![l.message.clone()],
+                                            timestamp: chrono::Utc::now().timestamp_millis(),
+                                        })
+                                        .collect(),
+                                )
                             };
 
                         // Check if any script tests failed
@@ -417,11 +481,18 @@ pub async fn start_collection_run(
                             size: response.size,
                             passed: passed && script_tests_passed && script_error.is_none(),
                             error: if !passed {
-                                Some(response.data.as_str().unwrap_or("Request failed").to_string())
+                                Some(
+                                    response
+                                        .data
+                                        .as_str()
+                                        .unwrap_or("Request failed")
+                                        .to_string(),
+                                )
                             } else if let Some(ref err) = script_error {
                                 Some(format!("Script error: {}", err))
                             } else if !script_tests_passed {
-                                let failed: Vec<&str> = all_test_results.iter()
+                                let failed: Vec<&str> = all_test_results
+                                    .iter()
                                     .filter(|t| !t.passed)
                                     .map(|t| t.name.as_str())
                                     .collect();
@@ -456,9 +527,12 @@ pub async fn start_collection_run(
                 };
 
                 // Emit individual result
-                let _ = app.emit("collectionRunRequestResult", serde_json::json!({
-                    "data": &request_result
-                }));
+                let _ = app.emit(
+                    "collectionRunRequestResult",
+                    serde_json::json!({
+                        "data": &request_result
+                    }),
+                );
 
                 let failed = !request_result.passed;
                 results.push(request_result);
@@ -475,14 +549,18 @@ pub async fn start_collection_run(
                         stopped_early = true;
                         break;
                     }
-                    if let Some(&target_idx) = name_to_idx.get(&next_name)
+                    if let Some(&target_idx) = name_to_idx
+                        .get(&next_name)
                         .or_else(|| id_to_idx.get(&next_name))
                     {
                         cursor = target_idx;
                         global_index += 1;
                         continue; // jump — skip delay and sequential cursor advance
                     }
-                    log::warn!("setNextRequest: '{}' not found, advancing sequentially", next_name);
+                    log::warn!(
+                        "setNextRequest: '{}' not found, advancing sequentially",
+                        next_name
+                    );
                 }
 
                 // Delay between requests
@@ -497,9 +575,12 @@ pub async fn start_collection_run(
 
         // Check if cancelled during delay
         if cancelled.load(Ordering::SeqCst) && results.len() < total {
-            let _ = app.emit("collectionRunCancelled", serde_json::json!({
-                "data": {}
-            }));
+            let _ = app.emit(
+                "collectionRunCancelled",
+                serde_json::json!({
+                    "data": {}
+                }),
+            );
             return;
         }
 
@@ -530,9 +611,12 @@ pub async fn start_collection_run(
             log::error!("Failed to save runner history: {}", e);
         }
 
-        let _ = app.emit("collectionRunComplete", serde_json::json!({
-            "data": &run_result
-        }));
+        let _ = app.emit(
+            "collectionRunComplete",
+            serde_json::json!({
+                "data": &run_result
+            }),
+        );
     });
 
     Ok(())
@@ -556,7 +640,10 @@ use crate::services::runner_history::RunnerHistory;
 pub async fn get_runner_history(data: Value, app: AppHandle) -> Result<(), AppError> {
     let collection_id = data["collectionId"].as_str();
     let history = app.state::<RunnerHistory>();
-    let runs = history.list_runs(collection_id).await.map_err(|e| AppError::Storage(e))?;
+    let runs = history
+        .list_runs(collection_id)
+        .await
+        .map_err(AppError::Storage)?;
 
     app.emit("runnerHistoryList", serde_json::json!({ "data": runs }))
         .map_err(|e| AppError::Other(format!("Failed to emit runnerHistoryList: {}", e)))?;
@@ -573,13 +660,18 @@ pub async fn get_runner_history_detail(data: Value, app: AppHandle) -> Result<()
     }
 
     let history = app.state::<RunnerHistory>();
-    match history.get_run(&id).await.map_err(|e| AppError::Storage(e))? {
+    match history.get_run(&id).await.map_err(AppError::Storage)? {
         Some(run) => {
             app.emit("runnerHistoryDetail", serde_json::json!({ "data": run }))
-                .map_err(|e| AppError::Other(format!("Failed to emit runnerHistoryDetail: {}", e)))?;
+                .map_err(|e| {
+                    AppError::Other(format!("Failed to emit runnerHistoryDetail: {}", e))
+                })?;
         }
         None => {
-            return Err(AppError::Other(format!("Runner history entry '{}' not found", id)));
+            return Err(AppError::Other(format!(
+                "Runner history entry '{}' not found",
+                id
+            )));
         }
     }
 
@@ -595,10 +687,10 @@ pub async fn delete_runner_history_entry(data: Value, app: AppHandle) -> Result<
     }
 
     let history = app.state::<RunnerHistory>();
-    history.delete_run(&id).await.map_err(|e| AppError::Storage(e))?;
+    history.delete_run(&id).await.map_err(AppError::Storage)?;
 
     // Emit updated list
-    let runs = history.list_runs(None).await.map_err(|e| AppError::Storage(e))?;
+    let runs = history.list_runs(None).await.map_err(AppError::Storage)?;
     app.emit("runnerHistoryList", serde_json::json!({ "data": runs }))
         .map_err(|e| AppError::Other(format!("Failed to emit runnerHistoryList: {}", e)))?;
 
@@ -609,10 +701,13 @@ pub async fn delete_runner_history_entry(data: Value, app: AppHandle) -> Result<
 #[tauri::command]
 pub async fn clear_runner_history(app: AppHandle) -> Result<(), AppError> {
     let history = app.state::<RunnerHistory>();
-    history.clear_all().await.map_err(|e| AppError::Storage(e))?;
+    history.clear_all().await.map_err(AppError::Storage)?;
 
-    app.emit("runnerHistoryList", serde_json::json!({ "data": Value::Array(vec![]) }))
-        .map_err(|e| AppError::Other(format!("Failed to emit runnerHistoryList: {}", e)))?;
+    app.emit(
+        "runnerHistoryList",
+        serde_json::json!({ "data": Value::Array(vec![]) }),
+    )
+    .map_err(|e| AppError::Other(format!("Failed to emit runnerHistoryList: {}", e)))?;
 
     Ok(())
 }
@@ -624,17 +719,20 @@ pub async fn clear_runner_history(app: AppHandle) -> Result<(), AppError> {
 pub async fn select_data_file(app: AppHandle) -> Result<(), AppError> {
     use tauri_plugin_dialog::DialogExt;
 
-    let file_path = app.dialog()
+    let file_path = app
+        .dialog()
         .file()
         .add_filter("Data Files", &["csv", "json", "xlsx"])
         .blocking_pick_file();
 
     if let Some(path_ref) = file_path {
         if let Some(path) = path_ref.as_path() {
-            let file_name = path.file_name()
+            let file_name = path
+                .file_name()
                 .map(|n| n.to_string_lossy().to_string())
                 .unwrap_or_default();
-            let ext = path.extension()
+            let ext = path
+                .extension()
                 .map(|e| e.to_string_lossy().to_lowercase())
                 .unwrap_or_default();
 
@@ -645,13 +743,16 @@ pub async fn select_data_file(app: AppHandle) -> Result<(), AppError> {
                 _ => return Err(AppError::Other(format!("Unsupported file format: {}", ext))),
             };
 
-            app.emit("dataFileLoaded", serde_json::json!({
-                "data": {
-                    "rows": rows,
-                    "columns": columns,
-                    "fileName": file_name
-                }
-            }))
+            app.emit(
+                "dataFileLoaded",
+                serde_json::json!({
+                    "data": {
+                        "rows": rows,
+                        "columns": columns,
+                        "fileName": file_name
+                    }
+                }),
+            )
             .map_err(|e| AppError::Other(format!("Failed to emit dataFileLoaded: {}", e)))?;
         }
     }
@@ -659,12 +760,16 @@ pub async fn select_data_file(app: AppHandle) -> Result<(), AppError> {
     Ok(())
 }
 
-async fn parse_csv_file(path: &std::path::Path) -> Result<(Vec<HashMap<String, String>>, Vec<String>), AppError> {
-    let content = tokio::fs::read_to_string(path).await
+async fn parse_csv_file(
+    path: &std::path::Path,
+) -> Result<(Vec<HashMap<String, String>>, Vec<String>), AppError> {
+    let content = tokio::fs::read_to_string(path)
+        .await
         .map_err(|e| AppError::Other(format!("Failed to read CSV file: {}", e)))?;
 
     let mut reader = csv::Reader::from_reader(content.as_bytes());
-    let headers: Vec<String> = reader.headers()
+    let headers: Vec<String> = reader
+        .headers()
         .map_err(|e| AppError::Other(format!("Failed to read CSV headers: {}", e)))?
         .iter()
         .map(|h| h.to_string())
@@ -672,7 +777,8 @@ async fn parse_csv_file(path: &std::path::Path) -> Result<(Vec<HashMap<String, S
 
     let mut rows = Vec::new();
     for result in reader.records() {
-        let record = result.map_err(|e| AppError::Other(format!("Failed to read CSV record: {}", e)))?;
+        let record =
+            result.map_err(|e| AppError::Other(format!("Failed to read CSV record: {}", e)))?;
         let mut row = HashMap::new();
         for (i, field) in record.iter().enumerate() {
             if let Some(header) = headers.get(i) {
@@ -685,12 +791,20 @@ async fn parse_csv_file(path: &std::path::Path) -> Result<(Vec<HashMap<String, S
     Ok((rows, headers))
 }
 
-async fn parse_json_data_file(path: &std::path::Path) -> Result<(Vec<HashMap<String, String>>, Vec<String>), AppError> {
-    let content = tokio::fs::read_to_string(path).await
+async fn parse_json_data_file(
+    path: &std::path::Path,
+) -> Result<(Vec<HashMap<String, String>>, Vec<String>), AppError> {
+    let content = tokio::fs::read_to_string(path)
+        .await
         .map_err(|e| AppError::Other(format!("Failed to read JSON file: {}", e)))?;
 
-    let parsed: Vec<serde_json::Map<String, Value>> = serde_json::from_str(&content)
-        .map_err(|e| AppError::Other(format!("Failed to parse JSON data file (expected array of objects): {}", e)))?;
+    let parsed: Vec<serde_json::Map<String, Value>> =
+        serde_json::from_str(&content).map_err(|e| {
+            AppError::Other(format!(
+                "Failed to parse JSON data file (expected array of objects): {}",
+                e
+            ))
+        })?;
 
     let mut columns: Vec<String> = Vec::new();
     let mut columns_seen = std::collections::HashSet::new();
@@ -714,18 +828,22 @@ async fn parse_json_data_file(path: &std::path::Path) -> Result<(Vec<HashMap<Str
     Ok((rows, columns))
 }
 
-fn parse_xlsx_file(path: &std::path::Path) -> Result<(Vec<HashMap<String, String>>, Vec<String>), AppError> {
+fn parse_xlsx_file(
+    path: &std::path::Path,
+) -> Result<(Vec<HashMap<String, String>>, Vec<String>), AppError> {
     use calamine::{open_workbook, Reader, Xlsx};
 
     let mut workbook: Xlsx<_> = open_workbook(path)
         .map_err(|e| AppError::Other(format!("Failed to open XLSX file: {}", e)))?;
 
     let sheet_names = workbook.sheet_names().to_vec();
-    let first_sheet = sheet_names.first()
+    let first_sheet = sheet_names
+        .first()
         .ok_or_else(|| AppError::Other("XLSX file has no sheets".to_string()))?
         .clone();
 
-    let range = workbook.worksheet_range(&first_sheet)
+    let range = workbook
+        .worksheet_range(&first_sheet)
         .map_err(|e| AppError::Other(format!("Failed to read sheet '{}': {}", first_sheet, e)))?;
 
     let mut row_iter = range.rows();
@@ -770,7 +888,10 @@ fn build_env_variable_map(
     let mut vars = HashMap::new();
 
     // 1. Global variables (lowest priority)
-    if let Some(globals) = environments_json.get("globalVariables").and_then(|v| v.as_array()) {
+    if let Some(globals) = environments_json
+        .get("globalVariables")
+        .and_then(|v| v.as_array())
+    {
         for v in globals {
             let enabled = v.get("enabled").and_then(|b| b.as_bool()).unwrap_or(false);
             let key = v.get("key").and_then(|s| s.as_str()).unwrap_or("");
@@ -784,13 +905,17 @@ fn build_env_variable_map(
     // 2. Active environment variables (highest priority)
     if let Some(id) = environment_id {
         if !id.is_empty() {
-            if let Some(envs) = environments_json.get("environments").and_then(|v| v.as_array()) {
+            if let Some(envs) = environments_json
+                .get("environments")
+                .and_then(|v| v.as_array())
+            {
                 for env in envs {
                     let env_id = env.get("id").and_then(|v| v.as_str()).unwrap_or("");
                     if env_id == id {
                         if let Some(env_vars) = env.get("variables").and_then(|v| v.as_array()) {
                             for v in env_vars {
-                                let enabled = v.get("enabled").and_then(|b| b.as_bool()).unwrap_or(false);
+                                let enabled =
+                                    v.get("enabled").and_then(|b| b.as_bool()).unwrap_or(false);
                                 let key = v.get("key").and_then(|s| s.as_str()).unwrap_or("");
                                 let value = v.get("value").and_then(|s| s.as_str()).unwrap_or("");
                                 if enabled && !key.is_empty() {
@@ -832,7 +957,11 @@ fn substitute_env_variables(request: &Value, variables: &HashMap<String, String>
 /// Collect scoped variables from collection and folder ancestors.
 /// Variables are inserted into the map (overriding globals but not env variables,
 /// since env variables are already in the map with highest priority).
-fn collect_scoped_variables(collection: &Value, folder_id: Option<&str>, vars: &mut HashMap<String, String>) {
+fn collect_scoped_variables(
+    collection: &Value,
+    folder_id: Option<&str>,
+    vars: &mut HashMap<String, String>,
+) {
     // Extract variables helper
     fn extract_vars(item: &Value, vars: &mut HashMap<String, String>) {
         if let Some(variables) = item.get("variables").and_then(|v| v.as_array()) {
@@ -842,7 +971,8 @@ fn collect_scoped_variables(collection: &Value, folder_id: Option<&str>, vars: &
                 let value = v.get("value").and_then(|s| s.as_str()).unwrap_or("");
                 if enabled && !key.is_empty() {
                     // Only insert if not already set by environment (higher priority)
-                    vars.entry(key.to_string()).or_insert_with(|| value.to_string());
+                    vars.entry(key.to_string())
+                        .or_insert_with(|| value.to_string());
                 }
             }
         }
@@ -895,7 +1025,9 @@ fn find_folder_items(items: Option<&Vec<Value>>, folder_id: &str) -> Option<Vec<
 
         // Recurse into nested folders
         if item_type == "folder" {
-            if let Some(found) = find_folder_items(item.get("children").and_then(|v| v.as_array()), folder_id) {
+            if let Some(found) =
+                find_folder_items(item.get("children").and_then(|v| v.as_array()), folder_id)
+            {
                 return Some(found);
             }
         }
@@ -929,7 +1061,11 @@ fn resolve_script_chain(
     let mut post_scripts = Vec::new();
 
     // Collection-level scripts
-    let collection_name = collection.get("name").and_then(|v| v.as_str()).unwrap_or("Collection").to_string();
+    let collection_name = collection
+        .get("name")
+        .and_then(|v| v.as_str())
+        .unwrap_or("Collection")
+        .to_string();
     if let Some(scripts) = collection.get("scripts") {
         if let Some(pre) = scripts.get("preRequest").and_then(|v| v.as_str()) {
             if !pre.trim().is_empty() {
@@ -949,7 +1085,11 @@ fn resolve_script_chain(
         if find_path_to_request(items, request_id, &mut path) {
             // path contains the ancestor folders (not the request itself)
             for folder in &path {
-                let folder_name = folder.get("name").and_then(|v| v.as_str()).unwrap_or("Folder").to_string();
+                let folder_name = folder
+                    .get("name")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("Folder")
+                    .to_string();
                 if let Some(scripts) = folder.get("scripts") {
                     if let Some(pre) = scripts.get("preRequest").and_then(|v| v.as_str()) {
                         if !pre.trim().is_empty() {
@@ -1029,7 +1169,8 @@ async fn execute_request_from_json(
     }
 
     // Parse auth
-    let auth: AuthState = request.get("auth")
+    let auth: AuthState = request
+        .get("auth")
         .and_then(|v| serde_json::from_value(v.clone()).ok())
         .unwrap_or_default();
 
@@ -1052,32 +1193,51 @@ async fn execute_request_from_json(
     // Parse body
     let (body_content, body_type) = if let Some(body) = request.get("body") {
         let btype = body.get("type").and_then(|v| v.as_str()).unwrap_or("none");
-        let content = body.get("content").and_then(|v| v.as_str()).map(|s| s.to_string());
+        let content = body
+            .get("content")
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string());
 
         match btype {
             "json" => {
                 if let Some(c) = &content {
-                    headers_map.entry("Content-Type".to_string()).or_insert("application/json".to_string());
+                    headers_map
+                        .entry("Content-Type".to_string())
+                        .or_insert("application/json".to_string());
                     (Some(c.clone()), "json".to_string())
-                } else { (None, "none".to_string()) }
+                } else {
+                    (None, "none".to_string())
+                }
             }
             "text" => {
                 if let Some(c) = &content {
-                    headers_map.entry("Content-Type".to_string()).or_insert("text/plain".to_string());
+                    headers_map
+                        .entry("Content-Type".to_string())
+                        .or_insert("text/plain".to_string());
                     (Some(c.clone()), "text".to_string())
-                } else { (None, "none".to_string()) }
+                } else {
+                    (None, "none".to_string())
+                }
             }
             "xml" => {
                 if let Some(c) = &content {
-                    headers_map.entry("Content-Type".to_string()).or_insert("application/xml".to_string());
+                    headers_map
+                        .entry("Content-Type".to_string())
+                        .or_insert("application/xml".to_string());
                     (Some(c.clone()), "xml".to_string())
-                } else { (None, "none".to_string()) }
+                } else {
+                    (None, "none".to_string())
+                }
             }
             "x-www-form-urlencoded" => {
                 if let Some(c) = &content {
-                    headers_map.entry("Content-Type".to_string()).or_insert("application/x-www-form-urlencoded".to_string());
+                    headers_map
+                        .entry("Content-Type".to_string())
+                        .or_insert("application/x-www-form-urlencoded".to_string());
                     (Some(c.clone()), "x-www-form-urlencoded".to_string())
-                } else { (None, "none".to_string()) }
+                } else {
+                    (None, "none".to_string())
+                }
             }
             "graphql" => {
                 if let Some(query) = &content {
@@ -1092,9 +1252,13 @@ async fn execute_request_from_json(
                             payload["operationName"] = Value::String(op.to_string());
                         }
                     }
-                    headers_map.entry("Content-Type".to_string()).or_insert("application/json".to_string());
+                    headers_map
+                        .entry("Content-Type".to_string())
+                        .or_insert("application/json".to_string());
                     (Some(payload.to_string()), "json".to_string())
-                } else { (None, "none".to_string()) }
+                } else {
+                    (None, "none".to_string())
+                }
             }
             _ => (None, "none".to_string()),
         }
@@ -1126,17 +1290,35 @@ async fn execute_request_from_json(
         .collect();
 
     // Parse SSL and proxy from JSON
-    let ssl = request.get("ssl")
+    let ssl = request
+        .get("ssl")
         .and_then(|v| serde_json::from_value(v.clone()).ok());
-    let proxy = request.get("proxy")
+    let proxy = request
+        .get("proxy")
         .and_then(|v| serde_json::from_value(v.clone()).ok());
 
-    let timeout = request.get("timeout").and_then(|v| v.as_u64()).unwrap_or(30000);
-    let follow_redirects = request.get("followRedirects").and_then(|v| v.as_bool()).unwrap_or(true);
-    let max_redirects = request.get("maxRedirects").and_then(|v| v.as_u64()).unwrap_or(10) as u32;
+    let timeout = request
+        .get("timeout")
+        .and_then(|v| v.as_u64())
+        .unwrap_or(30000);
+    let follow_redirects = request
+        .get("followRedirects")
+        .and_then(|v| v.as_bool())
+        .unwrap_or(true);
+    let max_redirects = request
+        .get("maxRedirects")
+        .and_then(|v| v.as_u64())
+        .unwrap_or(10) as u32;
 
-    let method_str = request.get("method").and_then(|v| v.as_str()).unwrap_or("GET");
-    let mut url = request.get("url").and_then(|v| v.as_str()).unwrap_or("").to_string();
+    let method_str = request
+        .get("method")
+        .and_then(|v| v.as_str())
+        .unwrap_or("GET");
+    let mut url = request
+        .get("url")
+        .and_then(|v| v.as_str())
+        .unwrap_or("")
+        .to_string();
     // Auto-prepend http:// if no protocol specified (matches Postman/Insomnia behavior;
     // servers requiring HTTPS will redirect via 301/302)
     if !url.is_empty() && !url.contains("://") {
@@ -1164,5 +1346,5 @@ async fn execute_request_from_json(
     http_client
         .execute(config, None::<fn(usize, Option<u64>)>)
         .await
-        .map_err(|e| AppError::Other(e))
+        .map_err(AppError::Other)
 }

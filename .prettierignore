@@ -1,0 +1,10 @@
+node_modules/
+**/dist/
+**/out/
+packages/desktop/dist-spike/
+packages/desktop/src-tauri/
+packages/desktop/vite.config.ts.timestamp-*
+Cargo.lock
+pnpm-lock.yaml
+*.md
+my-docs/

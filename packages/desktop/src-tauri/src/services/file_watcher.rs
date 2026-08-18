@@ -64,10 +64,10 @@ pub async fn start_watching(
             }
         };
 
-        if let Err(e) = debouncer.watcher().watch(
-            &nouto_dir_clone,
-            notify::RecursiveMode::Recursive,
-        ) {
+        if let Err(e) = debouncer
+            .watcher()
+            .watch(&nouto_dir_clone, notify::RecursiveMode::Recursive)
+        {
             log::error!("Failed to watch directory: {}", e);
             return;
         }
@@ -172,10 +172,12 @@ pub async fn start_env_file_watching(
     let env_path_str = env_file_path.to_string_lossy().to_string();
 
     // Watch the parent directory (watching a single file directly is unreliable on some platforms)
-    let watch_dir = env_file_path.parent()
+    let watch_dir = env_file_path
+        .parent()
         .ok_or("Cannot determine parent directory of .env file")?
         .to_path_buf();
-    let env_file_name = env_file_path.file_name()
+    let env_file_name = env_file_path
+        .file_name()
         .ok_or("Cannot determine .env file name")?
         .to_string_lossy()
         .to_string();
@@ -191,10 +193,10 @@ pub async fn start_env_file_watching(
             }
         };
 
-        if let Err(e) = debouncer.watcher().watch(
-            &watch_dir,
-            notify::RecursiveMode::NonRecursive,
-        ) {
+        if let Err(e) = debouncer
+            .watcher()
+            .watch(&watch_dir, notify::RecursiveMode::NonRecursive)
+        {
             log::error!("Failed to watch env file directory: {}", e);
             return;
         }
@@ -211,9 +213,11 @@ pub async fn start_env_file_watching(
                 Ok(Ok(events)) => {
                     let env_changed = events.iter().any(|e| {
                         matches!(e.kind, DebouncedEventKind::Any)
-                            && e.path.file_name()
+                            && e.path
+                                .file_name()
                                 .map(|n| n.to_string_lossy().to_string())
-                                .as_deref() == Some(&env_file_name)
+                                .as_deref()
+                                == Some(&env_file_name)
                     });
 
                     if env_changed {

@@ -58,7 +58,10 @@ pub async fn get_secret(data: SecretKeyData, app: AppHandle) -> Result<(), AppEr
             );
         }
         Err(e) => {
-            return Err(AppError::Storage(format!("Failed to retrieve secret: {}", e)));
+            return Err(AppError::Storage(format!(
+                "Failed to retrieve secret: {}",
+                e
+            )));
         }
     }
 

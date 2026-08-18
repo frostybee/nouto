@@ -1,6 +1,18 @@
 <script lang="ts">
-  import { openApiSession, setContent, sessionList, reanalyzeAllSessions } from '../../lib/openapi/session.svelte';
-  import { openFile, openRecentFile, newDocument, openExampleDocument, saveDocument, saveDocumentAs } from '../../lib/openapi/documentAdapter';
+  import {
+    openApiSession,
+    setContent,
+    sessionList,
+    reanalyzeAllSessions,
+  } from '../../lib/openapi/session.svelte';
+  import {
+    openFile,
+    openRecentFile,
+    newDocument,
+    openExampleDocument,
+    saveDocument,
+    saveDocumentAs,
+  } from '../../lib/openapi/documentAdapter';
   import { recentOpenApiFiles } from '../../lib/openapi/recentFiles.svelte';
   import { openReferencedFileAndReveal } from '../../lib/openapi/crossFileNav';
   import { pathToFileUri } from '../../lib/openapi/pathUtils';
@@ -10,7 +22,11 @@
   import type { OutlineActionId } from '../../lib/openapi/outlineMenu';
   import { generateCollectionFromOpenApi } from '../../lib/import-export.svelte';
   import type { OutlineNode } from '@nouto/core/services/openapi/outline';
-  import { buildPointerMap, offsetToPointer, pointerToOffsetRange } from '@nouto/core/services/openapi/pointerMap';
+  import {
+    buildPointerMap,
+    offsetToPointer,
+    pointerToOffsetRange,
+  } from '@nouto/core/services/openapi/pointerMap';
   import type { SpecTextEdit } from '@nouto/core/services/openapi/specEdit';
   import { debounce } from '@nouto/ui/lib/debounce';
   import { settings } from '@nouto/ui/stores/settings.svelte';
@@ -24,7 +40,9 @@
   // $derived doubles as the cache: rebuilt only when content/format change,
   // shared by the marker converter (via prop) and the outline sync below.
   const pointerMap = $derived(
-    openApiSession.format ? buildPointerMap(openApiSession.content, openApiSession.format) : undefined
+    openApiSession.format
+      ? buildPointerMap(openApiSession.content, openApiSession.format)
+      : undefined,
   );
 
   let surfaceRef = $state<{
@@ -60,7 +78,7 @@
       const pointer = pointerMap ? offsetToPointer(pointerMap, lastCursorOffset) : '';
       surfaceRef?.applyEdits(
         [{ offset: 0, length: content.length, text: formatted }],
-        pointer ? { pointer, selectValue: false } : undefined
+        pointer ? { pointer, selectValue: false } : undefined,
       );
     } catch (error) {
       showNotification('error', `Formatting failed: ${error}`);
@@ -70,7 +88,7 @@
   // Outline nodes carry documentUri in file:// form (same space the external
   // pass resolves into), so cross-file nodes are detected by URI mismatch.
   const documentFileUri = $derived(
-    openApiSession.documentUri ? pathToFileUri(openApiSession.documentUri) : 'untitled'
+    openApiSession.documentUri ? pathToFileUri(openApiSession.documentUri) : 'untitled',
   );
 
   function handleOutlineReveal(pointer: string, documentUri?: string): void {
@@ -102,13 +120,13 @@
   // errors also block outline editing, mirroring vscode's hasErrors guard.
   const outlineHasErrors = $derived(
     !openApiSession.analysis?.parsedSpec ||
-      openApiSession.diagnostics.some((diagnostic) => diagnostic.severity === 'error')
+      openApiSession.diagnostics.some((diagnostic) => diagnostic.severity === 'error'),
   );
 
   function handleOutlineAction(
     node: OutlineNode,
     id: OutlineActionId,
-    payload?: Record<string, unknown>
+    payload?: Record<string, unknown>,
   ): void {
     if (!openApiSession.format || !openApiSession.analysis) return;
     const result = planOutlineEditAction(
@@ -117,7 +135,7 @@
       payload,
       openApiSession.content,
       openApiSession.format,
-      openApiSession.analysis
+      openApiSession.analysis,
     );
     if (!result) return;
     if ('error' in result) {
@@ -163,7 +181,11 @@
         <ul>
           {#each recentOpenApiFiles() as recent (recent.path)}
             <li>
-              <button class="recent-file" title={recent.path} onclick={() => openRecentFile(recent.path)}>
+              <button
+                class="recent-file"
+                title={recent.path}
+                onclick={() => openRecentFile(recent.path)}
+              >
                 <span class="codicon codicon-file"></span>
                 <span class="recent-name">{recent.name}</span>
                 <span class="recent-path">{recent.path}</span>

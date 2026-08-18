@@ -56,7 +56,13 @@ pub struct KeyValue {
 
 impl KeyValue {
     pub fn new(id: String, key: String, value: String, enabled: bool) -> Self {
-        Self { id, key, value, enabled, ..Default::default() }
+        Self {
+            id,
+            key,
+            value,
+            enabled,
+            ..Default::default()
+        }
     }
 }
 
@@ -249,7 +255,9 @@ pub struct PathParam {
     pub enabled: bool,
 }
 
-fn default_true() -> bool { true }
+fn default_true() -> bool {
+    true
+}
 
 // --- Request Body ---
 
@@ -1116,7 +1124,7 @@ pub enum StorageMode {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ScriptChainEntry {
-    pub source: String,         // "collection" | "folder" | "request"
+    pub source: String, // "collection" | "folder" | "request"
     pub source_name: String,
     pub pre_request: String,
     pub post_response: String,
@@ -1140,7 +1148,11 @@ pub struct EnvDataPayload {
 // --- Utility Functions ---
 
 pub fn generate_id() -> String {
-    format!("{}-{}", chrono::Utc::now().timestamp_millis(), uuid::Uuid::new_v4().to_string()[0..7].to_string())
+    format!(
+        "{}-{}",
+        chrono::Utc::now().timestamp_millis(),
+        &uuid::Uuid::new_v4().to_string()[0..7]
+    )
 }
 
 // =============================================================================
@@ -1278,16 +1290,21 @@ mod tests {
     }
 
     /// Helper: round-trip a JSON value through a typed Rust struct and back.
-    fn round_trip<T: serde::de::DeserializeOwned + serde::Serialize>(input: &serde_json::Value) -> serde_json::Value {
-        let typed: T = serde_json::from_value(input.clone())
-            .expect("deserialization should succeed");
-        serde_json::to_value(&typed)
-            .expect("re-serialization should succeed")
+    fn round_trip<T: serde::de::DeserializeOwned + serde::Serialize>(
+        input: &serde_json::Value,
+    ) -> serde_json::Value {
+        let typed: T =
+            serde_json::from_value(input.clone()).expect("deserialization should succeed");
+        serde_json::to_value(&typed).expect("re-serialization should succeed")
     }
 
     /// Assert that every key present in `original` is also present in `result`
     /// with the same value. Recurses into objects and arrays.
-    fn assert_all_fields_preserved(original: &serde_json::Value, result: &serde_json::Value, path: &str) {
+    fn assert_all_fields_preserved(
+        original: &serde_json::Value,
+        result: &serde_json::Value,
+        path: &str,
+    ) {
         match (original, result) {
             (serde_json::Value::Object(orig_map), serde_json::Value::Object(res_map)) => {
                 for (key, orig_val) in orig_map {
@@ -1304,9 +1321,12 @@ mod tests {
             }
             (serde_json::Value::Array(orig_arr), serde_json::Value::Array(res_arr)) => {
                 assert_eq!(
-                    orig_arr.len(), res_arr.len(),
+                    orig_arr.len(),
+                    res_arr.len(),
                     "Array length mismatch at '{}': original={}, result={}",
-                    path, orig_arr.len(), res_arr.len()
+                    path,
+                    orig_arr.len(),
+                    res_arr.len()
                 );
                 for (i, (o, r)) in orig_arr.iter().zip(res_arr.iter()).enumerate() {
                     assert_all_fields_preserved(o, r, &format!("{}[{}]", path, i));
@@ -1471,8 +1491,8 @@ mod tests {
         let original = json!([full_collection_json()]);
         let typed: Vec<Collection> = serde_json::from_value(original.clone())
             .expect("Vec<Collection> deserialization should succeed");
-        let result = serde_json::to_value(&typed)
-            .expect("Vec<Collection> re-serialization should succeed");
+        let result =
+            serde_json::to_value(&typed).expect("Vec<Collection> re-serialization should succeed");
         let req = &result[0]["items"][0];
         assert_eq!(req["url"], "https://api.example.com/users/:id");
         assert_eq!(req["pathParams"][0]["key"], "id");

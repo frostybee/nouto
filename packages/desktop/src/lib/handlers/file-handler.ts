@@ -6,7 +6,10 @@ import type { OutgoingMessage } from '@nouto/transport';
 import type { NotifyFn } from './types';
 import { logger } from '../logger';
 
-export async function handleFileOperation(message: OutgoingMessage, notify: NotifyFn): Promise<void> {
+export async function handleFileOperation(
+  message: OutgoingMessage,
+  notify: NotifyFn,
+): Promise<void> {
   const data = 'data' in message ? (message as any).data : undefined;
 
   try {
@@ -19,7 +22,10 @@ export async function handleFileOperation(message: OutgoingMessage, notify: Noti
       });
       if (filePath) {
         await writeTextFile(filePath, content);
-        notify({ type: 'showNotification', data: { level: 'info', message: 'Response saved to file.' } } as any);
+        notify({
+          type: 'showNotification',
+          data: { level: 'info', message: 'Response saved to file.' },
+        } as any);
       }
     } else if (message.type === 'downloadBinaryResponse') {
       const base64Content = data?.base64 ?? '';
@@ -35,7 +41,10 @@ export async function handleFileOperation(message: OutgoingMessage, notify: Noti
           bytes[i] = binaryStr.charCodeAt(i);
         }
         await writeFile(filePath, bytes);
-        notify({ type: 'showNotification', data: { level: 'info', message: 'Response saved to file.' } } as any);
+        notify({
+          type: 'showNotification',
+          data: { level: 'info', message: 'Response saved to file.' },
+        } as any);
       }
     } else if (message.type === 'openBinaryResponse') {
       const base64Content = data?.base64 ?? '';
@@ -52,6 +61,9 @@ export async function handleFileOperation(message: OutgoingMessage, notify: Noti
     }
   } catch (error) {
     logger.error('[TauriMessageBus] File operation failed:', error);
-    notify({ type: 'showNotification', data: { level: 'error', message: `Failed to save file: ${error}` } } as any);
+    notify({
+      type: 'showNotification',
+      data: { level: 'error', message: `Failed to save file: ${error}` },
+    } as any);
   }
 }

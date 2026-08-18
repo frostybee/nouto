@@ -68,7 +68,10 @@ pub fn spawn_request_execution(
                     data_obj.insert("assertionResults".to_string(), Value::Array(eval.results));
                 }
                 if !eval.variables_to_set.is_empty() {
-                    let _ = app.emit("setVariables", serde_json::json!({ "data": eval.variables_to_set }));
+                    let _ = app.emit(
+                        "setVariables",
+                        serde_json::json!({ "data": eval.variables_to_set }),
+                    );
                 }
             }
             resp_json
@@ -99,13 +102,16 @@ pub fn spawn_request_execution(
 
         let emit_response_context = |app: &AppHandle, response: &ResponseData| {
             if let Some(ref rid) = req_id_for_context {
-                let _ = app.emit("storeResponseContext", serde_json::json!({
-                    "data": {
-                        "requestId": rid,
-                        "response": response,
-                        "requestName": req_name_for_context
-                    }
-                }));
+                let _ = app.emit(
+                    "storeResponseContext",
+                    serde_json::json!({
+                        "data": {
+                            "requestId": rid,
+                            "response": response,
+                            "requestName": req_name_for_context
+                        }
+                    }),
+                );
             }
         };
 
@@ -149,17 +155,21 @@ pub fn spawn_request_execution(
         }
 
         // Shared env state across pre-request and post-response script phases
-        let mut current_env = env_data.as_ref()
+        let mut current_env = env_data
+            .as_ref()
             .and_then(|e| e.active_environment.clone())
             .unwrap_or(serde_json::json!({}));
-        let mut current_globals = env_data.as_ref()
+        let mut current_globals = env_data
+            .as_ref()
             .and_then(|e| e.global_variables.clone())
             .unwrap_or_default();
 
         // Pre-request scripts
         if let Some(ref chain) = script_chain {
             for entry in &chain.entries {
-                if entry.pre_request.trim().is_empty() { continue; }
+                if entry.pre_request.trim().is_empty() {
+                    continue;
+                }
 
                 let request_json = serde_json::json!({
                     "method": config.method.as_str().to_uppercase(),
@@ -180,44 +190,63 @@ pub fn spawn_request_execution(
                         "currentIteration": 0,
                         "totalIterations": 1,
                     })),
-                    cookies: cookies.iter()
-                        .filter_map(|v| serde_json::from_value::<crate::services::script_engine::ScriptCookie>(v.clone()).ok())
+                    cookies: cookies
+                        .iter()
+                        .filter_map(|v| {
+                            serde_json::from_value::<crate::services::script_engine::ScriptCookie>(
+                                v.clone(),
+                            )
+                            .ok()
+                        })
                         .collect(),
                 };
 
                 // result.next_request is intentionally ignored here — it only applies in collection runner context
                 let result = crate::services::script_engine::ScriptEngine::execute_pre_request(
-                    &entry.pre_request, &script_context
-                ).await;
+                    &entry.pre_request,
+                    &script_context,
+                )
+                .await;
 
                 if !result.cookie_mutations.is_empty() {
-                    let _ = app_for_scripts.emit("cookieMutations",
-                        serde_json::json!({ "data": result.cookie_mutations }));
+                    let _ = app_for_scripts.emit(
+                        "cookieMutations",
+                        serde_json::json!({ "data": result.cookie_mutations }),
+                    );
                 }
 
-                let _ = app_for_scripts.emit("scriptOutput", serde_json::json!({
-                    "data": {
-                        "phase": "preRequest",
-                        "result": {
-                            "success": result.error.is_none(),
-                            "logs": result.logs,
-                            "testResults": result.test_results,
-                            "variablesToSet": result.variables_to_set,
-                            "error": result.error,
+                let _ = app_for_scripts.emit(
+                    "scriptOutput",
+                    serde_json::json!({
+                        "data": {
+                            "phase": "preRequest",
+                            "result": {
+                                "success": result.error.is_none(),
+                                "logs": result.logs,
+                                "testResults": result.test_results,
+                                "variablesToSet": result.variables_to_set,
+                                "error": result.error,
+                            }
                         }
-                    }
-                }));
+                    }),
+                );
 
                 if !result.variables_to_set.is_empty() {
-                    let _ = app_for_scripts.emit("setVariables", serde_json::json!({
-                        "data": result.variables_to_set
-                    }));
+                    let _ = app_for_scripts.emit(
+                        "setVariables",
+                        serde_json::json!({
+                            "data": result.variables_to_set
+                        }),
+                    );
                     for var in &result.variables_to_set {
                         if var.scope == "global" {
                             current_globals.push(serde_json::json!({
                                 "key": var.key, "value": var.value, "enabled": true
                             }));
-                        } else if let Some(vars) = current_env.get_mut("variables").and_then(|v| v.as_array_mut()) {
+                        } else if let Some(vars) = current_env
+                            .get_mut("variables")
+                            .and_then(|v| v.as_array_mut())
+                        {
                             let mut found = false;
                             for v in vars.iter_mut() {
                                 if v["key"].as_str() == Some(&var.key) {
@@ -267,20 +296,25 @@ pub fn spawn_request_execution(
                     }
                 }
 
-                if result.error.is_some() { break; }
+                if result.error.is_some() {
+                    break;
+                }
             }
         }
 
         // AWS Signature v4
         if let Some(ref aws_params) = aws_auth {
-            let existing_headers: Vec<(String, String)> = config.headers.iter()
+            let existing_headers: Vec<(String, String)> = config
+                .headers
+                .iter()
                 .filter(|h| h.enabled && !h.key.is_empty())
                 .map(|h| (h.key.clone(), h.value.clone()))
                 .collect();
             let body_bytes = config.body.as_ref().map(|b| b.as_bytes());
 
             let sign_url = if config.params.iter().any(|p| p.enabled && !p.key.is_empty()) {
-                let mut url = reqwest::Url::parse(&config.url).unwrap_or_else(|_| reqwest::Url::parse("http://localhost").unwrap());
+                let mut url = reqwest::Url::parse(&config.url)
+                    .unwrap_or_else(|_| reqwest::Url::parse("http://localhost").unwrap());
                 for p in &config.params {
                     if p.enabled && !p.key.is_empty() {
                         url.query_pairs_mut().append_pair(&p.key, &p.value);
@@ -372,9 +406,12 @@ pub fn spawn_request_execution(
         // Execute request with download progress
         let app_for_progress = app.clone();
         let on_progress = move |loaded: usize, total: Option<u64>| {
-            let _ = app_for_progress.emit("downloadProgress", serde_json::json!({
-                "data": { "loaded": loaded, "total": total }
-            }));
+            let _ = app_for_progress.emit(
+                "downloadProgress",
+                serde_json::json!({
+                    "data": { "loaded": loaded, "total": total }
+                }),
+            );
         };
 
         let mut script_response_json: Option<Value> = None;
@@ -391,10 +428,13 @@ pub fn spawn_request_execution(
 
         match client.execute(config.clone(), Some(on_progress)).await {
             Ok(response) => {
-                if response.status == 401 && digest_auth.is_some() {
+                if let (true, Some((username, password))) =
+                    (response.status == 401, digest_auth.as_ref())
+                {
                     if let Some(www_auth) = response.headers.get("www-authenticate") {
-                        if let Some(challenge) = crate::services::digest_auth::parse_digest_challenge(www_auth) {
-                            let (ref username, ref password) = *digest_auth.as_ref().unwrap();
+                        if let Some(challenge) =
+                            crate::services::digest_auth::parse_digest_challenge(www_auth)
+                        {
                             let uri = reqwest::Url::parse(&config.url)
                                 .map(|u| {
                                     let path = u.path().to_string();
@@ -405,7 +445,11 @@ pub fn spawn_request_execution(
                                 })
                                 .unwrap_or_else(|_| config.url.clone());
                             let auth_header = crate::services::digest_auth::compute_digest_auth(
-                                username, password, config.method.as_str(), &uri, &challenge,
+                                username,
+                                password,
+                                config.method.as_str(),
+                                &uri,
+                                &challenge,
                             );
                             let mut retry_config = config.clone();
                             retry_config.headers.push(KeyValue {
@@ -425,17 +469,27 @@ pub fn spawn_request_execution(
                                             timestamp: chrono::Utc::now().timestamp_millis(),
                                         });
                                     }
-                                    log::debug!("Digest auth retry successful, status: {}", retry_response.status);
+                                    log::debug!(
+                                        "Digest auth retry successful, status: {}",
+                                        retry_response.status
+                                    );
                                     emit_response_context(&app, &retry_response);
-                                    script_response_json = Some(build_script_response(&retry_response));
+                                    script_response_json =
+                                        Some(build_script_response(&retry_response));
                                     record_history(&app_for_history, &retry_response);
-                                    if let Err(e) = app.emit("requestResponse", build_response_json(&retry_response)) {
+                                    if let Err(e) = app.emit(
+                                        "requestResponse",
+                                        build_response_json(&retry_response),
+                                    ) {
                                         log::error!("Failed to emit response: {}", e);
                                     }
                                 }
                                 Err(e) => {
                                     log::warn!("Digest auth retry failed: {}", e);
-                                    if let Err(err) = app.emit("requestResponse", serde_json::json!({ "data": create_error_response(e) })) {
+                                    if let Err(err) = app.emit(
+                                        "requestResponse",
+                                        serde_json::json!({ "data": create_error_response(e) }),
+                                    ) {
                                         log::error!("Failed to emit error response: {}", err);
                                     }
                                 }
@@ -444,7 +498,9 @@ pub fn spawn_request_execution(
                             emit_response_context(&app, &response);
                             script_response_json = Some(build_script_response(&response));
                             record_history(&app_for_history, &response);
-                            if let Err(e) = app.emit("requestResponse", build_response_json(&response)) {
+                            if let Err(e) =
+                                app.emit("requestResponse", build_response_json(&response))
+                            {
                                 log::error!("Failed to emit response: {}", e);
                             }
                         }
@@ -452,22 +508,29 @@ pub fn spawn_request_execution(
                         emit_response_context(&app, &response);
                         script_response_json = Some(build_script_response(&response));
                         record_history(&app_for_history, &response);
-                        if let Err(e) = app.emit("requestResponse", build_response_json(&response)) {
+                        if let Err(e) = app.emit("requestResponse", build_response_json(&response))
+                        {
                             log::error!("Failed to emit response: {}", e);
                         }
                     }
-                } else if response.status == 401 && ntlm_auth.is_some() {
+                } else if let (true, Some((username, password, domain, workstation))) =
+                    (response.status == 401, ntlm_auth.as_ref())
+                {
                     let www_auth = response.headers.get("www-authenticate");
-                    let type2_data = www_auth.and_then(|v| crate::services::ntlm_auth::extract_type2_from_header(v));
+                    let type2_data = www_auth
+                        .and_then(|v| crate::services::ntlm_auth::extract_type2_from_header(v));
                     if let Some(type2_bytes) = type2_data {
                         match crate::services::ntlm_auth::parse_type2_message(&type2_bytes) {
                             Ok(challenge) => {
-                                let (ref username, ref password, ref domain, ref workstation) =
-                                    *ntlm_auth.as_ref().unwrap();
                                 let type3_msg = crate::services::ntlm_auth::create_type3_message(
-                                    username, password, domain, workstation, &challenge,
+                                    username,
+                                    password,
+                                    domain,
+                                    workstation,
+                                    &challenge,
                                 );
-                                let auth_header = crate::services::ntlm_auth::encode_authorization(&type3_msg);
+                                let auth_header =
+                                    crate::services::ntlm_auth::encode_authorization(&type3_msg);
                                 let mut retry_config = config.clone();
                                 retry_config.headers.retain(|h| {
                                     !(h.key.eq_ignore_ascii_case("authorization")
@@ -490,17 +553,27 @@ pub fn spawn_request_execution(
                                                 timestamp: chrono::Utc::now().timestamp_millis(),
                                             });
                                         }
-                                        log::debug!("NTLM auth successful, status: {}", retry_response.status);
+                                        log::debug!(
+                                            "NTLM auth successful, status: {}",
+                                            retry_response.status
+                                        );
                                         emit_response_context(&app, &retry_response);
-                                        script_response_json = Some(build_script_response(&retry_response));
+                                        script_response_json =
+                                            Some(build_script_response(&retry_response));
                                         record_history(&app_for_history, &retry_response);
-                                        if let Err(e) = app.emit("requestResponse", build_response_json(&retry_response)) {
+                                        if let Err(e) = app.emit(
+                                            "requestResponse",
+                                            build_response_json(&retry_response),
+                                        ) {
                                             log::error!("Failed to emit response: {}", e);
                                         }
                                     }
                                     Err(e) => {
                                         log::warn!("NTLM auth retry failed: {}", e);
-                                        if let Err(err) = app.emit("requestResponse", serde_json::json!({ "data": create_error_response(e) })) {
+                                        if let Err(err) = app.emit(
+                                            "requestResponse",
+                                            serde_json::json!({ "data": create_error_response(e) }),
+                                        ) {
                                             log::error!("Failed to emit error response: {}", err);
                                         }
                                     }
@@ -511,7 +584,9 @@ pub fn spawn_request_execution(
                                 emit_response_context(&app, &response);
                                 script_response_json = Some(build_script_response(&response));
                                 record_history(&app_for_history, &response);
-                                if let Err(err) = app.emit("requestResponse", build_response_json(&response)) {
+                                if let Err(err) =
+                                    app.emit("requestResponse", build_response_json(&response))
+                                {
                                     log::error!("Failed to emit response: {}", err);
                                 }
                             }
@@ -520,7 +595,8 @@ pub fn spawn_request_execution(
                         emit_response_context(&app, &response);
                         script_response_json = Some(build_script_response(&response));
                         record_history(&app_for_history, &response);
-                        if let Err(e) = app.emit("requestResponse", build_response_json(&response)) {
+                        if let Err(e) = app.emit("requestResponse", build_response_json(&response))
+                        {
                             log::error!("Failed to emit response: {}", e);
                         }
                     }
@@ -536,7 +612,10 @@ pub fn spawn_request_execution(
             }
             Err(e) => {
                 log::warn!("Request failed: {}", e);
-                if let Err(err) = app.emit("requestResponse", serde_json::json!({ "data": create_error_response(e) })) {
+                if let Err(err) = app.emit(
+                    "requestResponse",
+                    serde_json::json!({ "data": create_error_response(e) }),
+                ) {
                     log::error!("Failed to emit error response: {}", err);
                 }
             }
@@ -551,7 +630,9 @@ pub fn spawn_request_execution(
                 });
 
                 for entry in &chain.entries {
-                    if entry.post_response.trim().is_empty() { continue; }
+                    if entry.post_response.trim().is_empty() {
+                        continue;
+                    }
 
                     let script_context = crate::services::script_engine::ScriptContext {
                         request: request_json.clone(),
@@ -563,43 +644,63 @@ pub fn spawn_request_execution(
                             "currentIteration": 0,
                             "totalIterations": 1,
                         })),
-                        cookies: cookies.iter()
-                            .filter_map(|v| serde_json::from_value::<crate::services::script_engine::ScriptCookie>(v.clone()).ok())
+                        cookies: cookies
+                            .iter()
+                            .filter_map(|v| {
+                                serde_json::from_value::<
+                                        crate::services::script_engine::ScriptCookie,
+                                    >(v.clone())
+                                    .ok()
+                            })
                             .collect(),
                     };
 
-                    let result = crate::services::script_engine::ScriptEngine::execute_post_response(
-                        &entry.post_response, &script_context
-                    ).await;
+                    let result =
+                        crate::services::script_engine::ScriptEngine::execute_post_response(
+                            &entry.post_response,
+                            &script_context,
+                        )
+                        .await;
 
                     if !result.cookie_mutations.is_empty() {
-                        let _ = app_for_scripts.emit("cookieMutations",
-                            serde_json::json!({ "data": result.cookie_mutations }));
+                        let _ = app_for_scripts.emit(
+                            "cookieMutations",
+                            serde_json::json!({ "data": result.cookie_mutations }),
+                        );
                     }
 
-                    let _ = app_for_scripts.emit("scriptOutput", serde_json::json!({
-                        "data": {
-                            "phase": "postResponse",
-                            "result": {
-                                "success": result.error.is_none(),
-                                "logs": result.logs,
-                                "testResults": result.test_results,
-                                "variablesToSet": result.variables_to_set,
-                                "error": result.error,
+                    let _ = app_for_scripts.emit(
+                        "scriptOutput",
+                        serde_json::json!({
+                            "data": {
+                                "phase": "postResponse",
+                                "result": {
+                                    "success": result.error.is_none(),
+                                    "logs": result.logs,
+                                    "testResults": result.test_results,
+                                    "variablesToSet": result.variables_to_set,
+                                    "error": result.error,
+                                }
                             }
-                        }
-                    }));
+                        }),
+                    );
 
                     if !result.variables_to_set.is_empty() {
-                        let _ = app_for_scripts.emit("setVariables", serde_json::json!({
-                            "data": result.variables_to_set
-                        }));
+                        let _ = app_for_scripts.emit(
+                            "setVariables",
+                            serde_json::json!({
+                                "data": result.variables_to_set
+                            }),
+                        );
                         for var in &result.variables_to_set {
                             if var.scope == "global" {
                                 current_globals.push(serde_json::json!({
                                     "key": var.key, "value": var.value, "enabled": true
                                 }));
-                            } else if let Some(vars) = current_env.get_mut("variables").and_then(|v| v.as_array_mut()) {
+                            } else if let Some(vars) = current_env
+                                .get_mut("variables")
+                                .and_then(|v| v.as_array_mut())
+                            {
                                 let mut found = false;
                                 for v in vars.iter_mut() {
                                     if v["key"].as_str() == Some(&var.key) {
@@ -617,7 +718,9 @@ pub fn spawn_request_execution(
                         }
                     }
 
-                    if result.error.is_some() { break; }
+                    if result.error.is_some() {
+                        break;
+                    }
                 }
             }
         }

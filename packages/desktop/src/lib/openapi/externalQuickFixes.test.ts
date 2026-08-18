@@ -13,7 +13,10 @@ vi.mock('../modal-store.svelte', () => modalMocks);
 vi.mock('@nouto/ui/stores/notifications.svelte', () => notificationMocks);
 
 import * as yaml from 'js-yaml';
-import { analyzeOpenApiWithExternalRefs, resolveExternalRefUri } from '@nouto/core/services/openapi/externalRefs';
+import {
+  analyzeOpenApiWithExternalRefs,
+  resolveExternalRefUri,
+} from '@nouto/core/services/openapi/externalRefs';
 import type { FileResolver } from '@nouto/core/services/openapi/externalRefs';
 import { buildPointerMap } from '@nouto/core/services/openapi/pointerMap';
 import { buildExternalQuickFixes, scaffoldContent } from './externalQuickFixes';
@@ -64,7 +67,7 @@ async function setup(ref: string, files: Record<string, string>) {
   const external = await analyzeOpenApiWithExternalRefs(
     session.analysis!.parsedSpec as object,
     pathToFileUri(ROOT_PATH),
-    makeResolver(files)
+    makeResolver(files),
   );
   const map = buildPointerMap(content, 'yaml');
   const fullRange = { from: 0, to: content.length };
@@ -82,7 +85,7 @@ describe('buildExternalQuickFixes', () => {
   it('offers a create-component fix whose apply() patches the referenced session', async () => {
     const { session, external, map, fullRange } = await setup(
       './common.yaml#/components/schemas/Missing',
-      { [COMMON_URI]: COMMON }
+      { [COMMON_URI]: COMMON },
     );
     // Open the referenced file as a (background) session too.
     openSession('C:\\specs\\common.yaml', COMMON, 'yaml');
@@ -112,7 +115,7 @@ describe('buildExternalQuickFixes', () => {
   it('offers a create-file fix that writes the scaffold and opens the new tab', async () => {
     const { session, external, map, fullRange } = await setup(
       './missing.yaml#/components/schemas/Pet',
-      {}
+      {},
     );
     const fixes = buildExternalQuickFixes(session, external.diagnostics, map, fullRange);
     expect(fixes).toHaveLength(1);
@@ -123,7 +126,9 @@ describe('buildExternalQuickFixes', () => {
     fsMocks.readTextFile.mockResolvedValue(scaffoldContent('/components/schemas/Pet', 'yaml'));
     await fixes[0].apply();
 
-    const writeCall = tauriMocks.invoke.mock.calls.find(([cmd]) => cmd === 'write_openapi_ref_file');
+    const writeCall = tauriMocks.invoke.mock.calls.find(
+      ([cmd]) => cmd === 'write_openapi_ref_file',
+    );
     expect(writeCall).toBeDefined();
     expect(writeCall![1]).toMatchObject({ path: 'C:\\specs\\missing.yaml' });
     const written = (writeCall![1] as { content: string }).content;
@@ -135,13 +140,15 @@ describe('buildExternalQuickFixes', () => {
   it('matches fixes by cursor overlap with the diagnostic marker', async () => {
     const { session, external, map } = await setup('./missing.yaml#/components/schemas/Pet', {});
     // A range far from the $ref (offset 0..1 sits on the openapi key).
-    expect(buildExternalQuickFixes(session, external.diagnostics, map, { from: 0, to: 1 })).toEqual([]);
+    expect(buildExternalQuickFixes(session, external.diagnostics, map, { from: 0, to: 1 })).toEqual(
+      [],
+    );
   });
 
   it('offers nothing for untitled documents', async () => {
     const { external, map, fullRange, session } = await setup(
       './missing.yaml#/components/schemas/Pet',
-      {}
+      {},
     );
     const untitled = { ...session, documentUri: null };
     expect(buildExternalQuickFixes(untitled, external.diagnostics, map, fullRange)).toEqual([]);

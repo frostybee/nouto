@@ -105,14 +105,16 @@ describe('OpenApiOutlineTree', () => {
   it('re-orders paths when sortAlphabetically flips', () => {
     const props = mountTree();
     const declaredOrder = rows().map((row) => row.textContent ?? '');
-    expect(declaredOrder.findIndex((t) => t.includes('/b')))
-      .toBeLessThan(declaredOrder.findIndex((t) => t.includes('/a')));
+    expect(declaredOrder.findIndex((t) => t.includes('/b'))).toBeLessThan(
+      declaredOrder.findIndex((t) => t.includes('/a')),
+    );
 
     props.sortAlphabetically = true;
     flushSync();
     const sortedOrder = rows().map((row) => row.textContent ?? '');
-    expect(sortedOrder.findIndex((t) => t.includes('/a')))
-      .toBeLessThan(sortedOrder.findIndex((t) => t.includes('/b')));
+    expect(sortedOrder.findIndex((t) => t.includes('/a'))).toBeLessThan(
+      sortedOrder.findIndex((t) => t.includes('/b')),
+    );
   });
 
   it('invokes onreveal with the pointer when a pointer-bearing row is clicked', () => {
@@ -141,9 +143,7 @@ describe('OpenApiOutlineTree', () => {
             },
           ],
         ]),
-        resolvedFiles: resolved
-          ? new Map([[TARGET_URI, { parsed: {} }]])
-          : new Map(),
+        resolvedFiles: resolved ? new Map([[TARGET_URI, { parsed: {} }]]) : new Map(),
         referencedFiles: new Set([TARGET_URI]),
       };
     }
@@ -159,13 +159,21 @@ describe('OpenApiOutlineTree', () => {
     it('omits the group entirely when external analysis has no refs', () => {
       mountTree({
         documentUri: 'file:///C:/specs/api.yaml',
-        external: { diagnostics: [], externalRefs: new Map(), resolvedFiles: new Map(), referencedFiles: new Set() },
+        external: {
+          diagnostics: [],
+          externalRefs: new Map(),
+          resolvedFiles: new Map(),
+          referencedFiles: new Set(),
+        },
       });
       expect(rowByText('Referenced files')).toBeUndefined();
     });
 
     it('clicking an external pointer node reveals with the target document URI', () => {
-      const props = mountTree({ documentUri: 'file:///C:/specs/api.yaml', external: externalFixture() });
+      const props = mountTree({
+        documentUri: 'file:///C:/specs/api.yaml',
+        external: externalFixture(),
+      });
       // File nodes start collapsed (depth 1) — expand to reach the pointer node.
       rowByText('common.yaml')!.dispatchEvent(new MouseEvent('click', { bubbles: true }));
       flushSync();
@@ -270,7 +278,10 @@ describe('OpenApiOutlineTree', () => {
 
   describe('parse failures', () => {
     // A value glued to a quoted key: the YAML parser rejects it.
-    const BROKEN_YAML = YAML.replace("        '200':\n          description: OK\n  /a:", "        '200':dad\n          description: OK\n  /a:");
+    const BROKEN_YAML = YAML.replace(
+      "        '200':\n          description: OK\n  /a:",
+      "        '200':dad\n          description: OK\n  /a:",
+    );
     const brokenLine = BROKEN_YAML.split('\n').findIndex((line) => line.includes("'200':dad")) + 1;
 
     function statusText(): string | undefined {
@@ -283,7 +294,11 @@ describe('OpenApiOutlineTree', () => {
 
     it('explains a document that never parsed instead of the generic empty state', () => {
       expect(brokenLine).toBeGreaterThan(0);
-      mountTree({ analysis: analyzeOpenApi(BROKEN_YAML, 'yaml'), content: BROKEN_YAML, format: 'yaml' });
+      mountTree({
+        analysis: analyzeOpenApi(BROKEN_YAML, 'yaml'),
+        content: BROKEN_YAML,
+        format: 'yaml',
+      });
       expect(target.querySelector('[role="tree"]')).toBeNull();
       expect(target.querySelector('.outline-empty')).toBeNull();
       expect(statusText()).toMatch(new RegExp(`^Can't build the outline: line ${brokenLine}: `));
@@ -309,7 +324,12 @@ describe('OpenApiOutlineTree', () => {
 
     it('renders as an error and jumps to the offending offset on click', () => {
       const onrevealoffset = vi.fn();
-      mountTree({ analysis: analyzeOpenApi(BROKEN_YAML, 'yaml'), content: BROKEN_YAML, format: 'yaml', onrevealoffset });
+      mountTree({
+        analysis: analyzeOpenApi(BROKEN_YAML, 'yaml'),
+        content: BROKEN_YAML,
+        format: 'yaml',
+        onrevealoffset,
+      });
       const banner = target.querySelector<HTMLElement>('.outline-error')!;
       expect(banner.getAttribute('role')).toBe('alert');
       expect(banner.querySelector('.codicon-error')).toBeTruthy();
@@ -381,7 +401,7 @@ describe('OpenApiOutlineTree', () => {
       expect(oncontextaction).toHaveBeenCalledWith(
         expect.objectContaining({ pointer: '/paths/~1b' }),
         'addOperation',
-        { method: 'post' }
+        { method: 'post' },
       );
     });
 
@@ -396,7 +416,7 @@ describe('OpenApiOutlineTree', () => {
       expect(oncontextaction).toHaveBeenCalledWith(
         expect.objectContaining({ pointer: '/paths/~1b' }),
         'delete',
-        undefined
+        undefined,
       );
     });
 

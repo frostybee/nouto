@@ -35,27 +35,57 @@ function orphanPendingPrompts(): void {
   }
 }
 
-export function showLocalQuickPick(title: string, items: { label: string; value: string; description?: string; kind?: string; icon?: string; accent?: boolean }[]): Promise<string | null> {
+export function showLocalQuickPick(
+  title: string,
+  items: {
+    label: string;
+    value: string;
+    description?: string;
+    kind?: string;
+    icon?: string;
+    accent?: boolean;
+  }[],
+): Promise<string | null> {
   return new Promise((resolve) => {
     orphanPendingPrompts();
     localQuickPickResolve = resolve;
-    setPendingInput({ type: 'quickPick', requestId: '_local', data: { title, items, canPickMany: false } });
+    setPendingInput({
+      type: 'quickPick',
+      requestId: '_local',
+      data: { title, items, canPickMany: false },
+    });
   });
 }
 
-export function showLocalInputBox(prompt: string, placeholder?: string, value?: string): Promise<string | null> {
+export function showLocalInputBox(
+  prompt: string,
+  placeholder?: string,
+  value?: string,
+): Promise<string | null> {
   return new Promise((resolve) => {
     orphanPendingPrompts();
     localInputBoxResolve = resolve;
-    setPendingInput({ type: 'inputBox', requestId: '_local', data: { prompt, placeholder, value, validateNotEmpty: true } });
+    setPendingInput({
+      type: 'inputBox',
+      requestId: '_local',
+      data: { prompt, placeholder, value, validateNotEmpty: true },
+    });
   });
 }
 
-export function showLocalConfirm(message: string, confirmLabel?: string, variant?: 'danger' | 'warning' | 'info'): Promise<boolean> {
+export function showLocalConfirm(
+  message: string,
+  confirmLabel?: string,
+  variant?: 'danger' | 'warning' | 'info',
+): Promise<boolean> {
   return new Promise((resolve) => {
     orphanPendingPrompts();
     localConfirmResolve = resolve;
-    setPendingInput({ type: 'confirm', requestId: '_local', data: { message, confirmLabel, variant } });
+    setPendingInput({
+      type: 'confirm',
+      requestId: '_local',
+      data: { message, confirmLabel, variant },
+    });
   });
 }
 
@@ -75,7 +105,13 @@ export function showLocalSaveDiscardCancel(message: string): Promise<SaveDiscard
     setPendingInput({
       type: 'confirm',
       requestId: '_local',
-      data: { message, confirmLabel: 'Save', cancelLabel: 'Cancel', tertiaryLabel: 'Discard', variant: 'warning' },
+      data: {
+        message,
+        confirmLabel: 'Save',
+        cancelLabel: 'Cancel',
+        tertiaryLabel: 'Discard',
+        variant: 'warning',
+      },
     });
   });
 }

@@ -21,23 +21,18 @@ pub type PendingOAuth = Arc<Mutex<Option<PendingOAuthState>>>;
 
 /// Start an OAuth2 flow based on the grant type
 #[tauri::command]
-pub async fn start_oauth_flow(data: serde_json::Value, app: AppHandle) -> Result<(), crate::error::AppError> {
+pub async fn start_oauth_flow(
+    data: serde_json::Value,
+    app: AppHandle,
+) -> Result<(), crate::error::AppError> {
     let config: OAuth2Config = serde_json::from_value(data)
         .map_err(|e| AppError::OAuth(format!("Invalid OAuth2 config: {}", e)))?;
 
     match config.grant_type {
-        OAuth2GrantType::AuthorizationCode => {
-            handle_authorization_code_flow(config, app).await
-        }
-        OAuth2GrantType::Implicit => {
-            handle_implicit_flow(config, app).await
-        }
-        OAuth2GrantType::ClientCredentials => {
-            handle_client_credentials_flow(config, app).await
-        }
-        OAuth2GrantType::Password => {
-            handle_password_flow(config, app).await
-        }
+        OAuth2GrantType::AuthorizationCode => handle_authorization_code_flow(config, app).await,
+        OAuth2GrantType::Implicit => handle_implicit_flow(config, app).await,
+        OAuth2GrantType::ClientCredentials => handle_client_credentials_flow(config, app).await,
+        OAuth2GrantType::Password => handle_password_flow(config, app).await,
     }
 }
 
@@ -46,12 +41,18 @@ pub async fn start_oauth_flow(data: serde_json::Value, app: AppHandle) -> Result
 /// 2. Open the authorization URL in the browser
 /// 3. Wait for the callback with the authorization code
 /// 4. Exchange the code for tokens
-async fn handle_authorization_code_flow(config: OAuth2Config, app: AppHandle) -> Result<(), AppError> {
+async fn handle_authorization_code_flow(
+    config: OAuth2Config,
+    app: AppHandle,
+) -> Result<(), AppError> {
     let auth_url = config.auth_url.clone().unwrap_or_default();
     let token_url = config.token_url.clone().unwrap_or_default();
 
     if auth_url.is_empty() || token_url.is_empty() {
-        emit_error(&app, "Authorization URL and Token URL are required for authorization code flow")?;
+        emit_error(
+            &app,
+            "Authorization URL and Token URL are required for authorization code flow",
+        )?;
         return Ok(());
     }
 
@@ -69,14 +70,19 @@ async fn handle_authorization_code_flow(config: OAuth2Config, app: AppHandle) ->
         .await
         .map_err(|e| AppError::OAuth(format!("Failed to start local callback server: {}", e)))?;
 
-    let local_addr = listener.local_addr()
+    let local_addr = listener
+        .local_addr()
         .map_err(|e| AppError::OAuth(format!("Failed to get local address: {}", e)))?;
 
-    let callback_url = config.callback_url.clone()
+    let callback_url = config
+        .callback_url
+        .clone()
         .unwrap_or_else(|| format!("http://127.0.0.1:{}", local_addr.port()));
 
     // Build the authorization URL
-    let state = config.state.clone()
+    let state = config
+        .state
+        .clone()
         .unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
 
     let mut auth_params = vec![
@@ -97,8 +103,11 @@ async fn handle_authorization_code_flow(config: OAuth2Config, app: AppHandle) ->
         auth_params.push(("code_challenge_method", "S256".to_string()));
     }
 
-    let auth_url_with_params = format!("{}?{}", auth_url,
-        auth_params.iter()
+    let auth_url_with_params = format!(
+        "{}?{}",
+        auth_url,
+        auth_params
+            .iter()
             .map(|(k, v)| format!("{}={}", k, urlencoding::encode(v)))
             .collect::<Vec<_>>()
             .join("&")
@@ -120,7 +129,8 @@ async fn handle_authorization_code_flow(config: OAuth2Config, app: AppHandle) ->
     // Open the browser
     {
         use tauri_plugin_opener::OpenerExt;
-        app.opener().open_url(&auth_url_with_params, None::<&str>)
+        app.opener()
+            .open_url(&auth_url_with_params, None::<&str>)
             .map_err(|e| AppError::OAuth(format!("Failed to open browser: {}", e)))?;
     }
 
@@ -132,7 +142,8 @@ async fn handle_authorization_code_flow(config: OAuth2Config, app: AppHandle) ->
         let result = tokio::time::timeout(
             std::time::Duration::from_secs(120),
             wait_for_callback(listener, &state),
-        ).await;
+        )
+        .await;
 
         match result {
             Ok(Ok(code)) => {
@@ -144,20 +155,32 @@ async fn handle_authorization_code_flow(config: OAuth2Config, app: AppHandle) ->
                     &code,
                     &callback_url,
                     code_verifier.as_deref(),
-                ).await {
+                )
+                .await
+                {
                     Ok(token) => {
-                        let _ = app_for_exchange.emit("oauthTokenReceived", json!({ "data": token }));
+                        let _ =
+                            app_for_exchange.emit("oauthTokenReceived", json!({ "data": token }));
                     }
                     Err(e) => {
-                        let _ = app_for_exchange.emit("oauthFlowError", json!({ "data": { "message": e.to_string() } }));
+                        let _ = app_for_exchange.emit(
+                            "oauthFlowError",
+                            json!({ "data": { "message": e.to_string() } }),
+                        );
                     }
                 }
             }
             Ok(Err(e)) => {
-                let _ = app_for_exchange.emit("oauthFlowError", json!({ "data": { "message": e.to_string() } }));
+                let _ = app_for_exchange.emit(
+                    "oauthFlowError",
+                    json!({ "data": { "message": e.to_string() } }),
+                );
             }
             Err(_) => {
-                let _ = app_for_exchange.emit("oauthFlowError", json!({ "data": { "message": "OAuth flow timed out after 2 minutes" } }));
+                let _ = app_for_exchange.emit(
+                    "oauthFlowError",
+                    json!({ "data": { "message": "OAuth flow timed out after 2 minutes" } }),
+                );
             }
         }
     });
@@ -172,12 +195,14 @@ async fn wait_for_callback(
 ) -> Result<String, AppError> {
     use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
-    let (mut stream, _) = listener.accept()
+    let (mut stream, _) = listener
+        .accept()
         .await
         .map_err(|e| AppError::OAuth(format!("Failed to accept callback connection: {}", e)))?;
 
     let mut buf = vec![0u8; 4096];
-    let n = stream.read(&mut buf)
+    let n = stream
+        .read(&mut buf)
         .await
         .map_err(|e| AppError::OAuth(format!("Failed to read callback request: {}", e)))?;
 
@@ -214,18 +239,24 @@ async fn wait_for_callback(
     // Check for error
     if let Some(error) = params.get("error") {
         let desc = params.get("error_description").cloned().unwrap_or_default();
-        return Err(AppError::OAuth(format!("OAuth error: {} - {}", error, desc)));
+        return Err(AppError::OAuth(format!(
+            "OAuth error: {} - {}",
+            error, desc
+        )));
     }
 
     // Verify state
     if let Some(received_state) = params.get("state") {
         if received_state != expected_state {
-            return Err(AppError::OAuth("State mismatch in OAuth callback".to_string()));
+            return Err(AppError::OAuth(
+                "State mismatch in OAuth callback".to_string(),
+            ));
         }
     }
 
     // Extract code
-    params.get("code")
+    params
+        .get("code")
         .cloned()
         .ok_or_else(|| AppError::OAuth("No authorization code in callback".to_string()))
 }
@@ -273,7 +304,10 @@ async fn exchange_code_for_token(
 
     if let Some(error) = json.get("error") {
         let desc = json["error_description"].as_str().unwrap_or("");
-        return Err(AppError::OAuth(format!("Token error: {} - {}", error, desc)));
+        return Err(AppError::OAuth(format!(
+            "Token error: {} - {}",
+            error, desc
+        )));
     }
 
     parse_token_response(&json)
@@ -294,13 +328,18 @@ async fn handle_implicit_flow(config: OAuth2Config, app: AppHandle) -> Result<()
         .await
         .map_err(|e| AppError::OAuth(format!("Failed to start local callback server: {}", e)))?;
 
-    let local_addr = listener.local_addr()
+    let local_addr = listener
+        .local_addr()
         .map_err(|e| AppError::OAuth(format!("Failed to get local address: {}", e)))?;
 
-    let callback_url = config.callback_url.clone()
+    let callback_url = config
+        .callback_url
+        .clone()
         .unwrap_or_else(|| format!("http://127.0.0.1:{}", local_addr.port()));
 
-    let state = config.state.clone()
+    let state = config
+        .state
+        .clone()
         .unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
 
     let mut auth_params = vec![
@@ -316,8 +355,11 @@ async fn handle_implicit_flow(config: OAuth2Config, app: AppHandle) -> Result<()
         }
     }
 
-    let auth_url_with_params = format!("{}?{}", auth_url,
-        auth_params.iter()
+    let auth_url_with_params = format!(
+        "{}?{}",
+        auth_url,
+        auth_params
+            .iter()
             .map(|(k, v)| format!("{}={}", k, urlencoding::encode(v)))
             .collect::<Vec<_>>()
             .join("&")
@@ -326,7 +368,8 @@ async fn handle_implicit_flow(config: OAuth2Config, app: AppHandle) -> Result<()
     // Open the browser
     {
         use tauri_plugin_opener::OpenerExt;
-        app.opener().open_url(&auth_url_with_params, None::<&str>)
+        app.opener()
+            .open_url(&auth_url_with_params, None::<&str>)
             .map_err(|e| AppError::OAuth(format!("Failed to open browser: {}", e)))?;
     }
 
@@ -337,14 +380,18 @@ async fn handle_implicit_flow(config: OAuth2Config, app: AppHandle) -> Result<()
         let result = tokio::time::timeout(
             std::time::Duration::from_secs(120),
             wait_for_implicit_callback(listener),
-        ).await;
+        )
+        .await;
 
         match result {
             Ok(Ok(token)) => {
                 let _ = app_for_callback.emit("oauthTokenReceived", json!({ "data": token }));
             }
             Ok(Err(e)) => {
-                let _ = app_for_callback.emit("oauthFlowError", json!({ "data": { "message": e.to_string() } }));
+                let _ = app_for_callback.emit(
+                    "oauthFlowError",
+                    json!({ "data": { "message": e.to_string() } }),
+                );
             }
             Err(_) => {
                 let _ = app_for_callback.emit("oauthFlowError", json!({ "data": { "message": "OAuth implicit flow timed out after 2 minutes" } }));
@@ -365,7 +412,8 @@ async fn wait_for_implicit_callback(
 
     // First request: the redirect from the auth server (fragment not sent to us)
     // Serve a page that reads the fragment and POSTs it back
-    let (mut stream, _) = listener.accept()
+    let (mut stream, _) = listener
+        .accept()
         .await
         .map_err(|e| AppError::OAuth(format!("Failed to accept callback: {}", e)))?;
 
@@ -390,12 +438,15 @@ x.send(h);
     let _ = stream.shutdown().await;
 
     // Second request: the JS posts the fragment data back to /token
-    let (mut stream2, _) = listener.accept()
+    let (mut stream2, _) = listener
+        .accept()
         .await
         .map_err(|e| AppError::OAuth(format!("Failed to accept token callback: {}", e)))?;
 
     let mut buf2 = vec![0u8; 8192];
-    let n = stream2.read(&mut buf2).await
+    let n = stream2
+        .read(&mut buf2)
+        .await
         .map_err(|e| AppError::OAuth(format!("Failed to read token data: {}", e)))?;
 
     let request = String::from_utf8_lossy(&buf2[..n]);
@@ -421,14 +472,19 @@ x.send(h);
 
     if let Some(error) = params.get("error") {
         let desc = params.get("error_description").cloned().unwrap_or_default();
-        return Err(AppError::OAuth(format!("OAuth error: {} - {}", error, desc)));
+        return Err(AppError::OAuth(format!(
+            "OAuth error: {} - {}",
+            error, desc
+        )));
     }
 
-    let access_token = params.get("access_token")
+    let access_token = params
+        .get("access_token")
         .cloned()
         .ok_or_else(|| AppError::OAuth("No access_token in implicit callback".to_string()))?;
 
-    let expires_at = params.get("expires_in")
+    let expires_at = params
+        .get("expires_in")
         .and_then(|s| s.parse::<i64>().ok())
         .map(|expires_in| Utc::now().timestamp_millis() + expires_in * 1000);
 
@@ -437,14 +493,20 @@ x.send(h);
         access_token_ref: None,
         refresh_token: None,
         refresh_token_ref: None,
-        token_type: params.get("token_type").cloned().unwrap_or_else(|| "Bearer".to_string()),
+        token_type: params
+            .get("token_type")
+            .cloned()
+            .unwrap_or_else(|| "Bearer".to_string()),
         expires_at,
         scope: params.get("scope").cloned(),
     })
 }
 
 /// Client Credentials flow: directly exchange client_id + client_secret for a token
-async fn handle_client_credentials_flow(config: OAuth2Config, app: AppHandle) -> Result<(), AppError> {
+async fn handle_client_credentials_flow(
+    config: OAuth2Config,
+    app: AppHandle,
+) -> Result<(), AppError> {
     let token_url = config.token_url.as_deref().unwrap_or("");
     if token_url.is_empty() {
         emit_error(&app, "Token URL is required for client credentials flow")?;
@@ -568,7 +630,10 @@ async fn handle_password_flow(config: OAuth2Config, app: AppHandle) -> Result<()
 
 /// Refresh an OAuth2 token
 #[tauri::command]
-pub async fn refresh_oauth_token(data: serde_json::Value, app: AppHandle) -> Result<(), crate::error::AppError> {
+pub async fn refresh_oauth_token(
+    data: serde_json::Value,
+    app: AppHandle,
+) -> Result<(), crate::error::AppError> {
     let token_url = data["tokenUrl"].as_str().unwrap_or("").to_string();
     let client_id = data["clientId"].as_str().unwrap_or("").to_string();
     let client_secret = data["clientSecret"].as_str().map(|s| s.to_string());
@@ -635,10 +700,15 @@ pub async fn clear_oauth_token(app: AppHandle) -> Result<(), crate::error::AppEr
 
 /// Handle OAuth2 deep-link callback: exchange code for token using stored pending config
 #[tauri::command]
-pub async fn oauth_deep_link_callback(data: serde_json::Value, app: AppHandle) -> Result<(), AppError> {
+pub async fn oauth_deep_link_callback(
+    data: serde_json::Value,
+    app: AppHandle,
+) -> Result<(), AppError> {
     let code = data["code"].as_str().unwrap_or("").to_string();
     if code.is_empty() {
-        return Err(AppError::OAuth("No authorization code in deep-link callback".to_string()));
+        return Err(AppError::OAuth(
+            "No authorization code in deep-link callback".to_string(),
+        ));
     }
 
     let pending = app.state::<PendingOAuth>();
@@ -648,7 +718,10 @@ pub async fn oauth_deep_link_callback(data: serde_json::Value, app: AppHandle) -
     };
 
     let config = config.ok_or_else(|| {
-        AppError::OAuth("No pending OAuth flow found. Start an OAuth flow before using deep-link callback.".to_string())
+        AppError::OAuth(
+            "No pending OAuth flow found. Start an OAuth flow before using deep-link callback."
+                .to_string(),
+        )
     })?;
 
     match exchange_code_for_token(
@@ -658,7 +731,9 @@ pub async fn oauth_deep_link_callback(data: serde_json::Value, app: AppHandle) -
         &code,
         &config.callback_url,
         config.code_verifier.as_deref(),
-    ).await {
+    )
+    .await
+    {
         Ok(token) => {
             app.emit("oauthTokenReceived", json!({ "data": token }))
                 .map_err(|e| AppError::Other(e.to_string()))?;
@@ -684,9 +759,9 @@ fn parse_token_response(json: &serde_json::Value) -> Result<OAuthToken, AppError
         .ok_or_else(|| AppError::OAuth("Missing access_token in response".to_string()))?
         .to_string();
 
-    let expires_at = json["expires_in"].as_i64().map(|expires_in| {
-        Utc::now().timestamp_millis() + expires_in * 1000
-    });
+    let expires_at = json["expires_in"]
+        .as_i64()
+        .map(|expires_in| Utc::now().timestamp_millis() + expires_in * 1000);
 
     Ok(OAuthToken {
         access_token,

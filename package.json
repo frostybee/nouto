@@ -24,8 +24,31 @@
     "version:vscode": "npm version --prefix packages/vscode --no-git-tag-version",
     "start:docs": "pnpm -F @nouto/website run start",
     "verify:docs": "node scripts/verify-website-docs.mjs",
-    "prepublish:docs": "pnpm run verify:docs && pnpm -F @nouto/website run build"
+    "prepublish:docs": "pnpm run verify:docs && pnpm -F @nouto/website run build",
+    "lint": "eslint packages/desktop",
+    "lint:fix": "eslint packages/desktop --fix",
+    "format": "prettier --write packages/desktop",
+    "format:check": "prettier --check packages/desktop",
+    "check:desktop": "pnpm -F @nouto/desktop run check",
+    "rust:fmt": "cd packages/desktop/src-tauri && cargo fmt --all -- --check",
+    "rust:clippy": "cd packages/desktop/src-tauri && cargo clippy --all-targets -- -D warnings",
+    "release:desktop": "node scripts/prepare-desktop-release.mjs",
+    "knip": "knip --workspace packages/desktop"
   },
   "packageManager": "pnpm@11.21.0",
-  "version": "0.0.0"
+  "version": "0.0.0",
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.7.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-svelte": "^3.22.0",
+    "globals": "^17.7.0",
+    "knip": "^6.32.2",
+    "prettier": "^3.9.5",
+    "prettier-plugin-svelte": "^4.1.1",
+    "svelte": "^5.55.1",
+    "svelte-check": "^4.0.0",
+    "typescript": "^6.0.2",
+    "typescript-eslint": "^8.64.0"
+  }
 }

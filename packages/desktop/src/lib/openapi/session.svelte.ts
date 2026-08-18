@@ -2,9 +2,18 @@ import { SvelteMap } from 'svelte/reactivity';
 import { debounce, type Debounced } from '@nouto/ui/lib/debounce';
 import { analyzeOpenApi } from '@nouto/core/services/openapi/analyze';
 import type { ExternalAnalysisResult } from '@nouto/core/services/openapi/externalRefs';
-import type { OpenApiAnalysis, OpenApiDiagnostic, OpenApiFormat, OpenApiVersion } from '@nouto/core/services/openapi/types';
+import type {
+  OpenApiAnalysis,
+  OpenApiDiagnostic,
+  OpenApiFormat,
+  OpenApiVersion,
+} from '@nouto/core/services/openapi/types';
 import { settings } from '@nouto/ui/stores/settings.svelte';
-import { computeSyncDiagnostics, fetchExampleDiagnostics, fetchSchemaDiagnostics } from './diagnostics';
+import {
+  computeSyncDiagnostics,
+  fetchExampleDiagnostics,
+  fetchSchemaDiagnostics,
+} from './diagnostics';
 import { fileUriKey } from './pathUtils';
 import {
   clearAllExternalAnalysis,
@@ -157,7 +166,7 @@ function refreshDiagnostics(
   session: OpenApiSessionState,
   content: string,
   format: OpenApiFormat,
-  analysis: OpenApiAnalysis
+  analysis: OpenApiAnalysis,
 ): void {
   const control = controls.get(session.id);
   if (!control) return;
@@ -184,10 +193,15 @@ function refreshDiagnostics(
               d.code === 'external-ref-unsupported' &&
               d.pointer !== undefined &&
               externalHandled.has(d.pointer)
-            )
+            ),
         )
       : sync;
-    session.diagnostics = [...filteredSync, ...schemaDiagnostics, ...exampleDiagnostics, ...externalDiagnostics];
+    session.diagnostics = [
+      ...filteredSync,
+      ...schemaDiagnostics,
+      ...exampleDiagnostics,
+      ...externalDiagnostics,
+    ];
   };
   session.diagnostics = sync;
   // Skipped when the version is a best-effort clamp of an unknown future
@@ -241,7 +255,7 @@ function applyAnalysis(
   session: OpenApiSessionState,
   result: OpenApiAnalysis,
   content: string,
-  format: OpenApiFormat
+  format: OpenApiFormat,
 ): void {
   session.analysis = result;
   session.version = result.version;
@@ -254,7 +268,11 @@ function applyAnalysis(
   refreshDiagnostics(session, content, format, result);
 }
 
-function createSession(uri: string | null, content: string, format: OpenApiFormat): OpenApiSessionState {
+function createSession(
+  uri: string | null,
+  content: string,
+  format: OpenApiFormat,
+): OpenApiSessionState {
   const id = `doc-${nextSeq++}`;
   // Layout preferences carry over from the tab the user was just looking at.
   const layoutSource = activeSession();
@@ -280,7 +298,7 @@ function createSession(uri: string | null, content: string, format: OpenApiForma
         current,
         analyzeOpenApi(debouncedContent, debouncedFormat, current.version),
         debouncedContent,
-        debouncedFormat
+        debouncedFormat,
       );
     }, ANALYZE_DEBOUNCE_MS),
   });

@@ -62,7 +62,7 @@ export function planOutlineEditAction(
   payload: Record<string, unknown> | undefined,
   content: string,
   format: OpenApiFormat,
-  analysis: OpenApiAnalysis
+  analysis: OpenApiAnalysis,
 ): OutlineEditPlan | { error: string } | undefined {
   const doc = { text: content, format };
   const spec = analysis.parsedSpec;
@@ -99,9 +99,11 @@ export function planOutlineEditAction(
 
     case 'addTag': {
       const existing = Array.isArray((spec as { tags?: unknown[] } | undefined)?.tags)
-        ? ((spec as { tags: unknown[] }).tags
-            .map((tag) => (tag && typeof tag === 'object' ? (tag as { name?: unknown }).name : undefined))
-            .filter((name): name is string => typeof name === 'string'))
+        ? (spec as { tags: unknown[] }).tags
+            .map((tag) =>
+              tag && typeof tag === 'object' ? (tag as { name?: unknown }).name : undefined,
+            )
+            .filter((name): name is string => typeof name === 'string')
         : [];
       const name = uniqueName(existing, 'newTag');
       const plan = planInsertArrayItem(doc, '/tags', tagSkeleton(name));
@@ -131,7 +133,7 @@ export function planOutlineEditAction(
       if (!preset) return undefined;
       const name = uniqueMemberKey(spec, '/components/securitySchemes', preset.placeholder);
       return keyReveal(
-        planInsertObjectMember(doc, '/components/securitySchemes', name, preset.value)
+        planInsertObjectMember(doc, '/components/securitySchemes', name, preset.value),
       );
     }
 
@@ -141,10 +143,10 @@ export function planOutlineEditAction(
       const name = uniqueMemberKey(
         spec,
         `/components/${section}`,
-        COMPONENT_PLACEHOLDERS[section] ?? 'NewComponent'
+        COMPONENT_PLACEHOLDERS[section] ?? 'NewComponent',
       );
       return keyReveal(
-        planInsertObjectMember(doc, `/components/${section}`, name, COMPONENT_PRESETS[section])
+        planInsertObjectMember(doc, `/components/${section}`, name, COMPONENT_PRESETS[section]),
       );
     }
 
@@ -153,7 +155,7 @@ export function planOutlineEditAction(
       // placeholder key for an inline rename.
       const name = uniqueMemberKey(spec, '/webhooks', 'newWebhook');
       return keyReveal(
-        planInsertObjectMember(doc, '/webhooks', name, { post: OPERATION_SKELETON })
+        planInsertObjectMember(doc, '/webhooks', name, { post: OPERATION_SKELETON }),
       );
     }
 

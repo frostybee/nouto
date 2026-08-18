@@ -16,7 +16,7 @@ import type { OpenApiSessionState } from './session.svelte';
  * bundle/merge step itself is core's `bundleAnalyzedSpecForRender`.
  */
 export async function bundleSpecForRender(
-  session: OpenApiSessionState
+  session: OpenApiSessionState,
 ): Promise<{ spec: object | undefined; externalRefsIncomplete?: boolean }> {
   const spec = session.lastValidSpec;
   if (!spec) return { spec: undefined };
@@ -24,7 +24,8 @@ export async function bundleSpecForRender(
   try {
     // Reuse the diagnostics pass's result when present; a fresh computation
     // only happens when the preview asks before diagnostics finished.
-    const external = session.externalAnalysis ?? (await getExternalAnalysis(session, tauriFileResolver));
+    const external =
+      session.externalAnalysis ?? (await getExternalAnalysis(session, tauriFileResolver));
     return bundleAnalyzedSpecForRender(spec, pathToFileUri(session.documentUri), external);
   } catch {
     return { spec };

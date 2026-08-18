@@ -81,7 +81,7 @@ async function activateTargetSession(targetUri: string): Promise<OpenApiSessionS
 async function applyCreateComponent(
   targetUri: string,
   section: string,
-  name: string
+  name: string,
 ): Promise<void> {
   const target = await activateTargetSession(targetUri);
   if (!target?.format) {
@@ -92,7 +92,7 @@ async function applyCreateComponent(
     { text: target.content, format: target.format },
     buildPointer(['components', section]),
     name,
-    COMPONENT_PRESETS[section] ?? {}
+    COMPONENT_PRESETS[section] ?? {},
   );
   if (!plan) {
     showNotification('error', `Could not create "${name}" in ${fileLabel(targetUri)}.`);
@@ -134,13 +134,16 @@ export function buildExternalQuickFixes(
   session: OpenApiSessionState,
   diagnostics: OpenApiDiagnostic[],
   map: OpenApiPointerMap,
-  requestedRange: OffsetRange
+  requestedRange: OffsetRange,
 ): ExternalQuickFix[] {
   if (!session.documentUri) return [];
   const fromUri = pathToFileUri(session.documentUri);
   const fixes: ExternalQuickFix[] = [];
   for (const diagnostic of diagnostics) {
-    if (diagnostic.code !== 'external-file-not-found' && diagnostic.code !== 'external-pointer-not-found') {
+    if (
+      diagnostic.code !== 'external-file-not-found' &&
+      diagnostic.code !== 'external-pointer-not-found'
+    ) {
       continue;
     }
     const range = diagnosticMarkerRange(diagnostic, map);

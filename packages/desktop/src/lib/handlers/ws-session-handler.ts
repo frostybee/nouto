@@ -8,7 +8,13 @@ import { logger } from '../logger';
 
 export interface WsSessionState {
   wsRecording: boolean;
-  wsRecordedMessages: Array<{ direction: string; type: string; data: string; size: number; relativeTimeMs: number }>;
+  wsRecordedMessages: Array<{
+    direction: string;
+    type: string;
+    data: string;
+    size: number;
+    relativeTimeMs: number;
+  }>;
   wsRecordingStartTime: number;
   wsRecordingUrl: string;
   wsRecordingProtocols: string[];

@@ -42,7 +42,6 @@ function forwardToBackend(level: 'warn' | 'error', message: string, args: unknow
 function log(level: LogLevel, message: string, ...args: unknown[]): void {
   if (IS_DEV) {
     const prefix = `[${new Date().toISOString()}] [${level.toUpperCase()}]`;
-    // eslint-disable-next-line no-console
     console[CONSOLE_METHOD[level]](prefix, message, ...args);
     return;
   }

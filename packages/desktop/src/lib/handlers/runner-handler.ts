@@ -7,7 +7,10 @@ import type { RunnerExportFormat } from '@nouto/core/services';
 import type { NotifyFn } from './types';
 import { logger } from '../logger';
 
-export async function handleRunnerMessage(message: OutgoingMessage, notify: NotifyFn): Promise<void> {
+export async function handleRunnerMessage(
+  message: OutgoingMessage,
+  notify: NotifyFn,
+): Promise<void> {
   const data = 'data' in message ? (message as any).data : undefined;
 
   switch (message.type) {
@@ -23,7 +26,10 @@ export async function handleRunnerMessage(message: OutgoingMessage, notify: Noti
         },
       }).catch((error) => {
         logger.error('[TauriMessageBus] retryFailedRequests failed:', error);
-        notify({ type: 'showNotification', data: { level: 'error', message: `Retry failed: ${error}` } } as any);
+        notify({
+          type: 'showNotification',
+          data: { level: 'error', message: `Retry failed: ${error}` },
+        } as any);
       });
       break;
     }
@@ -31,7 +37,11 @@ export async function handleRunnerMessage(message: OutgoingMessage, notify: Noti
       const { format, results, summary, collectionName } = data || {};
       const fmt = (format || 'json') as RunnerExportFormat;
       const exportService = new RunnerExportService();
-      const content = exportService.format(fmt, { collectionName: collectionName || 'results', results: results || [], summary: summary || { passed: 0, failed: 0, skipped: 0, totalDuration: 0 } });
+      const content = exportService.format(fmt, {
+        collectionName: collectionName || 'results',
+        results: results || [],
+        summary: summary || { passed: 0, failed: 0, skipped: 0, totalDuration: 0 },
+      });
       const defaultName = exportService.getDefaultFileName(fmt, collectionName || 'results');
       const filter = exportService.getFileFilter(fmt);
 
@@ -42,11 +52,17 @@ export async function handleRunnerMessage(message: OutgoingMessage, notify: Noti
         });
         if (filePath) {
           await writeTextFile(filePath, content);
-          notify({ type: 'showNotification', data: { level: 'info', message: 'Results exported successfully.' } } as any);
+          notify({
+            type: 'showNotification',
+            data: { level: 'info', message: 'Results exported successfully.' },
+          } as any);
         }
       } catch (error) {
         logger.error('[TauriMessageBus] Export failed:', error);
-        notify({ type: 'showNotification', data: { level: 'error', message: `Failed to export results: ${error}` } } as any);
+        notify({
+          type: 'showNotification',
+          data: { level: 'error', message: `Failed to export results: ${error}` },
+        } as any);
       }
       break;
     }

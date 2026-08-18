@@ -31,7 +31,7 @@ function load(): RecentOpenApiFile[] {
           !!entry &&
           typeof (entry as RecentOpenApiFile).path === 'string' &&
           typeof (entry as RecentOpenApiFile).name === 'string' &&
-          typeof (entry as RecentOpenApiFile).lastOpened === 'number'
+          typeof (entry as RecentOpenApiFile).lastOpened === 'number',
       )
       .slice(0, MAX_RECENT);
   } catch {

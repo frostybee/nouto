@@ -3,7 +3,7 @@
 // Reference: https://docs.aws.amazon.com/general/latest/gr/sigv4_signing.html
 
 use hmac::{Hmac, Mac};
-use sha2::{Sha256, Digest};
+use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
 
 type HmacSha256 = Hmac<Sha256>;
@@ -35,8 +35,8 @@ pub fn sign_request(
     body: Option<&[u8]>,
     params: &AwsSigningParams,
 ) -> Result<AwsSignedHeaders, String> {
-    let parsed_url = reqwest::Url::parse(url)
-        .map_err(|e| format!("Invalid URL for AWS signing: {}", e))?;
+    let parsed_url =
+        reqwest::Url::parse(url).map_err(|e| format!("Invalid URL for AWS signing: {}", e))?;
 
     let now = chrono::Utc::now();
     let date_stamp = now.format("%Y%m%d").to_string();
@@ -46,7 +46,8 @@ pub fn sign_request(
     let payload_hash = hex_sha256(body.unwrap_or(b""));
 
     // Build the set of headers to sign (must include host and x-amz-date)
-    let host = parsed_url.host_str()
+    let host = parsed_url
+        .host_str()
         .ok_or_else(|| "URL has no host".to_string())?;
     let host_header = match parsed_url.port() {
         Some(port) if !is_default_port(&parsed_url) => format!("{}:{}", host, port),
@@ -66,7 +67,9 @@ pub fn sign_request(
     for (key, value) in headers {
         let lower = key.to_lowercase();
         if lower.starts_with("x-amz-") || lower == "content-type" {
-            headers_to_sign.entry(lower).or_insert_with(|| value.clone());
+            headers_to_sign
+                .entry(lower)
+                .or_insert_with(|| value.clone());
         }
     }
 
@@ -93,7 +96,10 @@ pub fn sign_request(
     );
 
     // Step 2: Create string to sign
-    let credential_scope = format!("{}/{}/{}/aws4_request", date_stamp, params.region, params.service);
+    let credential_scope = format!(
+        "{}/{}/{}/aws4_request",
+        date_stamp, params.region, params.service
+    );
     let string_to_sign = format!(
         "AWS4-HMAC-SHA256\n{}\n{}\n{}",
         amz_date,
@@ -113,10 +119,7 @@ pub fn sign_request(
     // Step 4: Build Authorization header
     let authorization = format!(
         "AWS4-HMAC-SHA256 Credential={}/{}, SignedHeaders={}, Signature={}",
-        params.access_key_id,
-        credential_scope,
-        signed_headers_str,
-        signature
+        params.access_key_id, credential_scope, signed_headers_str, signature
     );
 
     Ok(AwsSignedHeaders {
@@ -144,8 +147,7 @@ fn derive_signing_key(
 
 /// Compute HMAC-SHA256
 fn hmac_sha256(key: &[u8], data: &[u8]) -> Result<Vec<u8>, String> {
-    let mut mac = HmacSha256::new_from_slice(key)
-        .map_err(|e| format!("HMAC key error: {}", e))?;
+    let mut mac = HmacSha256::new_from_slice(key).map_err(|e| format!("HMAC key error: {}", e))?;
     mac.update(data);
     Ok(mac.finalize().into_bytes().to_vec())
 }
@@ -159,11 +161,10 @@ fn hex_sha256(data: &[u8]) -> String {
 
 /// Check if a port is the default for the scheme
 fn is_default_port(url: &reqwest::Url) -> bool {
-    match (url.scheme(), url.port()) {
-        ("http", Some(80)) | ("https", Some(443)) => true,
-        (_, None) => true,
-        _ => false,
-    }
+    matches!(
+        (url.scheme(), url.port()),
+        ("http", Some(80)) | ("https", Some(443)) | (_, None)
+    )
 }
 
 /// URI-encode the path, preserving forward slashes
@@ -237,7 +238,10 @@ mod tests {
         assert_eq!(canonical_uri_encode(""), "/");
         assert_eq!(canonical_uri_encode("/"), "/");
         assert_eq!(canonical_uri_encode("/api/test"), "/api/test");
-        assert_eq!(canonical_uri_encode("/path with spaces"), "/path%20with%20spaces");
+        assert_eq!(
+            canonical_uri_encode("/path with spaces"),
+            "/path%20with%20spaces"
+        );
     }
 
     #[test]
@@ -287,7 +291,10 @@ mod tests {
 
         assert!(result.is_ok());
         let signed = result.unwrap();
-        assert_eq!(signed.x_amz_security_token, Some("SESSION_TOKEN".to_string()));
+        assert_eq!(
+            signed.x_amz_security_token,
+            Some("SESSION_TOKEN".to_string())
+        );
         assert!(signed.authorization.contains("content-type"));
     }
 

@@ -158,10 +158,7 @@ pub async fn load_data(
         let collections = match project_storage.load_collections().await {
             Ok(c) => c,
             Err(e) => {
-                log::warn!(
-                    "Failed to load project collections (starting fresh): {}",
-                    e
-                );
+                log::warn!("Failed to load project collections (starting fresh): {}", e);
                 serde_json::json!([])
             }
         };
@@ -343,10 +340,7 @@ pub async fn save_collections(
             if !secrets.is_empty() {
                 let (stored, errors) = secret_extraction::store_secrets(&secrets);
                 if !errors.is_empty() {
-                    log::warn!(
-                        "{} secret(s) failed to store in keychain",
-                        errors.len()
-                    );
+                    log::warn!("{} secret(s) failed to store in keychain", errors.len());
                     for err in &errors {
                         log::error!("  {}", err);
                     }
@@ -413,10 +407,7 @@ pub async fn save_environments(
                 if !secrets.is_empty() {
                     let (stored, errors) = secret_extraction::store_secrets(&secrets);
                     if !errors.is_empty() {
-                        log::warn!(
-                            "{} env secret(s) failed to store in keychain",
-                            errors.len()
-                        );
+                        log::warn!("{} env secret(s) failed to store in keychain", errors.len());
                     }
                     if stored > 0 {
                         log::info!("Stored {} env secret(s) in OS keychain", stored);
@@ -545,9 +536,8 @@ pub async fn create_settings_window(
         return Ok(());
     }
 
-    let icon =
-        tauri::image::Image::from_bytes(include_bytes!("../../icons/icon.png"))
-            .map_err(|e| AppError::Other(format!("Failed to load icon: {}", e)))?;
+    let icon = tauri::image::Image::from_bytes(include_bytes!("../../icons/icon.png"))
+        .map_err(|e| AppError::Other(format!("Failed to load icon: {}", e)))?;
 
     tauri::WebviewWindowBuilder::new(&app, "settings", tauri::WebviewUrl::App(url.into()))
         .title("Settings \u{2014} Nouto")

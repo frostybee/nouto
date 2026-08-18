@@ -50,7 +50,13 @@ function valueOffset(needle: string): number {
 describe('resolveRefDefinition', () => {
   it('resolves an internal ref to the target range', () => {
     const { map, analysis } = setup();
-    const def = resolveRefDefinition(map, analysis, valueOffset('"#/components/schemas/Pet"'), FROM_URI, resolver);
+    const def = resolveRefDefinition(
+      map,
+      analysis,
+      valueOffset('"#/components/schemas/Pet"'),
+      FROM_URI,
+      resolver,
+    );
     expect(def?.kind).toBe('internal');
     if (def?.kind === 'internal') {
       const petEntry = map.entries.get('/components/schemas/Pet')!;
@@ -61,7 +67,13 @@ describe('resolveRefDefinition', () => {
   it('yields nothing for a missing internal target', () => {
     const { map, analysis } = setup();
     expect(
-      resolveRefDefinition(map, analysis, valueOffset('"#/components/schemas/Nope"'), FROM_URI, resolver)
+      resolveRefDefinition(
+        map,
+        analysis,
+        valueOffset('"#/components/schemas/Nope"'),
+        FROM_URI,
+        resolver,
+      ),
     ).toBeUndefined();
   });
 
@@ -72,7 +84,7 @@ describe('resolveRefDefinition', () => {
       analysis,
       valueOffset('./common.yaml#/components/schemas/Pet'),
       FROM_URI,
-      resolver
+      resolver,
     );
     expect(def).toEqual({
       kind: 'external',
@@ -95,7 +107,13 @@ describe('resolveRefDefinition', () => {
   it("yields nothing for scheme'd refs", () => {
     const { map, analysis } = setup();
     expect(
-      resolveRefDefinition(map, analysis, valueOffset('https://example.com/x.yaml#/a'), FROM_URI, resolver)
+      resolveRefDefinition(
+        map,
+        analysis,
+        valueOffset('https://example.com/x.yaml#/a'),
+        FROM_URI,
+        resolver,
+      ),
     ).toBeUndefined();
   });
 
@@ -107,14 +125,16 @@ describe('resolveRefDefinition', () => {
         analysis,
         valueOffset('./common.yaml#/components/schemas/Pet'),
         undefined,
-        resolver
-      )
+        resolver,
+      ),
     ).toBeUndefined();
   });
 
   it('yields nothing when the cursor is not on a $ref value', () => {
     const { map, analysis } = setup();
-    expect(resolveRefDefinition(map, analysis, YAML.indexOf('title: T') + 3, FROM_URI, resolver)).toBeUndefined();
+    expect(
+      resolveRefDefinition(map, analysis, YAML.indexOf('title: T') + 3, FROM_URI, resolver),
+    ).toBeUndefined();
     // On the $ref KEY, not its value.
     const keyOffset = YAML.indexOf('$ref: "#/components/schemas/Pet"');
     expect(resolveRefDefinition(map, analysis, keyOffset, FROM_URI, resolver)).toBeUndefined();
@@ -123,7 +143,13 @@ describe('resolveRefDefinition', () => {
   it('yields nothing without a parsed spec', () => {
     const { map } = setup();
     expect(
-      resolveRefDefinition(map, null, valueOffset('"#/components/schemas/Pet"'), FROM_URI, resolver)
+      resolveRefDefinition(
+        map,
+        null,
+        valueOffset('"#/components/schemas/Pet"'),
+        FROM_URI,
+        resolver,
+      ),
     ).toBeUndefined();
   });
 });

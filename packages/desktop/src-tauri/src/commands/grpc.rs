@@ -2,11 +2,11 @@
 // Exposes gRPC client to the frontend via Tauri commands
 
 use crate::error::AppError;
+use crate::models::http::AssertionEvalResult;
 use crate::models::types::{GrpcConnection, GrpcEvent};
+use crate::services::assertions::{compare_assertion, extract_json_path};
 use crate::services::grpc_client::{GrpcClient, GrpcPoolCache};
 use crate::services::script_engine::VariableToSet;
-use crate::models::http::AssertionEvalResult;
-use crate::services::assertions::{compare_assertion, extract_json_path};
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::path::Path;
@@ -140,14 +140,16 @@ fn build_metadata_map(
                 if let Some(ref username) = auth.username {
                     if !username.is_empty() {
                         use base64::Engine;
-                        let credentials = format!("{}:{}", username, auth.password.as_deref().unwrap_or(""));
+                        let credentials =
+                            format!("{}:{}", username, auth.password.as_deref().unwrap_or(""));
                         let encoded = base64::engine::general_purpose::STANDARD.encode(credentials);
                         map.insert("Authorization".to_string(), format!("Basic {}", encoded));
                     }
                 }
             }
             "apikey" => {
-                if let (Some(ref name), Some(ref value)) = (&auth.api_key_name, &auth.api_key_value) {
+                if let (Some(ref name), Some(ref value)) = (&auth.api_key_name, &auth.api_key_value)
+                {
                     // Only add as metadata if apiKeyIn is not "query"
                     let in_loc = auth.api_key_in.as_deref().unwrap_or("header");
                     if in_loc != "query" && !name.is_empty() {
@@ -170,7 +172,11 @@ fn build_metadata_map(
 }
 
 #[tauri::command]
-pub async fn grpc_reflect(app: AppHandle, data: GrpcReflectData, pool_cache: tauri::State<'_, GrpcPoolCache>) -> Result<(), AppError> {
+pub async fn grpc_reflect(
+    app: AppHandle,
+    data: GrpcReflectData,
+    pool_cache: tauri::State<'_, GrpcPoolCache>,
+) -> Result<(), AppError> {
     let client = GrpcClient::new(pool_cache.inner().clone());
     match client
         .reflect(
@@ -198,7 +204,11 @@ pub async fn grpc_reflect(app: AppHandle, data: GrpcReflectData, pool_cache: tau
 }
 
 #[tauri::command]
-pub async fn grpc_load_proto(app: AppHandle, data: GrpcLoadProtoData, pool_cache: tauri::State<'_, GrpcPoolCache>) -> Result<(), AppError> {
+pub async fn grpc_load_proto(
+    app: AppHandle,
+    data: GrpcLoadProtoData,
+    pool_cache: tauri::State<'_, GrpcPoolCache>,
+) -> Result<(), AppError> {
     let client = GrpcClient::new(pool_cache.inner().clone());
     match client
         .load_proto(&data.proto_paths, &data.import_dirs)
@@ -236,7 +246,17 @@ pub async fn grpc_invoke(
     let paths = proto_paths.as_deref().unwrap_or(&[]);
     let dirs = import_dirs.as_deref().unwrap_or(&[]);
 
-    if let Some(method_info) = client.get_method_info_cached(&data.address, paths, dirs, data.use_reflection, &data.service_name, &data.method_name).await {
+    if let Some(method_info) = client
+        .get_method_info_cached(
+            &data.address,
+            paths,
+            dirs,
+            data.use_reflection,
+            &data.service_name,
+            &data.method_name,
+        )
+        .await
+    {
         let is_client_streaming = method_info.0;
         let is_server_streaming = method_info.1;
 
@@ -297,7 +317,10 @@ pub async fn grpc_invoke(
         .await
     {
         Ok((connection, events)) => {
-            let _ = app.emit("grpcConnectionStart", serde_json::json!({ "data": connection }));
+            let _ = app.emit(
+                "grpcConnectionStart",
+                serde_json::json!({ "data": connection }),
+            );
             for event in &events {
                 let _ = app.emit("grpcEvent", serde_json::json!({ "data": event }));
             }
@@ -340,7 +363,10 @@ pub async fn grpc_send_message(
     let reg = registry.lock().await;
     if let Some(handle) = reg.get(&data.connection_id) {
         // Accept body from either "body" or "message" field
-        let msg = data.body.or(data.message_body).unwrap_or_else(|| "{}".to_string());
+        let msg = data
+            .body
+            .or(data.message_body)
+            .unwrap_or_else(|| "{}".to_string());
         handle
             .sender
             .send(GrpcStreamCommand::SendMessage(msg))
@@ -386,7 +412,9 @@ pub async fn grpc_end_stream(
 
 /// Invalidate all cached gRPC descriptor pools (forces re-parse on next load)
 #[tauri::command]
-pub async fn grpc_invalidate_pool(pool_cache: tauri::State<'_, GrpcPoolCache>) -> Result<(), AppError> {
+pub async fn grpc_invalidate_pool(
+    pool_cache: tauri::State<'_, GrpcPoolCache>,
+) -> Result<(), AppError> {
     let client = GrpcClient::new(pool_cache.inner().clone());
     client.invalidate_all_pools().await;
     Ok(())
@@ -472,7 +500,7 @@ fn collect_proto_files(dir: &Path, out: &mut Vec<String>) {
             let path = entry.path();
             if path.is_dir() {
                 collect_proto_files(&path, out);
-            } else if path.extension().map_or(false, |ext| ext == "proto") {
+            } else if path.extension().is_some_and(|ext| ext == "proto") {
                 out.push(path.to_string_lossy().to_string());
             }
         }
@@ -508,13 +536,16 @@ pub(crate) fn evaluate_grpc_assertions(
     let mut variables_to_set = Vec::new();
 
     // Collect server messages for stream-related targets
-    let stream_messages: Vec<&GrpcEvent> = events.iter()
+    let stream_messages: Vec<&GrpcEvent> = events
+        .iter()
         .filter(|e| e.event_type == "server_message")
         .collect();
 
     for assertion in assertions {
         let enabled = assertion["enabled"].as_bool().unwrap_or(false);
-        if !enabled { continue; }
+        if !enabled {
+            continue;
+        }
 
         let id = assertion["id"].as_str().unwrap_or("").to_string();
         let target = assertion["target"].as_str().unwrap_or("");
@@ -535,12 +566,14 @@ pub(crate) fn evaluate_grpc_assertions(
                     continue;
                 }
             };
-            let last_body = stream_messages.last()
+            let last_body = stream_messages
+                .last()
                 .map(|e| e.content.clone())
                 .unwrap_or_default();
-            let body_val: serde_json::Value = serde_json::from_str(&last_body)
-                .unwrap_or(serde_json::Value::String(last_body));
-            let extracted = property.as_deref()
+            let body_val: serde_json::Value =
+                serde_json::from_str(&last_body).unwrap_or(serde_json::Value::String(last_body));
+            let extracted = property
+                .as_deref()
                 .and_then(|prop| extract_json_path(&body_val, prop));
             match extracted {
                 Some(val) => {
@@ -568,21 +601,19 @@ pub(crate) fn evaluate_grpc_assertions(
         }
 
         let actual = match target {
-            "grpcStatusMessage" => {
-                connection.status_message.clone()
-                    .or_else(|| Some(grpc_status_name(connection.status)))
-            }
-            "trailer" => {
-                property.as_deref().and_then(|prop| {
-                    let prop_lower = prop.to_lowercase();
-                    connection.trailers.iter()
-                        .find(|(k, _)| k.to_lowercase() == prop_lower)
-                        .map(|(_, v)| v.clone())
-                })
-            }
-            "streamMessageCount" => {
-                Some(stream_messages.len().to_string())
-            }
+            "grpcStatusMessage" => connection
+                .status_message
+                .clone()
+                .or_else(|| Some(grpc_status_name(connection.status))),
+            "trailer" => property.as_deref().and_then(|prop| {
+                let prop_lower = prop.to_lowercase();
+                connection
+                    .trailers
+                    .iter()
+                    .find(|(k, _)| k.to_lowercase() == prop_lower)
+                    .map(|(_, v)| v.clone())
+            }),
+            "streamMessageCount" => Some(stream_messages.len().to_string()),
             "streamMessage" => {
                 // property format: "index" or "index.$.jsonpath"
                 property.as_deref().and_then(|prop| {
@@ -600,32 +631,28 @@ pub(crate) fn evaluate_grpc_assertions(
                         Some(i) => {
                             let json_path = &prop[i + 1..];
                             let data: serde_json::Value = serde_json::from_str(content).ok()?;
-                            extract_json_path(&data, json_path)
-                                .or_else(|| Some(content.clone()))
+                            extract_json_path(&data, json_path).or_else(|| Some(content.clone()))
                         }
                     }
                 })
             }
             "status" => Some(connection.status.to_string()),
             "responseTime" => Some(connection.elapsed.to_string()),
-            "body" => {
-                stream_messages.last().map(|e| e.content.clone())
-            }
-            "header" => {
-                property.as_deref().and_then(|prop| {
-                    let prop_lower = prop.to_lowercase();
-                    connection.initial_metadata.as_ref()?.iter()
-                        .find(|(k, _)| k.to_lowercase() == prop_lower)
-                        .map(|(_, v)| v.clone())
-                })
-            }
-            "jsonQuery" => {
-                property.as_deref().and_then(|prop| {
-                    let last = stream_messages.last()?;
-                    let data: serde_json::Value = serde_json::from_str(&last.content).ok()?;
-                    extract_json_path(&data, prop)
-                })
-            }
+            "body" => stream_messages.last().map(|e| e.content.clone()),
+            "header" => property.as_deref().and_then(|prop| {
+                let prop_lower = prop.to_lowercase();
+                connection
+                    .initial_metadata
+                    .as_ref()?
+                    .iter()
+                    .find(|(k, _)| k.to_lowercase() == prop_lower)
+                    .map(|(_, v)| v.clone())
+            }),
+            "jsonQuery" => property.as_deref().and_then(|prop| {
+                let last = stream_messages.last()?;
+                let data: serde_json::Value = serde_json::from_str(&last.content).ok()?;
+                extract_json_path(&data, prop)
+            }),
             _ => None,
         };
 
@@ -639,7 +666,10 @@ pub(crate) fn evaluate_grpc_assertions(
         }));
     }
 
-    AssertionEvalResult { results, variables_to_set }
+    AssertionEvalResult {
+        results,
+        variables_to_set,
+    }
 }
 
 /// Map gRPC status code to human-readable name
@@ -663,5 +693,6 @@ fn grpc_status_name(code: i32) -> String {
         15 => "DATA_LOSS",
         16 => "UNAUTHENTICATED",
         _ => "UNKNOWN",
-    }.to_string()
+    }
+    .to_string()
 }

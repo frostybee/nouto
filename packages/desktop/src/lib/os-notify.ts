@@ -6,7 +6,8 @@ import type { DesktopActionResult } from '@nouto/ui/lib/desktop-host';
 import { logger } from './logger';
 
 async function ensurePermission(): Promise<boolean> {
-  const { isPermissionGranted, requestPermission } = await import('@tauri-apps/plugin-notification');
+  const { isPermissionGranted, requestPermission } =
+    await import('@tauri-apps/plugin-notification');
   if (await isPermissionGranted()) return true;
   return (await requestPermission()) === 'granted';
 }

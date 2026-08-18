@@ -34,7 +34,9 @@
     onclose();
   }
 
-  function requestDelete() { confirmDelete = true; }
+  function requestDelete() {
+    confirmDelete = true;
+  }
 
   function doDelete() {
     confirmDelete = false;
@@ -72,21 +74,13 @@
         <div class="form">
           <label>
             <span class="label">Name</span>
-            <input
-              type="text"
-              bind:value={name}
-              placeholder="My Workspace"
-              spellcheck="false"
-            />
+            <input type="text" bind:value={name} placeholder="My Workspace" spellcheck="false" />
             <span class="hint">Display name for this workspace. Defaults to folder name.</span>
           </label>
 
           <label>
             <span class="label">Description</span>
-            <textarea
-              bind:value={description}
-              placeholder="What is this workspace for?"
-              rows="4"
+            <textarea bind:value={description} placeholder="What is this workspace for?" rows="4"
             ></textarea>
           </label>
 
@@ -169,7 +163,9 @@
     border-radius: 0.308rem;
     cursor: pointer;
   }
-  .close-btn:hover { background: var(--hf-toolbar-hoverBackground, rgba(127, 127, 127, 0.18)); }
+  .close-btn:hover {
+    background: var(--hf-toolbar-hoverBackground, rgba(127, 127, 127, 0.18));
+  }
 
   .dialog-body {
     flex: 1;
@@ -226,7 +222,10 @@
     font-family: inherit;
     box-sizing: border-box;
   }
-  .form textarea { resize: vertical; min-height: 5.385rem; }
+  .form textarea {
+    resize: vertical;
+    min-height: 5.385rem;
+  }
   .form input:focus,
   .form textarea:focus {
     outline: none;
@@ -261,7 +260,9 @@
     padding: 0.923rem 1.231rem;
     border-top: 1px solid var(--hf-panel-border);
   }
-  .spacer { flex: 1; }
+  .spacer {
+    flex: 1;
+  }
 
   .btn {
     padding: 0.385rem 0.923rem;
@@ -270,20 +271,27 @@
     cursor: pointer;
     border: 1px solid transparent;
   }
-  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
 
   .btn-primary {
     background: var(--hf-button-background);
     color: var(--hf-button-foreground);
   }
-  .btn-primary:hover:not(:disabled) { background: var(--hf-button-hoverBackground); }
+  .btn-primary:hover:not(:disabled) {
+    background: var(--hf-button-hoverBackground);
+  }
 
   .btn-secondary {
     background: var(--hf-button-secondaryBackground, transparent);
     color: var(--hf-button-secondaryForeground, var(--hf-foreground));
     border-color: var(--hf-panel-border);
   }
-  .btn-secondary:hover:not(:disabled) { background: var(--hf-toolbar-hoverBackground, rgba(127, 127, 127, 0.18)); }
+  .btn-secondary:hover:not(:disabled) {
+    background: var(--hf-toolbar-hoverBackground, rgba(127, 127, 127, 0.18));
+  }
 
   .btn-danger {
     background: transparent;

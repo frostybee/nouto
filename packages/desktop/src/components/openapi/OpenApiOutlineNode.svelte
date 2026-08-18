@@ -39,7 +39,7 @@
     oncontextaction?: (
       node: OutlineNode,
       id: OutlineActionId,
-      payload?: Record<string, unknown>
+      payload?: Record<string, unknown>,
     ) => void;
   }
   let {
@@ -77,7 +77,7 @@
     const copied = await copyToClipboard(node.pointer);
     showNotification(
       copied ? 'info' : 'error',
-      copied ? `Copied JSON Pointer: ${node.pointer}` : 'Could not copy to the clipboard.'
+      copied ? `Copied JSON Pointer: ${node.pointer}` : 'Could not copy to the clipboard.',
     );
   }
 
@@ -97,7 +97,7 @@
                 if (node.operation) ontryit?.(node.operation);
               }
             : () => oncontextaction?.(node, entry.id, entry.payload),
-    }))
+    })),
   );
 
   const hasChildren = $derived(node.children.length > 0);
@@ -108,7 +108,7 @@
   // iconColor is a VS Code theme color id ('charts.green'); the app exposes
   // the same palette as --hf-* custom properties.
   const iconStyle = $derived(
-    node.iconColor ? `color: var(--hf-${node.iconColor.replace(/\./g, '-')})` : undefined
+    node.iconColor ? `color: var(--hf-${node.iconColor.replace(/\./g, '-')})` : undefined,
   );
 
   function toggle(): void {

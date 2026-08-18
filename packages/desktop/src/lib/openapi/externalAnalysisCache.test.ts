@@ -20,17 +20,12 @@ vi.mock('@nouto/ui/stores/settings.svelte', () => settingsMocks);
 
 import { resolveExternalRefUri } from '@nouto/core/services/openapi/externalRefs';
 import type { FileResolver } from '@nouto/core/services/openapi/externalRefs';
-import {
-  clearExternalAnalysis,
-  getExternalAnalysis,
-  referrersOf,
-} from './externalAnalysisCache';
+import { clearExternalAnalysis, getExternalAnalysis, referrersOf } from './externalAnalysisCache';
 import {
   openSession,
   newSession,
   getSession,
   setContentFor,
-  closeSession,
   resetAllSessions,
   findSessionByPath,
 } from './session.svelte';
@@ -49,13 +44,7 @@ const ROOT_YAML = [
   '',
 ].join('\n');
 
-const COMMON_YAML = [
-  'components:',
-  '  schemas:',
-  '    Pet:',
-  '      type: object',
-  '',
-].join('\n');
+const COMMON_YAML = ['components:', '  schemas:', '    Pet:', '      type: object', ''].join('\n');
 
 const ROOT_PATH = 'C:\\specs\\api.yaml';
 const COMMON_PATH = 'C:\\specs\\common.yaml';
@@ -178,7 +167,7 @@ describe('externalAnalysisCache', () => {
     // The reverse index was written from resolver-produced URIs; an OS-path
     // query for the same file must key identically (write/read unification).
     expect(referrersOf('someone-else', fileUriToPath(pathToFileUri(COMMON_PATH)))).toEqual(
-      new Set([rootId])
+      new Set([rootId]),
     );
 
     clearExternalAnalysis(rootId);
@@ -198,20 +187,24 @@ describe('externalAnalysisCache', () => {
       // First pass reads common.yaml from "disk" (the mocked Rust command).
       await vi.advanceTimersByTimeAsync(0);
       expect(getSession(rootId)?.externalAnalysis?.externalRefs.size).toBe(1);
-      expect(getSession(rootId)?.diagnostics.some((d) => d.code === 'external-file-not-found')).toBe(false);
+      expect(
+        getSession(rootId)?.diagnostics.some((d) => d.code === 'external-file-not-found'),
+      ).toBe(false);
 
       // Opening the referenced file re-triggers the referrer (buffer wins),
       // then breaking the referenced pointer in that buffer re-triggers it
       // again via the debounced cross-tab invalidation.
       const commonId = openSession(COMMON_PATH, COMMON_YAML, 'yaml');
       await vi.advanceTimersByTimeAsync(350);
-      expect(getSession(rootId)?.diagnostics.some((d) => d.code === 'external-pointer-not-found')).toBe(false);
+      expect(
+        getSession(rootId)?.diagnostics.some((d) => d.code === 'external-pointer-not-found'),
+      ).toBe(false);
 
       setContentFor(commonId, 'components:\n  schemas: {}\n');
       await vi.advanceTimersByTimeAsync(350);
       await vi.advanceTimersByTimeAsync(0);
       expect(
-        getSession(rootId)?.diagnostics.some((d) => d.code === 'external-pointer-not-found')
+        getSession(rootId)?.diagnostics.some((d) => d.code === 'external-pointer-not-found'),
       ).toBe(true);
     } finally {
       vi.useRealTimers();

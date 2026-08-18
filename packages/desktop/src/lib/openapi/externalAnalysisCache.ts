@@ -1,5 +1,8 @@
 import { analyzeOpenApiWithExternalRefs } from '@nouto/core/services/openapi/externalRefs';
-import type { ExternalAnalysisResult, FileResolver } from '@nouto/core/services/openapi/externalRefs';
+import type {
+  ExternalAnalysisResult,
+  FileResolver,
+} from '@nouto/core/services/openapi/externalRefs';
 import { findSessionByPath, type OpenApiSessionState } from './session.svelte';
 import { fileUriKey, fileUriToPath, pathToFileUri } from './pathUtils';
 
@@ -28,7 +31,10 @@ interface ExternalCacheEntry {
 }
 
 const cache = new Map<string, ExternalCacheEntry>(); // key = referrer session id
-const pending = new Map<string, { rootRevision: number; promise: Promise<ExternalAnalysisResult> }>();
+const pending = new Map<
+  string,
+  { rootRevision: number; promise: Promise<ExternalAnalysisResult> }
+>();
 const referencedBy = new Map<string, Set<string>>(); // canonical file URI -> referrer session ids
 
 const EMPTY_RESULT: ExternalAnalysisResult = {
@@ -88,7 +94,7 @@ function updateReferencedBy(referrerId: string, referencedFiles: ReadonlySet<str
  */
 export async function getExternalAnalysis(
   session: OpenApiSessionState,
-  resolver: FileResolver
+  resolver: FileResolver,
 ): Promise<ExternalAnalysisResult> {
   const parsedSpec = session.analysis?.parsedSpec;
   if (!session.documentUri || !parsedSpec || typeof parsedSpec !== 'object') {

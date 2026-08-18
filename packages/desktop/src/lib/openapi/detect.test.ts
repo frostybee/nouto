@@ -16,7 +16,11 @@ describe('formatFromPath', () => {
 
 describe('isOpenApiDocument', () => {
   const yamlSpec = `openapi: 3.1.0\ninfo:\n  title: T\n  version: 1.0.0\npaths: {}\n`;
-  const jsonSpec = JSON.stringify({ openapi: '3.0.3', info: { title: 'T', version: '1' }, paths: {} });
+  const jsonSpec = JSON.stringify({
+    openapi: '3.0.3',
+    info: { title: 'T', version: '1' },
+    paths: {},
+  });
 
   it('accepts valid 3.x documents in both formats', () => {
     expect(isOpenApiDocument(yamlSpec, 'yaml')).toBe(true);

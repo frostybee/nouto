@@ -45,7 +45,7 @@ pub fn create_type1_message() -> Vec<u8> {
     msg.extend_from_slice(b"NTLMSSP\0"); // Signature
     msg.extend_from_slice(&1u32.to_le_bytes()); // Type 1 indicator
     msg.extend_from_slice(&TYPE1_FLAGS.to_le_bytes()); // Negotiate flags
-    // Domain name security buffer (empty, not supplied)
+                                                       // Domain name security buffer (empty, not supplied)
     msg.extend_from_slice(&[0u8; 8]);
     // Workstation security buffer (empty, not supplied)
     msg.extend_from_slice(&[0u8; 8]);
@@ -233,19 +233,14 @@ fn compute_nt_hash(password: &str) -> [u8; 16] {
 
 /// Compute the NTLMv2 hash: HMAC_MD5(nt_hash, UTF-16LE(UPPER(username) + UPPER(domain)))
 fn compute_ntlmv2_hash(nt_hash: &[u8; 16], username: &str, domain: &str) -> [u8; 16] {
-    let identity = format!(
-        "{}{}",
-        username.to_uppercase(),
-        domain.to_uppercase()
-    );
+    let identity = format!("{}{}", username.to_uppercase(), domain.to_uppercase());
     let identity_bytes = to_utf16le(&identity);
     hmac_md5(nt_hash, &identity_bytes)
 }
 
 /// HMAC-MD5 returning a 16-byte digest.
 fn hmac_md5(key: &[u8], data: &[u8]) -> [u8; 16] {
-    let mut mac =
-        HmacMd5::new_from_slice(key).expect("HMAC-MD5 accepts keys of any length");
+    let mut mac = HmacMd5::new_from_slice(key).expect("HMAC-MD5 accepts keys of any length");
     mac.update(data);
     let result = mac.finalize().into_bytes();
     let mut out = [0u8; 16];
@@ -321,10 +316,7 @@ mod tests {
         // Known test vector: password "Password" should produce a specific MD4 hash
         let hash = compute_nt_hash("Password");
         // MD4(UTF-16LE("Password")) = a4f49c406510bdca b6824ee7c30fd852
-        assert_eq!(
-            hex::encode(hash),
-            "a4f49c406510bdcab6824ee7c30fd852"
-        );
+        assert_eq!(hex::encode(hash), "a4f49c406510bdcab6824ee7c30fd852");
     }
 
     #[test]

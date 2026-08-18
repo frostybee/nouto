@@ -2,11 +2,11 @@
 // Exposes HTTP client to the frontend via Tauri commands
 
 use crate::error::AppError;
+use crate::models::http::{RequestRegistry, SendRequestData};
 use crate::models::types::{AuthType, KeyValue, ResponseData};
-use crate::models::http::{SendRequestData, RequestRegistry};
 use crate::services::http_client::HttpRequestConfig;
 use crate::services::request_executor::{
-    spawn_request_execution, RequestExecutionContext, HistoryMeta,
+    spawn_request_execution, HistoryMeta, RequestExecutionContext,
 };
 use serde_json::Value;
 use std::collections::HashMap;
@@ -22,7 +22,10 @@ pub async fn send_request(
     registry: tauri::State<'_, RequestRegistry>,
 ) -> Result<(), AppError> {
     // Use request_id if available, else a constant key for the active desktop request
-    let panel_id = data.request_id.clone().unwrap_or_else(|| "desktop-active".to_string());
+    let panel_id = data
+        .request_id
+        .clone()
+        .unwrap_or_else(|| "desktop-active".to_string());
 
     // Transform SendRequestData to HttpRequestConfig
     let mut headers_map: HashMap<String, String> = HashMap::new();
@@ -41,16 +44,11 @@ pub async fn send_request(
 
     // Handle authentication
     let (auth_username, auth_password, bearer_token) = match data.auth.auth_type {
-        AuthType::Basic => (
-            data.auth.username.clone(),
-            data.auth.password.clone(),
-            None,
-        ),
+        AuthType::Basic => (data.auth.username.clone(), data.auth.password.clone(), None),
         AuthType::Bearer => (None, None, data.auth.token.clone()),
         AuthType::ApiKey => {
             // API Key in header or query param
-            if let (Some(name), Some(value)) = (&data.auth.api_key_name, &data.auth.api_key_value)
-            {
+            if let (Some(name), Some(value)) = (&data.auth.api_key_name, &data.auth.api_key_value) {
                 if data.auth.api_key_in.as_deref() == Some("query") {
                     params_map.insert(name.clone(), value.clone());
                 } else {
@@ -102,9 +100,17 @@ pub async fn send_request(
 
     // Extract AWS signing params if applicable
     let aws_auth = if data.auth.auth_type == AuthType::Aws {
-        match (&data.auth.aws_access_key, &data.auth.aws_secret_key, &data.auth.aws_region, &data.auth.aws_service) {
+        match (
+            &data.auth.aws_access_key,
+            &data.auth.aws_secret_key,
+            &data.auth.aws_region,
+            &data.auth.aws_service,
+        ) {
             (Some(access_key), Some(secret_key), Some(region), Some(service))
-                if !access_key.is_empty() && !secret_key.is_empty() && !region.is_empty() && !service.is_empty() =>
+                if !access_key.is_empty()
+                    && !secret_key.is_empty()
+                    && !region.is_empty()
+                    && !service.is_empty() =>
             {
                 Some(crate::services::aws_auth::AwsSigningParams {
                     access_key_id: access_key.clone(),
@@ -115,7 +121,9 @@ pub async fn send_request(
                 })
             }
             _ => {
-                log::warn!("AWS auth missing required fields (access_key, secret_key, region, service)");
+                log::warn!(
+                    "AWS auth missing required fields (access_key, secret_key, region, service)"
+                );
                 None
             }
         }
@@ -128,12 +136,14 @@ pub async fn send_request(
         && !data.url.contains("localhost")
         && !data.url.contains("127.0.0.1")
         && !data.url.contains("[::1]")
-        && (headers_map.contains_key("Authorization")
-            || data.auth.auth_type != AuthType::None)
+        && (headers_map.contains_key("Authorization") || data.auth.auth_type != AuthType::None)
     {
-        let _ = app.emit("securityWarning", serde_json::json!({
-            "data": { "message": "Sending credentials over unencrypted HTTP connection" }
-        }));
+        let _ = app.emit(
+            "securityWarning",
+            serde_json::json!({
+                "data": { "message": "Sending credentials over unencrypted HTTP connection" }
+            }),
+        );
     }
 
     // Handle body
@@ -179,9 +189,14 @@ pub async fn send_request(
                 let encoded = if let Ok(items) = serde_json::from_str::<Vec<Value>>(content) {
                     let mut serializer = form_urlencoded::Serializer::new(String::new());
                     for item in &items {
-                        let enabled = item.get("enabled").and_then(|v| v.as_bool()).unwrap_or(false);
+                        let enabled = item
+                            .get("enabled")
+                            .and_then(|v| v.as_bool())
+                            .unwrap_or(false);
                         let key = item.get("key").and_then(|v| v.as_str()).unwrap_or("");
-                        if !enabled || key.is_empty() { continue; }
+                        if !enabled || key.is_empty() {
+                            continue;
+                        }
                         let value = item.get("value").and_then(|v| v.as_str()).unwrap_or("");
                         serializer.append_pair(key, value);
                     }
@@ -244,7 +259,10 @@ pub async fn send_request(
                             status: 0,
                             status_text: "File Error".to_string(),
                             headers: HashMap::new(),
-                            data: Value::String(format!("Failed to read file '{}': {}", file_path, e)),
+                            data: Value::String(format!(
+                                "Failed to read file '{}': {}",
+                                file_path, e
+                            )),
                             duration: 0,
                             size: 0,
                             error: Some(true),
@@ -256,7 +274,10 @@ pub async fn send_request(
                             redirect_chain: None,
                             timeline: None,
                         };
-                        let _ = app.emit("requestResponse", serde_json::json!({ "data": error_response }));
+                        let _ = app.emit(
+                            "requestResponse",
+                            serde_json::json!({ "data": error_response }),
+                        );
                         return Ok(());
                     }
                 }
@@ -320,12 +341,24 @@ pub async fn send_request(
         history: HistoryMeta {
             method: history_method,
             url: data.url.clone(),
-            headers: data.headers.iter().map(|h| serde_json::json!({
-                "id": h.id, "key": h.key, "value": h.value, "enabled": h.enabled
-            })).collect(),
-            params: data.params.iter().map(|p| serde_json::json!({
-                "id": p.id, "key": p.key, "value": p.value, "enabled": p.enabled
-            })).collect(),
+            headers: data
+                .headers
+                .iter()
+                .map(|h| {
+                    serde_json::json!({
+                        "id": h.id, "key": h.key, "value": h.value, "enabled": h.enabled
+                    })
+                })
+                .collect(),
+            params: data
+                .params
+                .iter()
+                .map(|p| {
+                    serde_json::json!({
+                        "id": p.id, "key": p.key, "value": p.value, "enabled": p.enabled
+                    })
+                })
+                .collect(),
             body: serde_json::to_value(&data.body).ok(),
             auth: serde_json::to_value(&data.auth).ok(),
             request_id: data.request_id.clone(),
@@ -339,12 +372,7 @@ pub async fn send_request(
         cookies: data.cookies.clone(),
     };
 
-    let handle = spawn_request_execution(
-        ctx,
-        app,
-        registry.inner().clone(),
-        panel_id.clone(),
-    );
+    let handle = spawn_request_execution(ctx, app, registry.inner().clone(), panel_id.clone());
 
     let mut registry_lock = registry.lock().await;
     registry_lock.insert(panel_id, handle);
@@ -361,7 +389,10 @@ pub async fn pick_ssl_file(app: AppHandle, data: serde_json::Value) -> Result<()
     let path = app
         .dialog()
         .file()
-        .add_filter("Certificate files", &["pem", "crt", "key", "p12", "pfx", "der"])
+        .add_filter(
+            "Certificate files",
+            &["pem", "crt", "key", "p12", "pfx", "der"],
+        )
         .blocking_pick_file();
 
     if let Some(file_path) = path {
@@ -406,7 +437,10 @@ pub async fn cancel_request(
             let _ = app.emit("requestCancelled", serde_json::json!({ "data": {} }));
             Ok(())
         } else {
-            Err(AppError::Other(format!("No active request found for panel {}", panel_id)))
+            Err(AppError::Other(format!(
+                "No active request found for panel {}",
+                panel_id
+            )))
         }
     }
 }
@@ -431,9 +465,12 @@ pub async fn select_file(app: AppHandle, data: serde_json::Value) -> Result<(), 
                 let size = meta.as_ref().map(|m| m.len()).unwrap_or(0);
                 let mime = mime_from_extension(&path_str);
 
-                let _ = app.emit("fileSelected", serde_json::json!({
-                    "data": { "path": path_str, "name": name, "size": size, "mimeType": mime }
-                }));
+                let _ = app.emit(
+                    "fileSelected",
+                    serde_json::json!({
+                        "data": { "path": path_str, "name": name, "size": size, "mimeType": mime }
+                    }),
+                );
             }
         }
     } else {
@@ -448,9 +485,12 @@ pub async fn select_file(app: AppHandle, data: serde_json::Value) -> Result<(), 
             let size = meta.as_ref().map(|m| m.len()).unwrap_or(0);
             let mime = mime_from_extension(&path_str);
 
-            let _ = app.emit("fileSelected", serde_json::json!({
-                "data": { "path": path_str, "name": name, "size": size, "mimeType": mime }
-            }));
+            let _ = app.emit(
+                "fileSelected",
+                serde_json::json!({
+                    "data": { "path": path_str, "name": name, "size": size, "mimeType": mime }
+                }),
+            );
         }
     }
 
@@ -490,7 +530,6 @@ fn mime_from_extension(path: &str) -> String {
     }
     .to_string()
 }
-
 
 /// Standard GraphQL introspection query
 const INTROSPECTION_QUERY: &str = r#"
@@ -573,8 +612,11 @@ const INTROSPECTION_QUERY: &str = r#"
 pub async fn introspect_graphql(data: serde_json::Value, app: AppHandle) -> Result<(), AppError> {
     let url = data["url"].as_str().unwrap_or("").to_string();
     if url.is_empty() {
-        app.emit("graphqlSchemaError", serde_json::json!({ "data": { "message": "URL is required for introspection" } }))
-            .map_err(|e| AppError::Other(e.to_string()))?;
+        app.emit(
+            "graphqlSchemaError",
+            serde_json::json!({ "data": { "message": "URL is required for introspection" } }),
+        )
+        .map_err(|e| AppError::Other(e.to_string()))?;
         return Ok(());
     }
 
@@ -588,10 +630,14 @@ pub async fn introspect_graphql(data: serde_json::Value, app: AppHandle) -> Resu
     if let Some(headers) = data["headers"].as_array() {
         for h in headers {
             let enabled = h["enabled"].as_bool().unwrap_or(true);
-            if !enabled { continue; }
+            if !enabled {
+                continue;
+            }
             let key = h["key"].as_str().unwrap_or("");
             let value = h["value"].as_str().unwrap_or("");
-            if key.is_empty() { continue; }
+            if key.is_empty() {
+                continue;
+            }
             if let (Ok(name), Ok(val)) = (
                 reqwest::header::HeaderName::from_bytes(key.as_bytes()),
                 reqwest::header::HeaderValue::from_str(value),
@@ -608,7 +654,9 @@ pub async fn introspect_graphql(data: serde_json::Value, app: AppHandle) -> Resu
             "bearer" => {
                 if let Some(token) = auth["token"].as_str() {
                     if !token.is_empty() {
-                        if let Ok(val) = reqwest::header::HeaderValue::from_str(&format!("Bearer {}", token)) {
+                        if let Ok(val) =
+                            reqwest::header::HeaderValue::from_str(&format!("Bearer {}", token))
+                        {
                             header_map.insert(reqwest::header::AUTHORIZATION, val);
                         }
                     }
@@ -621,7 +669,9 @@ pub async fn introspect_graphql(data: serde_json::Value, app: AppHandle) -> Resu
                     &base64::engine::general_purpose::STANDARD,
                     format!("{}:{}", username, password),
                 );
-                if let Ok(val) = reqwest::header::HeaderValue::from_str(&format!("Basic {}", credentials)) {
+                if let Ok(val) =
+                    reqwest::header::HeaderValue::from_str(&format!("Basic {}", credentials))
+                {
                     header_map.insert(reqwest::header::AUTHORIZATION, val);
                 }
             }
@@ -678,7 +728,8 @@ pub async fn introspect_graphql(data: serde_json::Value, app: AppHandle) -> Resu
     if let Some(errors) = response_json.get("errors") {
         if let Some(arr) = errors.as_array() {
             if !arr.is_empty() {
-                let error_messages: Vec<String> = arr.iter()
+                let error_messages: Vec<String> = arr
+                    .iter()
                     .filter_map(|e| e["message"].as_str().map(|s| s.to_string()))
                     .collect();
                 let combined = error_messages.join("; ");

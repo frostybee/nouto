@@ -7,7 +7,10 @@ import { openFile, saveDocument, saveDocumentAs } from '../openapi/documentAdapt
  * adapter. Phase 1's own toolbar calls the adapter directly; this path exists
  * for message-driven callers (the Phase 3 preview adapter emits these types).
  */
-export async function handleOpenApiMessage(message: OutgoingMessage, _notify: NotifyFn): Promise<void> {
+export async function handleOpenApiMessage(
+  message: OutgoingMessage,
+  _notify: NotifyFn,
+): Promise<void> {
   if (message.type === 'openApiSave') {
     await saveDocument();
   } else if (message.type === 'openApiSaveAs') {

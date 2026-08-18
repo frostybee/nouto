@@ -3,8 +3,8 @@
 
 use crate::error::AppError;
 use crate::models::types::{
-    AuthState, AuthType, BenchmarkConfig, BenchmarkIteration, BenchmarkResult,
-    BenchmarkStatistics, DistributionBucket, HttpMethod, KeyValue,
+    AuthState, AuthType, BenchmarkConfig, BenchmarkIteration, BenchmarkResult, BenchmarkStatistics,
+    DistributionBucket, HttpMethod, KeyValue,
 };
 use crate::services::http_client::{HttpClient, HttpRequestConfig};
 use serde::{Deserialize, Serialize};
@@ -67,9 +67,12 @@ pub async fn start_benchmark(
         let http_client = match HttpClient::new() {
             Ok(c) => c,
             Err(e) => {
-                let _ = app.emit("benchmarkCancelled", serde_json::json!({
-                    "data": {}
-                }));
+                let _ = app.emit(
+                    "benchmarkCancelled",
+                    serde_json::json!({
+                        "data": {}
+                    }),
+                );
                 log::error!("Failed to create HTTP client: {}", e);
                 return;
             }
@@ -116,17 +119,23 @@ pub async fn start_benchmark(
                 };
 
                 // Emit iteration result
-                let _ = app.emit("benchmarkIterationComplete", serde_json::json!({
-                    "data": &iteration
-                }));
+                let _ = app.emit(
+                    "benchmarkIterationComplete",
+                    serde_json::json!({
+                        "data": &iteration
+                    }),
+                );
 
                 iterations.push(iteration);
                 completed += 1;
 
                 // Emit progress
-                let _ = app.emit("benchmarkProgress", serde_json::json!({
-                    "data": { "current": completed, "total": total_iterations }
-                }));
+                let _ = app.emit(
+                    "benchmarkProgress",
+                    serde_json::json!({
+                        "data": { "current": completed, "total": total_iterations }
+                    }),
+                );
 
                 // Delay between iterations
                 if delay_ms > 0 && i < total_iterations - 1 {
@@ -153,9 +162,7 @@ pub async fn start_benchmark(
 
                     handles.push(tokio::spawn(async move {
                         let start = std::time::Instant::now();
-                        let result = client
-                            .execute(cfg, None::<fn(usize, Option<u64>)>)
-                            .await;
+                        let result = client.execute(cfg, None::<fn(usize, Option<u64>)>).await;
                         let duration = start.elapsed().as_millis() as i64;
 
                         match result {
@@ -165,7 +172,8 @@ pub async fn start_benchmark(
                                 status_text: response.status_text,
                                 duration,
                                 size: response.size,
-                                success: response.error.is_none() || !response.error.unwrap_or(false),
+                                success: response.error.is_none()
+                                    || !response.error.unwrap_or(false),
                                 error: None,
                                 timestamp: chrono::Utc::now().timestamp_millis(),
                             },
@@ -186,15 +194,21 @@ pub async fn start_benchmark(
                 // Collect results
                 for handle in handles {
                     if let Ok(iteration) = handle.await {
-                        let _ = app.emit("benchmarkIterationComplete", serde_json::json!({
-                            "data": &iteration
-                        }));
+                        let _ = app.emit(
+                            "benchmarkIterationComplete",
+                            serde_json::json!({
+                                "data": &iteration
+                            }),
+                        );
                         iterations.push(iteration);
                         completed += 1;
 
-                        let _ = app.emit("benchmarkProgress", serde_json::json!({
-                            "data": { "current": completed, "total": total_iterations }
-                        }));
+                        let _ = app.emit(
+                            "benchmarkProgress",
+                            serde_json::json!({
+                                "data": { "current": completed, "total": total_iterations }
+                            }),
+                        );
                     }
                 }
 
@@ -209,9 +223,12 @@ pub async fn start_benchmark(
 
         // Check if cancelled
         if cancelled.load(Ordering::SeqCst) {
-            let _ = app.emit("benchmarkCancelled", serde_json::json!({
-                "data": {}
-            }));
+            let _ = app.emit(
+                "benchmarkCancelled",
+                serde_json::json!({
+                    "data": {}
+                }),
+            );
             return;
         }
 
@@ -231,9 +248,12 @@ pub async fn start_benchmark(
             distribution,
         };
 
-        let _ = app.emit("benchmarkComplete", serde_json::json!({
-            "data": &result
-        }));
+        let _ = app.emit(
+            "benchmarkComplete",
+            serde_json::json!({
+                "data": &result
+            }),
+        );
     });
 
     Ok(())
@@ -287,20 +307,31 @@ fn build_benchmark_config(data: &StartBenchmarkData) -> HttpRequestConfig {
     // Parse body
     let (body_content, body_type) = if let Some(body) = &data.body {
         let btype = body.get("type").and_then(|v| v.as_str()).unwrap_or("none");
-        let content = body.get("content").and_then(|v| v.as_str()).map(|s| s.to_string());
+        let content = body
+            .get("content")
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string());
 
         match btype {
             "json" => {
                 if let Some(c) = &content {
-                    headers_map.entry("Content-Type".to_string()).or_insert("application/json".to_string());
+                    headers_map
+                        .entry("Content-Type".to_string())
+                        .or_insert("application/json".to_string());
                     (Some(c.clone()), "json".to_string())
-                } else { (None, "none".to_string()) }
+                } else {
+                    (None, "none".to_string())
+                }
             }
             "text" => {
                 if let Some(c) = &content {
-                    headers_map.entry("Content-Type".to_string()).or_insert("text/plain".to_string());
+                    headers_map
+                        .entry("Content-Type".to_string())
+                        .or_insert("text/plain".to_string());
                     (Some(c.clone()), "text".to_string())
-                } else { (None, "none".to_string()) }
+                } else {
+                    (None, "none".to_string())
+                }
             }
             _ => (None, "none".to_string()),
         }
@@ -308,15 +339,27 @@ fn build_benchmark_config(data: &StartBenchmarkData) -> HttpRequestConfig {
         (None, "none".to_string())
     };
 
-    let headers_vec: Vec<KeyValue> = headers_map.into_iter().map(|(key, value)| KeyValue {
-        id: uuid::Uuid::new_v4().to_string(), key, value, enabled: true,
-        ..Default::default()
-    }).collect();
+    let headers_vec: Vec<KeyValue> = headers_map
+        .into_iter()
+        .map(|(key, value)| KeyValue {
+            id: uuid::Uuid::new_v4().to_string(),
+            key,
+            value,
+            enabled: true,
+            ..Default::default()
+        })
+        .collect();
 
-    let params_vec: Vec<KeyValue> = params_map.into_iter().map(|(key, value)| KeyValue {
-        id: uuid::Uuid::new_v4().to_string(), key, value, enabled: true,
-        ..Default::default()
-    }).collect();
+    let params_vec: Vec<KeyValue> = params_map
+        .into_iter()
+        .map(|(key, value)| KeyValue {
+            id: uuid::Uuid::new_v4().to_string(),
+            key,
+            value,
+            enabled: true,
+            ..Default::default()
+        })
+        .collect();
 
     HttpRequestConfig {
         method: HttpMethod(data.method.clone()),
@@ -341,10 +384,20 @@ fn build_benchmark_config(data: &StartBenchmarkData) -> HttpRequestConfig {
 fn calculate_statistics(iterations: &[BenchmarkIteration]) -> BenchmarkStatistics {
     if iterations.is_empty() {
         return BenchmarkStatistics {
-            total_iterations: 0, success_count: 0, fail_count: 0,
-            min: 0.0, max: 0.0, mean: 0.0, median: 0.0,
-            p50: 0.0, p75: 0.0, p90: 0.0, p95: 0.0, p99: 0.0,
-            total_duration: 0, requests_per_second: 0.0,
+            total_iterations: 0,
+            success_count: 0,
+            fail_count: 0,
+            min: 0.0,
+            max: 0.0,
+            mean: 0.0,
+            median: 0.0,
+            p50: 0.0,
+            p75: 0.0,
+            p90: 0.0,
+            p95: 0.0,
+            p99: 0.0,
+            total_duration: 0,
+            requests_per_second: 0.0,
         };
     }
 
@@ -377,7 +430,10 @@ fn calculate_statistics(iterations: &[BenchmarkIteration]) -> BenchmarkStatistic
         total_iterations: total,
         success_count,
         fail_count,
-        min, max, mean, median,
+        min,
+        max,
+        mean,
+        median,
         p50: percentile(50.0),
         p75: percentile(75.0),
         p90: percentile(90.0),
@@ -412,9 +468,16 @@ fn calculate_distribution(iterations: &[BenchmarkIteration]) -> Vec<Distribution
     for i in 0..num_buckets {
         let low = min + step * i as f64;
         let high = low + step;
-        let count = durations.iter().filter(|&&d| {
-            if i == num_buckets - 1 { d >= low } else { d >= low && d < high }
-        }).count();
+        let count = durations
+            .iter()
+            .filter(|&&d| {
+                if i == num_buckets - 1 {
+                    d >= low
+                } else {
+                    d >= low && d < high
+                }
+            })
+            .count();
         buckets.push(DistributionBucket {
             bucket: format!("{}-{}ms", low as i64, high as i64),
             count,

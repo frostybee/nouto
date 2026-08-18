@@ -41,7 +41,7 @@ const { roots } = buildOutlineTree('file:///spec.yaml', analysis);
 
 function search(
   predicate: (node: OutlineNode) => boolean,
-  nodes: OutlineNode[]
+  nodes: OutlineNode[],
 ): OutlineNode | undefined {
   for (const node of nodes) {
     if (predicate(node)) return node;
@@ -51,7 +51,10 @@ function search(
   return undefined;
 }
 
-function findNode(predicate: (node: OutlineNode) => boolean, nodes: OutlineNode[] = roots): OutlineNode {
+function findNode(
+  predicate: (node: OutlineNode) => boolean,
+  nodes: OutlineNode[] = roots,
+): OutlineNode {
   const found = search(predicate, nodes);
   if (!found) throw new Error('node not found');
   return found;
@@ -66,7 +69,9 @@ function menu(node: OutlineNode, hasErrors = false) {
 }
 
 function labels(node: OutlineNode, hasErrors = false): string[] {
-  return menu(node, hasErrors).filter((entry) => !entry.divider).map((entry) => entry.label);
+  return menu(node, hasErrors)
+    .filter((entry) => !entry.divider)
+    .map((entry) => entry.label);
 }
 
 describe('buildOutlineMenu — groups', () => {
@@ -106,7 +111,7 @@ describe('buildOutlineMenu — groups', () => {
 
   it('Components group offers the 14 flat entries (9 sections + 5 scheme presets)', () => {
     const adds = menu(byContext('outlineComponentsGroup')).filter(
-      (entry) => entry.id === 'addComponent' || entry.id === 'addSecurityScheme'
+      (entry) => entry.id === 'addComponent' || entry.id === 'addSecurityScheme',
     );
     expect(adds).toHaveLength(14);
     expect(adds.filter((entry) => entry.id === 'addSecurityScheme')).toHaveLength(5);
@@ -114,7 +119,7 @@ describe('buildOutlineMenu — groups', () => {
 
   it('a plain component section offers its single Add; securitySchemes offers the presets', () => {
     const schemas = findNode(
-      (node) => node.component?.section === 'schemas' && node.component.name === undefined
+      (node) => node.component?.section === 'schemas' && node.component.name === undefined,
     );
     expect(labels(schemas)).toContain('Add Schema');
     const schemes = byContext('outlineSecuritySchemesSection');
@@ -164,7 +169,15 @@ describe('buildOutlineMenu — operations and guards', () => {
 
   it('a path with every method used offers no Add Operation entries', () => {
     const full = `openapi: 3.1.0\ninfo: {title: X, version: '1'}\npaths:\n  /a:\n${[
-      'get', 'put', 'post', 'delete', 'options', 'head', 'patch', 'trace', 'query',
+      'get',
+      'put',
+      'post',
+      'delete',
+      'options',
+      'head',
+      'patch',
+      'trace',
+      'query',
     ]
       .map((method) => `    ${method}:\n      responses: {'200': {description: OK}}`)
       .join('\n')}\n`;
@@ -179,7 +192,7 @@ describe('buildOutlineMenu — operations and guards', () => {
       return undefined;
     })(tree.roots)!;
     const adds = buildOutlineMenu(path, fullAnalysis, false).filter(
-      (entry) => entry.id === 'addOperation'
+      (entry) => entry.id === 'addOperation',
     );
     expect(adds).toEqual([]);
   });

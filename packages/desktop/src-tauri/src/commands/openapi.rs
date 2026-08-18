@@ -72,7 +72,10 @@ fn compile_for_version(version: &str) -> Result<JSONSchema, AppError> {
 /// per-branch fan-out to collapse (OneOf/AnyOf report one top-level error).
 fn diagnostic_parts(err: &ValidationError) -> (String, Option<String>) {
     if let ValidationErrorKind::Required { property } = &err.kind {
-        let name = property.as_str().map(str::to_string).unwrap_or_else(|| property.to_string());
+        let name = property
+            .as_str()
+            .map(str::to_string)
+            .unwrap_or_else(|| property.to_string());
         return (format!("Missing property '{name}'"), Some(name));
     }
     (err.to_string(), None)
@@ -99,7 +102,12 @@ fn collect_diagnostics(compiled: &JSONSchema, spec: &Value) -> Vec<SchemaDiagnos
                     if !seen.insert((pointer.clone(), message.clone())) {
                         continue;
                     }
-                    out.push(SchemaDiagnostic { pointer, message, missing_property: None, anchor: Some(true) });
+                    out.push(SchemaDiagnostic {
+                        pointer,
+                        message,
+                        missing_property: None,
+                        anchor: Some(true),
+                    });
                     continue;
                 }
             }
@@ -393,11 +401,17 @@ fn fold_nullable(value: &mut Value) {
     match value {
         Value::Array(items) => items.iter_mut().for_each(fold_nullable),
         Value::Object(map) => {
-            let nullable = map.get("nullable").and_then(Value::as_bool).unwrap_or(false);
+            let nullable = map
+                .get("nullable")
+                .and_then(Value::as_bool)
+                .unwrap_or(false);
             if nullable {
                 match map.get("type").cloned() {
                     Some(Value::String(t)) if t != "null" => {
-                        map.insert("type".into(), Value::Array(vec![Value::String(t), Value::String("null".into())]));
+                        map.insert(
+                            "type".into(),
+                            Value::Array(vec![Value::String(t), Value::String("null".into())]),
+                        );
                     }
                     Some(Value::Array(mut types)) => {
                         if !types.iter().any(|t| t == "null") {
@@ -416,11 +430,20 @@ fn fold_nullable(value: &mut Value) {
 
 fn example_error_message(err: &ValidationError) -> String {
     let path = err.instance_path.to_string();
-    let prefix = if path.is_empty() { String::new() } else { format!("{path} ") };
+    let prefix = if path.is_empty() {
+        String::new()
+    } else {
+        format!("{path} ")
+    };
     match &err.kind {
         ValidationErrorKind::Required { property } => {
-            let name = property.as_str().map(str::to_string).unwrap_or_else(|| property.to_string());
-            format!("{prefix}is missing required property \"{name}\"").trim().to_string()
+            let name = property
+                .as_str()
+                .map(str::to_string)
+                .unwrap_or_else(|| property.to_string());
+            format!("{prefix}is missing required property \"{name}\"")
+                .trim()
+                .to_string()
         }
         _ => format!("{prefix}{err}").trim().to_string(),
     }
@@ -437,7 +460,11 @@ pub fn validate_openapi_examples_impl(
     if sites.is_empty() {
         return Vec::new();
     }
-    let draft = if version == "3.0" { Draft::Draft4 } else { Draft::Draft202012 };
+    let draft = if version == "3.0" {
+        Draft::Draft4
+    } else {
+        Draft::Draft202012
+    };
     let mut document = spec.clone();
     if version == "3.0" {
         fold_nullable(&mut document);
@@ -478,7 +505,11 @@ pub fn validate_openapi_examples_impl(
                 .take(MAX_MESSAGES_PER_SITE)
                 .map(example_error_message)
                 .collect();
-            let detail = if messages.is_empty() { "validation failed".to_string() } else { messages.join("; ") };
+            let detail = if messages.is_empty() {
+                "validation failed".to_string()
+            } else {
+                messages.join("; ")
+            };
             out.push(ExampleDiagnostic {
                 rule: site.rule.clone(),
                 pointer: site.value_pointer.clone(),
@@ -539,19 +570,47 @@ mod tests {
         for version in ["3.0", "3.1", "3.2"] {
             let doc = example_doc(if version == "3.0" { "3.0.3" } else { "3.1.0" });
             let sites = vec![
-                site("example-invalid-schema", "/a", "/components/schemas/Pet", json!({ "id": 1 })),
-                site("example-invalid-schema", "/b", "/components/schemas/Pet", json!({ "id": "x", "zzz": 1 })),
-                site("example-invalid-media", "/c", "/components/schemas/Ref", json!({})),
-                site("example-invalid-media", "/d", "/components/schemas/Nope", json!(1)),
+                site(
+                    "example-invalid-schema",
+                    "/a",
+                    "/components/schemas/Pet",
+                    json!({ "id": 1 }),
+                ),
+                site(
+                    "example-invalid-schema",
+                    "/b",
+                    "/components/schemas/Pet",
+                    json!({ "id": "x", "zzz": 1 }),
+                ),
+                site(
+                    "example-invalid-media",
+                    "/c",
+                    "/components/schemas/Ref",
+                    json!({}),
+                ),
+                site(
+                    "example-invalid-media",
+                    "/d",
+                    "/components/schemas/Nope",
+                    json!(1),
+                ),
             ];
             let out = validate_openapi_examples_impl(&doc, version, &sites);
             let pointers: Vec<&str> = out.iter().map(|d| d.pointer.as_str()).collect();
             assert_eq!(pointers, vec!["/b", "/c"], "version {version}");
             let b = out.iter().find(|d| d.pointer == "/b").unwrap();
             assert_eq!(b.rule, "example-invalid-schema");
-            assert!(b.message.starts_with("Example does not match its schema: "), "{}", b.message);
+            assert!(
+                b.message.starts_with("Example does not match its schema: "),
+                "{}",
+                b.message
+            );
             let c = out.iter().find(|d| d.pointer == "/c").unwrap();
-            assert!(c.message.contains("missing required property \"id\""), "{}", c.message);
+            assert!(
+                c.message.contains("missing required property \"id\""),
+                "{}",
+                c.message
+            );
         }
     }
 
@@ -578,10 +637,16 @@ mod tests {
             "paths": {},
             "components": { "schemas": { "Good": { "type": "string" }, "Bad Key": { "type": "string" } } }
         });
-        let result = validate_openapi_schema_with(&cache, &doc, "3.1").await.unwrap();
+        let result = validate_openapi_schema_with(&cache, &doc, "3.1")
+            .await
+            .unwrap();
         assert_eq!(result.len(), 1, "{result:?}");
         assert_eq!(result[0].pointer, "/components/schemas/Bad Key");
-        assert!(result[0].message.starts_with("Property name 'Bad Key'"), "{}", result[0].message);
+        assert!(
+            result[0].message.starts_with("Property name 'Bad Key'"),
+            "{}",
+            result[0].message
+        );
         assert_eq!(result[0].anchor, Some(true));
     }
 
@@ -672,20 +737,18 @@ mod tests {
     #[tokio::test]
     async fn dynamic_ref_regression_3_1_accepts_nested_schema_objects() {
         let cache = init_schema_validator_cache();
-        let result =
-            validate_openapi_schema_with(&cache, &schema_object_doc("3.1.0"), "3.1")
-                .await
-                .unwrap();
+        let result = validate_openapi_schema_with(&cache, &schema_object_doc("3.1.0"), "3.1")
+            .await
+            .unwrap();
         assert!(result.is_empty(), "{result:?}");
     }
 
     #[tokio::test]
     async fn dynamic_ref_regression_3_2_accepts_nested_schema_objects() {
         let cache = init_schema_validator_cache();
-        let result =
-            validate_openapi_schema_with(&cache, &schema_object_doc("3.2.0"), "3.2")
-                .await
-                .unwrap();
+        let result = validate_openapi_schema_with(&cache, &schema_object_doc("3.2.0"), "3.2")
+            .await
+            .unwrap();
         assert!(result.is_empty(), "{result:?}");
     }
 
@@ -714,7 +777,9 @@ mod tests {
             .await
             .unwrap();
         assert!(
-            result_30.iter().any(|d| d.pointer.starts_with("/components/schemas/Pet")),
+            result_30
+                .iter()
+                .any(|d| d.pointer.starts_with("/components/schemas/Pet")),
             "{result_30:?}"
         );
 
@@ -807,7 +872,10 @@ mod tests {
     #[test]
     fn encode_proxy_body_keeps_utf8_and_base64s_binary() {
         let (body, encoding) = encode_proxy_body("{\"ok\":true}".as_bytes());
-        assert_eq!((body.as_str(), encoding.as_str()), ("{\"ok\":true}", "utf8"));
+        assert_eq!(
+            (body.as_str(), encoding.as_str()),
+            ("{\"ok\":true}", "utf8")
+        );
 
         let binary = [0xFFu8, 0xFE, 0x00, 0x89];
         let (body, encoding) = encode_proxy_body(&binary);
@@ -836,7 +904,10 @@ mod tests {
     // --- external $ref file access (Phase 5) ---
 
     fn temp_dir(name: &str) -> std::path::PathBuf {
-        let dir = std::env::temp_dir().join(format!("nouto-openapi-ref-test-{name}-{}", std::process::id()));
+        let dir = std::env::temp_dir().join(format!(
+            "nouto-openapi-ref-test-{name}-{}",
+            std::process::id()
+        ));
         let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(&dir).unwrap();
         dir
@@ -854,7 +925,12 @@ mod tests {
 
     #[test]
     fn read_ref_file_rejects_disallowed_extensions() {
-        for path in ["C:/x/secrets.env", "/etc/hosts", "C:/x/library.dll", "C:/x/noext"] {
+        for path in [
+            "C:/x/secrets.env",
+            "/etc/hosts",
+            "C:/x/library.dll",
+            "C:/x/noext",
+        ] {
             let err = read_openapi_ref_file_impl(path).unwrap_err();
             assert!(
                 matches!(&err, AppError::Other(m) if m.contains("Unsupported file extension")),

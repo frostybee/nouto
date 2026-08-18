@@ -84,14 +84,14 @@ export function createPreviewAdapter(): PreviewHostAdapter {
 
   function runAction(
     action: OpenApiAction,
-    run: () => { ok: boolean; message: string } | Promise<{ ok: boolean; message: string }>
+    run: () => { ok: boolean; message: string } | Promise<{ ok: boolean; message: string }>,
   ): void {
     deliver({ type: 'openApiActionStarted', data: { action } });
     void Promise.resolve(run()).then((result) => {
       deliver(
         result.ok
           ? { type: 'openApiActionSucceeded', data: { action, message: result.message } }
-          : { type: 'openApiActionFailed', data: { action, message: result.message } }
+          : { type: 'openApiActionFailed', data: { action, message: result.message } },
       );
     });
   }

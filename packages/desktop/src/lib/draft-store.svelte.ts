@@ -1,4 +1,9 @@
-import { activeTab as activeTabFn, activeTabId as activeTabIdFn, createRequestTab, openTab } from '@nouto/ui/stores/tabs.svelte';
+import {
+  activeTab as activeTabFn,
+  activeTabId as activeTabIdFn,
+  createRequestTab,
+  openTab,
+} from '@nouto/ui/stores/tabs.svelte';
 import { request as requestStore } from '@nouto/ui/stores';
 import { ui } from '@nouto/ui/stores/ui.svelte';
 import { logger } from './logger';
@@ -9,8 +14,12 @@ let draftSaveTimer: ReturnType<typeof setTimeout> | null = null;
 let _showDraftRecovery = $state(false);
 let _pendingDrafts: Record<string, any> = $state({});
 
-export function showDraftRecovery() { return _showDraftRecovery; }
-export function pendingDrafts() { return _pendingDrafts; }
+export function showDraftRecovery() {
+  return _showDraftRecovery;
+}
+export function pendingDrafts() {
+  return _pendingDrafts;
+}
 
 function saveDraftNow() {
   const atId = activeTabIdFn();
@@ -68,12 +77,7 @@ export function clearAllDraftsFromStorage() {
 export function recoverDrafts() {
   for (const [_tabId, snapshot] of Object.entries(_pendingDrafts)) {
     const s = snapshot as any;
-    const tab = createRequestTab(
-      s.name || s.url || 'Recovered',
-      null,
-      null,
-      null,
-    );
+    const tab = createRequestTab(s.name || s.url || 'Recovered', null, null, null);
     tab.icon = s.method || 'GET';
     tab.dirty = true;
     tab.method = s.method || 'GET';

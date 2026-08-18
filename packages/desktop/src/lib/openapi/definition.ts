@@ -1,10 +1,11 @@
-import { getByPointer, internalRefToPointer, parsePointer } from '@nouto/core/services/openapi/pointer';
+import {
+  getByPointer,
+  internalRefToPointer,
+  parsePointer,
+} from '@nouto/core/services/openapi/pointer';
 import { splitExternalRef } from '@nouto/core/services/openapi/externalRefs';
 import type { FileResolver } from '@nouto/core/services/openapi/externalRefs';
-import {
-  offsetToPointer,
-  pointerToOffsetRange,
-} from '@nouto/core/services/openapi/pointerMap';
+import { offsetToPointer, pointerToOffsetRange } from '@nouto/core/services/openapi/pointerMap';
 import type { OffsetRange, OpenApiPointerMap } from '@nouto/core/services/openapi/pointerMap';
 import type { OpenApiAnalysis } from '@nouto/core/services/openapi/types';
 
@@ -25,7 +26,7 @@ export function resolveRefDefinition(
   analysis: OpenApiAnalysis | null,
   offset: number,
   fromFileUri: string | undefined,
-  resolver: FileResolver
+  resolver: FileResolver,
 ): RefDefinition | undefined {
   const pointer = offsetToPointer(map, offset);
   // The cursor must sit on the value of a `$ref` key, not merely inside a

@@ -55,7 +55,7 @@ export async function crossFileRefTargets(
   fromUri: string,
   partial: PartialRefValue,
   parentKind: OpenApiNodeKind,
-  resolver: FileResolver
+  resolver: FileResolver,
 ): Promise<string[]> {
   const targetUri = resolver.resolve(fromUri, partial.filePart);
   const parsed = await loadParsed(targetUri, resolver);

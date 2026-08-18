@@ -76,7 +76,7 @@ describe('recentOpenApiFiles', () => {
         { path: 42 },
         'nope',
         null,
-      ])
+      ]),
     );
     reloadRecentOpenApiFiles();
     expect(recentOpenApiFiles().map((r) => r.path)).toEqual(['/specs/ok.yaml']);

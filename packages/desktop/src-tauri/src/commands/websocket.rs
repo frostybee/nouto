@@ -36,12 +36,18 @@ pub async fn ws_connect(
 ) -> Result<(), AppError> {
     let url = data["url"].as_str().unwrap_or("").to_string();
     if url.is_empty() {
-        app.emit("wsStatus", json!({ "data": { "status": "error", "error": "URL is required" } }))
-            .map_err(|e| AppError::Other(e.to_string()))?;
+        app.emit(
+            "wsStatus",
+            json!({ "data": { "status": "error", "error": "URL is required" } }),
+        )
+        .map_err(|e| AppError::Other(e.to_string()))?;
         return Ok(());
     }
 
-    let connection_id = data["connectionId"].as_str().unwrap_or("default").to_string();
+    let connection_id = data["connectionId"]
+        .as_str()
+        .unwrap_or("default")
+        .to_string();
     let auto_reconnect = data["autoReconnect"].as_bool().unwrap_or(false);
     let reconnect_interval_ms = data["reconnectIntervalMs"].as_u64().unwrap_or(3000);
     let headers_json = data["headers"].clone();
@@ -97,10 +103,14 @@ pub async fn ws_connect(
             if let Some(headers) = headers_json.as_array() {
                 for h in headers {
                     let enabled = h["enabled"].as_bool().unwrap_or(true);
-                    if !enabled { continue; }
+                    if !enabled {
+                        continue;
+                    }
                     let key = h["key"].as_str().unwrap_or("");
                     let value = h["value"].as_str().unwrap_or("");
-                    if key.is_empty() { continue; }
+                    if key.is_empty() {
+                        continue;
+                    }
                     request = request.header(key, value);
                 }
             }
@@ -161,11 +171,11 @@ pub async fn ws_connect(
                                 let message = if msg_type == "binary" {
                                     use base64::Engine;
                                     match base64::engine::general_purpose::STANDARD.decode(&content) {
-                                        Ok(bytes) => Message::Binary(bytes.into()),
-                                        Err(_) => Message::Text(content.clone().into()),
+                                        Ok(bytes) => Message::Binary(bytes),
+                                        Err(_) => Message::Text(content.clone()),
                                     }
                                 } else {
-                                    Message::Text(content.clone().into())
+                                    Message::Text(content.clone())
                                 };
 
                                 if let Err(e) = write.send(message).await {
@@ -245,7 +255,10 @@ pub async fn ws_connect(
             }
 
             // Decide: reconnect or stop
-            if explicit_disconnect || !auto_reconnect || reconnect_attempts >= max_reconnect_attempts {
+            if explicit_disconnect
+                || !auto_reconnect
+                || reconnect_attempts >= max_reconnect_attempts
+            {
                 break 'reconnect;
             }
 
@@ -272,7 +285,10 @@ pub async fn ws_send(
     data: serde_json::Value,
     registry: tauri::State<'_, WsRegistry>,
 ) -> Result<(), AppError> {
-    let connection_id = data["connectionId"].as_str().unwrap_or("default").to_string();
+    let connection_id = data["connectionId"]
+        .as_str()
+        .unwrap_or("default")
+        .to_string();
     let content = data["message"].as_str().unwrap_or("").to_string();
     let msg_type = data["type"].as_str().unwrap_or("text").to_string();
 
@@ -283,7 +299,9 @@ pub async fn ws_send(
             .await
             .map_err(|e| AppError::Other(format!("Failed to send: {}", e)))?;
     } else {
-        return Err(AppError::Other("No active WebSocket connection".to_string()));
+        return Err(AppError::Other(
+            "No active WebSocket connection".to_string(),
+        ));
     }
 
     Ok(())
@@ -295,7 +313,10 @@ pub async fn ws_disconnect(
     data: serde_json::Value,
     registry: tauri::State<'_, WsRegistry>,
 ) -> Result<(), AppError> {
-    let connection_id = data["connectionId"].as_str().unwrap_or("default").to_string();
+    let connection_id = data["connectionId"]
+        .as_str()
+        .unwrap_or("default")
+        .to_string();
 
     let mut reg = registry.lock().await;
     if let Some(conn) = reg.remove(&connection_id) {
@@ -307,7 +328,7 @@ pub async fn ws_disconnect(
 
 // --- WebSocket Session Management Commands ---
 
-use crate::services::ws_session_storage::{WsSessionStorage, normalize_session};
+use crate::services::ws_session_storage::{normalize_session, WsSessionStorage};
 
 /// Save a WebSocket session recording
 #[tauri::command]
@@ -318,15 +339,24 @@ pub async fn ws_save_session(
 ) -> Result<(), AppError> {
     let session = normalize_session(data).map_err(AppError::Storage)?;
 
-    let id = storage.save_session(&session).await.map_err(AppError::Storage)?;
+    let id = storage
+        .save_session(&session)
+        .await
+        .map_err(AppError::Storage)?;
 
     // Load the saved session back to send the full object to the UI
     let saved_session = storage.load_session(&id).await.ok();
-    let _ = app.emit("wsSessionSaved", json!({ "data": { "session": saved_session } }));
+    let _ = app.emit(
+        "wsSessionSaved",
+        json!({ "data": { "session": saved_session } }),
+    );
 
     // Refresh the sessions list so the UI sidebar updates immediately
     let sessions = storage.list_sessions().await.unwrap_or_default();
-    let _ = app.emit("wsSessionsList", json!({ "data": { "sessions": sessions } }));
+    let _ = app.emit(
+        "wsSessionsList",
+        json!({ "data": { "sessions": sessions } }),
+    );
     Ok(())
 }
 
@@ -354,7 +384,10 @@ pub async fn ws_list_sessions(
     storage: tauri::State<'_, WsSessionStorage>,
 ) -> Result<(), AppError> {
     let sessions = storage.list_sessions().await.map_err(AppError::Storage)?;
-    let _ = app.emit("wsSessionsList", json!({ "data": { "sessions": sessions } }));
+    let _ = app.emit(
+        "wsSessionsList",
+        json!({ "data": { "sessions": sessions } }),
+    );
     Ok(())
 }
 
@@ -370,10 +403,16 @@ pub async fn ws_delete_session(
         return Err(AppError::Other("Session ID is required".to_string()));
     }
 
-    storage.delete_session(&id).await.map_err(AppError::Storage)?;
+    storage
+        .delete_session(&id)
+        .await
+        .map_err(AppError::Storage)?;
 
     // Emit the updated list
     let sessions = storage.list_sessions().await.map_err(AppError::Storage)?;
-    let _ = app.emit("wsSessionsList", json!({ "data": { "sessions": sessions } }));
+    let _ = app.emit(
+        "wsSessionsList",
+        json!({ "data": { "sessions": sessions } }),
+    );
     Ok(())
 }

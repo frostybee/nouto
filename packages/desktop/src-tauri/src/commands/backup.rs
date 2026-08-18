@@ -431,33 +431,27 @@ async fn restore_data(
         restored.push("Environments");
     }
     if let Some(s) = &settings {
-        storage
-            .save_settings(s)
-            .await
-            .map_err(|e| AppError::Storage(e))?;
+        storage.save_settings(s).await.map_err(AppError::Storage)?;
         restored.push("Settings");
     }
     if let Some(t) = &trash {
-        storage
-            .save_trash(t)
-            .await
-            .map_err(|e| AppError::Storage(e))?;
+        storage.save_trash(t).await.map_err(AppError::Storage)?;
         restored.push("Trash");
     }
     if let Some(h) = &history {
-        let as_values: Vec<Value> = h.iter().cloned().collect();
+        let as_values: Vec<Value> = h.to_vec();
         history_svc
             .write_all(&as_values)
             .await
-            .map_err(|e| AppError::Storage(e))?;
+            .map_err(AppError::Storage)?;
         restored.push("History");
     }
     if let Some(r) = &runner_history {
-        let as_values: Vec<Value> = r.iter().cloned().collect();
+        let as_values: Vec<Value> = r.to_vec();
         runner_svc
             .write_all(&as_values)
             .await
-            .map_err(|e| AppError::Storage(e))?;
+            .map_err(AppError::Storage)?;
         restored.push("Runner history");
     }
     if let Some(c) = &cookies {

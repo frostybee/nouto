@@ -74,7 +74,10 @@ export function handleCookieMessage(
   }
 }
 
-export function emitCookieJarsList(notify: NotifyFn, cookieJarService: TauriCookieJarService): void {
+export function emitCookieJarsList(
+  notify: NotifyFn,
+  cookieJarService: TauriCookieJarService,
+): void {
   const jars = cookieJarService.listJars();
   const activeJarId = cookieJarService.getActiveJarId();
   notify({ type: 'cookieJarsList', data: { jars, activeJarId } } as any);

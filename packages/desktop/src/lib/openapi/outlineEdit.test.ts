@@ -61,7 +61,7 @@ function plan(
   format: OpenApiFormat,
   node: OutlineNode,
   actionId: Parameters<typeof planOutlineEditAction>[1],
-  payload?: Record<string, unknown>
+  payload?: Record<string, unknown>,
 ) {
   return planOutlineEditAction(node, actionId, payload, text, format, analyzeOpenApi(text, format));
 }
@@ -142,7 +142,7 @@ describe('addSecurityRequirement', () => {
   it('per-scheme entry appends the requirement and reveals it', () => {
     const node = nodeAt(YAML, 'yaml', '/security');
     const editPlan = expectPlan(
-      plan(YAML, 'yaml', node, 'addSecurityRequirement', { schemes: ['apiKey'] })
+      plan(YAML, 'yaml', node, 'addSecurityRequirement', { schemes: ['apiKey'] }),
     );
     expect(editPlan.reveal).toEqual({ pointer: '/security/0', selectValue: false });
     const result = applyAndReparse(YAML, 'yaml', editPlan);
@@ -152,7 +152,7 @@ describe('addSecurityRequirement', () => {
   it('the no-auth entry appends an empty requirement with no reveal', () => {
     const node = nodeAt(YAML, 'yaml', '/security');
     const editPlan = expectPlan(
-      plan(YAML, 'yaml', node, 'addSecurityRequirement', { schemes: [] })
+      plan(YAML, 'yaml', node, 'addSecurityRequirement', { schemes: [] }),
     );
     expect(editPlan.reveal).toBeUndefined();
     applyAndReparse(YAML, 'yaml', editPlan);
@@ -168,7 +168,7 @@ describe('addSecurityScheme / addComponent', () => {
   it('inserts the chosen preset under a unique placeholder name', () => {
     const node = nodeAt(YAML, 'yaml', '/components/securitySchemes');
     const editPlan = expectPlan(
-      plan(YAML, 'yaml', node, 'addSecurityScheme', { presetId: 'httpBearer' })
+      plan(YAML, 'yaml', node, 'addSecurityScheme', { presetId: 'httpBearer' }),
     );
     expect(editPlan.reveal).toEqual({
       pointer: '/components/securitySchemes/bearerAuth',
@@ -198,7 +198,7 @@ describe('addSecurityScheme / addComponent', () => {
   it('addComponent creates missing parents (no components section yet)', () => {
     const node = nodeAt(JSON_DOC, 'json', '/paths');
     const editPlan = expectPlan(
-      plan(JSON_DOC, 'json', node, 'addComponent', { section: 'responses' })
+      plan(JSON_DOC, 'json', node, 'addComponent', { section: 'responses' }),
     );
     const result = applyAndReparse(JSON_DOC, 'json', editPlan);
     expect(result).toContain('"NewResponse"');
