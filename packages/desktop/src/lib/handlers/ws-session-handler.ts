@@ -4,6 +4,7 @@ import { writeTextFile, readTextFile } from '@tauri-apps/plugin-fs';
 import type { OutgoingMessage } from '@nouto/transport';
 import { normalizeWsSession } from '@nouto/core/services';
 import type { NotifyFn } from './types';
+import { logger } from '../logger';
 
 export interface WsSessionState {
   wsRecording: boolean;
@@ -42,7 +43,7 @@ export async function handleWsSessionMessage(
       state.wsRecordingUrl = data?.url || '';
       state.wsRecordingProtocols = data?.protocols || [];
       notify({ type: 'wsRecordingState', data: { state: 'recording' } } as any);
-      console.log('[TauriMessageBus] WebSocket recording started');
+      logger.info('[TauriMessageBus] WebSocket recording started');
       break;
     }
     case 'wsStopRecording': {
@@ -62,19 +63,19 @@ export async function handleWsSessionMessage(
         version: 1,
       };
       invoke('ws_save_session', { data: session }).catch((error) => {
-        console.error('[TauriMessageBus] Failed to save session:', error);
+        logger.error('[TauriMessageBus] Failed to save session:', error);
       });
       notify({ type: 'wsRecordingState', data: { state: 'idle' } } as any);
       notify({ type: 'wsSessionSaved', data: { session } } as any);
       state.wsRecordedMessages = [];
-      console.log('[TauriMessageBus] WebSocket recording stopped, session saved');
+      logger.info('[TauriMessageBus] WebSocket recording stopped, session saved');
       break;
     }
     case 'wsSaveSession': {
       const sessionData = data?.session;
       if (!sessionData) break;
       invoke('ws_save_session', { data: sessionData }).catch((error) => {
-        console.error('[TauriMessageBus] Failed to save session:', error);
+        logger.error('[TauriMessageBus] Failed to save session:', error);
       });
       break;
     }
@@ -96,7 +97,7 @@ export async function handleWsSessionMessage(
           } as any);
         }
       } catch (error) {
-        console.error('[TauriMessageBus] Session export failed:', error);
+        logger.error('[TauriMessageBus] Session export failed:', error);
         notify({
           type: 'showNotification',
           data: { level: 'error', message: `Failed to export session: ${error}` },
@@ -119,7 +120,7 @@ export async function handleWsSessionMessage(
           } as any);
         }
       } catch (error) {
-        console.error('[TauriMessageBus] Session load failed:', error);
+        logger.error('[TauriMessageBus] Session load failed:', error);
         notify({
           type: 'showNotification',
           data: { level: 'error', message: `Failed to load session: ${error}` },
@@ -156,7 +157,7 @@ export async function handleWsSessionMessage(
               type: msg.type || 'text',
             },
           }).catch((error) => {
-            console.error('[TauriMessageBus] Replay send failed:', error);
+            logger.error('[TauriMessageBus] Replay send failed:', error);
           });
 
           notify({
@@ -188,7 +189,7 @@ export async function handleWsSessionMessage(
       state.wsReplayTimers = [];
       notify({ type: 'wsRecordingState', data: { state: 'idle' } } as any);
       notify({ type: 'wsReplayProgress', data: { index: 0, total: 0, state: 'complete' } } as any);
-      console.log('[TauriMessageBus] WebSocket replay cancelled');
+      logger.info('[TauriMessageBus] WebSocket replay cancelled');
       break;
     }
   }

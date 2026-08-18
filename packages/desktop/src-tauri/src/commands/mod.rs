@@ -3,10 +3,12 @@
 pub mod backup;
 pub mod benchmark;
 pub mod fonts;
+pub mod global_shortcut;
 pub mod graphql_sub;
 pub mod grpc;
 pub mod history;
 pub mod http;
+pub mod lifecycle;
 pub mod mock_server;
 pub mod oauth;
 pub mod openapi;
@@ -65,7 +67,7 @@ pub type ProjectDirState = Arc<Mutex<Option<PathBuf>>>;
 /// Ready command - frontend signals it's ready to receive data
 #[tauri::command]
 pub fn ready() -> Result<(), AppError> {
-    println!("[Nouto] Frontend ready");
+    log::info!("Frontend ready");
     Ok(())
 }
 
@@ -112,20 +114,23 @@ pub async fn load_data(
                 )
                 .await;
                 let _ = app.emit("projectOpened", json!({ "data": { "path": last_path } }));
-                println!("[Nouto] Auto-reopened last project: {}", last_path);
+                log::info!("Auto-reopened last project: {}", last_path);
             }
         }
     }
 
     let project_path = project_dir.lock().await.clone();
 
+    // Files set aside by read_json_or_recover during this load; reported once
+    // to the frontend after initialData so the user knows a backup exists.
+    let mut recovered_files: Vec<PathBuf> = Vec::new();
+
     // Load workspace metadata if a project is open
     let workspace_meta = if let Some(ref dir) = project_path {
-        ProjectStorageService::new(dir.clone())
-            .load_workspace_meta()
-            .await
-            .ok()
-            .flatten()
+        let ws_storage = ProjectStorageService::new(dir.clone());
+        let meta = ws_storage.load_workspace_meta().await.ok().flatten();
+        recovered_files.extend(ws_storage.take_recovered());
+        meta
     } else {
         None
     };
@@ -153,8 +158,8 @@ pub async fn load_data(
         let collections = match project_storage.load_collections().await {
             Ok(c) => c,
             Err(e) => {
-                eprintln!(
-                    "[Nouto] Failed to load project collections (starting fresh): {}",
+                log::warn!(
+                    "Failed to load project collections (starting fresh): {}",
                     e
                 );
                 serde_json::json!([])
@@ -184,6 +189,7 @@ pub async fn load_data(
         let meta = project_storage.meta_path();
         let env_path = project_storage.environments_path_public();
         let coll_path = dir.join(".nouto").join("collections.json");
+        recovered_files.extend(project_storage.take_recovered());
         (
             collections,
             ws_envs,
@@ -197,7 +203,7 @@ pub async fn load_data(
         let collections = match storage.load_collections().await {
             Ok(c) => c,
             Err(e) => {
-                eprintln!("[Nouto] Failed to load collections (starting fresh): {}", e);
+                log::warn!("Failed to load collections (starting fresh): {}", e);
                 serde_json::json!([])
             }
         };
@@ -230,6 +236,7 @@ pub async fn load_data(
     );
     let settings = settings_result.map_err(AppError::Storage)?;
     let trash = trash_result.unwrap_or(json!([]));
+    recovered_files.extend(default_storage.take_recovered());
 
     // Clone data for the background secret resolution before emitting
     let collections_raw_bg = collections_raw.clone();
@@ -256,6 +263,14 @@ pub async fn load_data(
 
     app.emit("initialData", json!({ "data": initial_data }))
         .map_err(|e| AppError::Other(format!("Failed to emit initialData: {}", e)))?;
+
+    if !recovered_files.is_empty() {
+        let files: Vec<String> = recovered_files
+            .iter()
+            .map(|p| p.to_string_lossy().to_string())
+            .collect();
+        let _ = app.emit("storageRecovered", json!({ "files": files }));
+    }
 
     // Resolve secrets in background (keychain access can be slow)
     let app_clone = app.clone();
@@ -328,16 +343,16 @@ pub async fn save_collections(
             if !secrets.is_empty() {
                 let (stored, errors) = secret_extraction::store_secrets(&secrets);
                 if !errors.is_empty() {
-                    eprintln!(
-                        "[Nouto] Warning: {} secret(s) failed to store in keychain",
+                    log::warn!(
+                        "{} secret(s) failed to store in keychain",
                         errors.len()
                     );
                     for err in &errors {
-                        eprintln!("[Nouto]   {}", err);
+                        log::error!("  {}", err);
                     }
                 }
                 if stored > 0 {
-                    println!("[Nouto] Stored {} credential(s) in OS keychain", stored);
+                    log::info!("Stored {} credential(s) in OS keychain", stored);
                 }
             }
             // Re-serialize with refs (credential values cleared)
@@ -362,14 +377,14 @@ pub async fn save_collections(
             .save_collections(&sanitized_data)
             .await
             .map_err(AppError::Storage)?;
-        println!("[Nouto] Collections saved to project: {}", dir.display());
+        log::info!("Collections saved to project: {}", dir.display());
     } else {
         let storage = app.state::<StorageService>();
         storage
             .save_collections(&sanitized_data)
             .await
             .map_err(AppError::Storage)?;
-        println!("[Nouto] Collections saved to disk");
+        log::info!("Collections saved to disk");
     }
 
     app.emit("collectionsSaved", json!({ "success": true }))
@@ -398,13 +413,13 @@ pub async fn save_environments(
                 if !secrets.is_empty() {
                     let (stored, errors) = secret_extraction::store_secrets(&secrets);
                     if !errors.is_empty() {
-                        eprintln!(
-                            "[Nouto] Warning: {} env secret(s) failed to store in keychain",
+                        log::warn!(
+                            "{} env secret(s) failed to store in keychain",
                             errors.len()
                         );
                     }
                     if stored > 0 {
-                        println!("[Nouto] Stored {} env secret(s) in OS keychain", stored);
+                        log::info!("Stored {} env secret(s) in OS keychain", stored);
                     }
                 }
                 // Rebuild the wrapper object with sanitized environments
@@ -462,14 +477,14 @@ pub async fn save_environments(
             .save_environments(&ws_data)
             .await
             .map_err(AppError::Storage)?;
-        println!("[Nouto] Environments saved to project: {}", dir.display());
+        log::info!("Environments saved to project: {}", dir.display());
     } else {
         let storage = app.state::<StorageService>();
         storage
             .save_environments(&save_data)
             .await
             .map_err(AppError::Storage)?;
-        println!("[Nouto] Environments saved to disk");
+        log::info!("Environments saved to disk");
     }
 
     // Emit the original data (with actual values) back to the UI
@@ -502,7 +517,7 @@ pub async fn update_settings(
         .save_settings(&data)
         .await
         .map_err(AppError::Storage)?;
-    println!("[Nouto] Settings saved to disk");
+    log::info!("Settings saved to disk");
 
     app.emit("loadSettings", json!({ "data": data }))
         .map_err(|e| AppError::Other(format!("Failed to emit loadSettings: {}", e)))?;
@@ -542,7 +557,6 @@ pub async fn create_settings_window(
         .min_inner_size(600.0, 400.0)
         .resizable(true)
         .visible(false)
-        .theme(Some(tauri::Theme::Dark))
         .build()
         .map_err(|e| AppError::Other(format!("Failed to create settings window: {}", e)))?;
 

@@ -12,6 +12,7 @@
     type ShortcutBinding,
   } from '../../lib/shortcuts';
   import { postMessage } from '../../lib/vscode';
+  import type { DesktopHost } from '../../lib/desktop-host';
   // Import the catalog from its specific module (not the `@nouto/core/services`
   // barrel, which pulls Node-only HTTP services into the browser bundle).
   import { LINT_RULES_CATALOG, type LintRuleCatalogEntry } from '@nouto/core/services/openapi/lint/registry';
@@ -30,14 +31,16 @@
     standalone?: boolean;
     fullPage?: boolean;
     initialSection?: string | null;
+    /** Desktop-only actions (autostart, global hotkey, notifications). Only the Tauri app passes this. */
+    desktopHost?: DesktopHost;
   }
-  let { onclose, standalone = false, fullPage = false, initialSection = null }: Props = $props();
+  let { onclose, standalone = false, fullPage = false, initialSection = null, desktopHost }: Props = $props();
 
-  type SettingsSection = 'appearance' | 'interface' | 'general' | 'network' | 'storage' | 'openapi' | 'shortcuts' | 'about';
+  type SettingsSection = 'appearance' | 'interface' | 'desktop' | 'general' | 'network' | 'storage' | 'openapi' | 'shortcuts' | 'about';
 
   function normalizeSection(section: unknown): SettingsSection {
     const validSections: SettingsSection[] = standalone
-      ? ['appearance', 'interface', 'general', 'network', 'storage', 'shortcuts', 'about']
+      ? ['appearance', 'interface', 'desktop', 'general', 'network', 'storage', 'shortcuts', 'about']
       : ['general', 'network', 'storage', 'openapi', 'shortcuts', 'about'];
     return typeof section === 'string' && validSections.includes(section as SettingsSection)
       ? section as SettingsSection
@@ -150,6 +153,76 @@
     recordingId = null;
   }
 
+  // ── Desktop section (Tauri app only) ──────────────────────────────
+  let autostartEnabled = $state(false);
+  let autostartLoaded = $state(false);
+  let autostartError = $state<string | null>(null);
+  let recordingGlobal = $state(false);
+  let globalShortcutError = $state<string | null>(null);
+  let notificationStatus = $state<string | null>(null);
+
+  $effect(() => {
+    if (activeSection !== 'desktop' || !desktopHost || autostartLoaded) return;
+    void desktopHost.readAutostart().then((enabled) => {
+      autostartEnabled = enabled;
+      autostartLoaded = true;
+    });
+  });
+
+  async function handleToggleAutostart() {
+    if (!desktopHost) return;
+    autostartError = null;
+    const next = !autostartEnabled;
+    const result = await desktopHost.setAutostart(next);
+    if (!result.ok) autostartError = result.message;
+    // Re-read: the OS is the source of truth.
+    autostartEnabled = await desktopHost.readAutostart();
+  }
+
+  async function handleTestNotification() {
+    if (!desktopHost) return;
+    const result = await desktopHost.sendTestNotification();
+    notificationStatus = result.ok ? 'Sent.' : result.message;
+    setTimeout(() => { notificationStatus = null; }, 4000);
+  }
+
+  async function handleGlobalRecordKeydown(event: KeyboardEvent) {
+    if (!recordingGlobal || !desktopHost) return;
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (event.key === 'Escape') {
+      recordingGlobal = false;
+      return;
+    }
+    const binding = eventToBinding(event);
+    if (!binding) return; // modifier-only press, keep recording
+    if (!binding.ctrlKey && !binding.altKey && !binding.metaKey) {
+      globalShortcutError = 'A system-wide shortcut needs Ctrl, Alt or Meta.';
+      return;
+    }
+    recordingGlobal = false;
+    globalShortcutError = null;
+    const accelerator = bindingToDisplayString(binding);
+    const result = await desktopHost.registerGlobalShortcut(accelerator);
+    if (result.ok) {
+      applySettings({ globalShortcut: accelerator });
+    } else {
+      globalShortcutError = result.message;
+    }
+  }
+
+  async function handleClearGlobalShortcut() {
+    if (!desktopHost) return;
+    globalShortcutError = null;
+    const result = await desktopHost.unregisterGlobalShortcut();
+    if (result.ok) {
+      applySettings({ globalShortcut: null });
+    } else {
+      globalShortcutError = result.message;
+    }
+  }
+
   function applySettings(patch: Record<string, any>) {
     Object.assign(settings, patch);
     postMessage({ type: 'updateSettings', data: $state.snapshot(settings) });
@@ -252,6 +325,7 @@
   const navItems: { id: SettingsSection; label: string; icon: string; standaloneOnly?: boolean; vscodeOnly?: boolean }[] = [
     { id: 'appearance', label: 'Appearance', icon: 'codicon-symbol-color', standaloneOnly: true },
     { id: 'interface', label: 'Interface', icon: 'codicon-layout', standaloneOnly: true },
+    { id: 'desktop', label: 'Desktop', icon: 'codicon-device-desktop', standaloneOnly: true },
     { id: 'general', label: 'General', icon: 'codicon-gear' },
     { id: 'network', label: 'Network', icon: 'codicon-globe' },
     { id: 'storage', label: 'Storage', icon: 'codicon-database' },
@@ -462,6 +536,127 @@
             <option value="never">Never</option>
           </select>
         </label>
+
+      {:else if activeSection === 'desktop'}
+        <h3 class="page-title">Desktop</h3>
+
+        <div class="setting-row">
+          <span class="setting-label">
+            Close to tray
+            <span class="setting-description">Closing the window keeps Nouto running in the system tray. Use the tray menu to quit.</span>
+          </span>
+          <label class="toggle-control">
+            <input
+              type="checkbox"
+              checked={currentSettings.closeToTray}
+              onchange={() => applySettings({ closeToTray: !currentSettings.closeToTray })}
+            />
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <div class="setting-row">
+          <span class="setting-label">
+            System notifications
+            <span class="setting-description">Show an OS notification when a collection run, benchmark, or update check finishes while Nouto is in the background.</span>
+          </span>
+          <label class="toggle-control">
+            <input
+              type="checkbox"
+              checked={currentSettings.osNotifications}
+              onchange={() => applySettings({ osNotifications: !currentSettings.osNotifications })}
+            />
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+        {#if desktopHost}
+          <div class="setting-row">
+            <span class="setting-label">
+              Test notification
+              <span class="setting-description">
+                {#if notificationStatus}{notificationStatus}{:else}Send a sample notification to check it shows up.{/if}
+              </span>
+            </span>
+            <button class="link-btn" onclick={handleTestNotification}>Send test notification</button>
+          </div>
+        {/if}
+
+        <div class="appearance-divider"></div>
+
+        {#if desktopHost}
+          <div class="setting-row">
+            <span class="setting-label">
+              Launch at login
+              <span class="setting-description">
+                {#if autostartError}
+                  <span class="setting-error">{autostartError}</span>
+                {:else}
+                  Start Nouto when you sign in. Reflects the current system setting.
+                {/if}
+              </span>
+            </span>
+            <label class="toggle-control">
+              <input
+                type="checkbox"
+                checked={autostartEnabled}
+                disabled={!autostartLoaded}
+                onchange={handleToggleAutostart}
+              />
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+
+          <div class="setting-row">
+            <span class="setting-label">
+              Bring Nouto to front
+              <span class="setting-description">
+                {#if globalShortcutError}
+                  <span class="setting-error">{globalShortcutError}</span>
+                {:else}
+                  System-wide shortcut that shows and focuses Nouto from any app.
+                {/if}
+              </span>
+            </span>
+            <span class="global-shortcut-controls">
+              {#if recordingGlobal}
+                <!-- svelte-ignore a11y_autofocus -->
+                <button
+                  class="shortcut-badge recording"
+                  onkeydown={handleGlobalRecordKeydown}
+                  onblur={() => { recordingGlobal = false; }}
+                  autofocus
+                >
+                  Press keys...
+                </button>
+              {:else}
+                <Tooltip text="Click to change shortcut" position="top">
+                  <button
+                    class="shortcut-badge"
+                    class:overridden={!!currentSettings.globalShortcut}
+                    onclick={() => { globalShortcutError = null; recordingGlobal = true; }}
+                    aria-label="Click to set the system-wide shortcut"
+                  >
+                    {#if currentSettings.globalShortcut}
+                      {#each parseDisplayParts(currentSettings.globalShortcut) as part, i}
+                        {#if i > 0}<span class="key-sep">+</span>{/if}
+                        <kbd>{part}</kbd>
+                      {/each}
+                    {:else}
+                      Not set
+                    {/if}
+                  </button>
+                </Tooltip>
+                {#if currentSettings.globalShortcut}
+                  <Tooltip text="Remove shortcut" position="top">
+                    <button class="reset-btn" onclick={handleClearGlobalShortcut} aria-label="Remove shortcut">
+                      <i class="codicon codicon-discard"></i>
+                    </button>
+                  </Tooltip>
+                {/if}
+              {/if}
+            </span>
+          </div>
+        {/if}
 
       {:else if activeSection === 'general'}
         <h3 class="page-title">General</h3>
@@ -1314,6 +1509,16 @@
   }
 
   /* ---- Link button ---- */
+
+  .setting-error {
+    color: var(--vscode-errorForeground);
+  }
+
+  .global-shortcut-controls {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
 
   .link-btn {
     padding: 0.308rem 0.923rem;

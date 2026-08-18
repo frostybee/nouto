@@ -138,7 +138,7 @@ pub fn spawn_request_execution(
                                         config.bearer_token = Some(new_access_token);
                                     }
                                     Err(e) => {
-                                        eprintln!("[Nouto] OAuth2 token refresh failed: {}", e);
+                                        log::warn!("OAuth2 token refresh failed: {}", e);
                                     }
                                 }
                             }
@@ -331,7 +331,7 @@ pub fn spawn_request_execution(
                     }
                 }
                 Err(e) => {
-                    eprintln!("[Nouto] AWS SigV4 signing failed: {}", e);
+                    log::warn!("AWS SigV4 signing failed: {}", e);
                     let _ = app.emit(
                         "requestResponse",
                         serde_json::json!({ "data": create_error_response(format!("AWS signing failed: {}", e)) }),
@@ -425,18 +425,18 @@ pub fn spawn_request_execution(
                                             timestamp: chrono::Utc::now().timestamp_millis(),
                                         });
                                     }
-                                    println!("[Nouto] Digest auth retry successful, status: {}", retry_response.status);
+                                    log::debug!("Digest auth retry successful, status: {}", retry_response.status);
                                     emit_response_context(&app, &retry_response);
                                     script_response_json = Some(build_script_response(&retry_response));
                                     record_history(&app_for_history, &retry_response);
                                     if let Err(e) = app.emit("requestResponse", build_response_json(&retry_response)) {
-                                        eprintln!("[Nouto] Failed to emit response: {}", e);
+                                        log::error!("Failed to emit response: {}", e);
                                     }
                                 }
                                 Err(e) => {
-                                    eprintln!("[Nouto] Digest auth retry failed: {}", e);
+                                    log::warn!("Digest auth retry failed: {}", e);
                                     if let Err(err) = app.emit("requestResponse", serde_json::json!({ "data": create_error_response(e) })) {
-                                        eprintln!("[Nouto] Failed to emit error response: {}", err);
+                                        log::error!("Failed to emit error response: {}", err);
                                     }
                                 }
                             }
@@ -445,7 +445,7 @@ pub fn spawn_request_execution(
                             script_response_json = Some(build_script_response(&response));
                             record_history(&app_for_history, &response);
                             if let Err(e) = app.emit("requestResponse", build_response_json(&response)) {
-                                eprintln!("[Nouto] Failed to emit response: {}", e);
+                                log::error!("Failed to emit response: {}", e);
                             }
                         }
                     } else {
@@ -453,7 +453,7 @@ pub fn spawn_request_execution(
                         script_response_json = Some(build_script_response(&response));
                         record_history(&app_for_history, &response);
                         if let Err(e) = app.emit("requestResponse", build_response_json(&response)) {
-                            eprintln!("[Nouto] Failed to emit response: {}", e);
+                            log::error!("Failed to emit response: {}", e);
                         }
                     }
                 } else if response.status == 401 && ntlm_auth.is_some() {
@@ -490,29 +490,29 @@ pub fn spawn_request_execution(
                                                 timestamp: chrono::Utc::now().timestamp_millis(),
                                             });
                                         }
-                                        println!("[Nouto] NTLM auth successful, status: {}", retry_response.status);
+                                        log::debug!("NTLM auth successful, status: {}", retry_response.status);
                                         emit_response_context(&app, &retry_response);
                                         script_response_json = Some(build_script_response(&retry_response));
                                         record_history(&app_for_history, &retry_response);
                                         if let Err(e) = app.emit("requestResponse", build_response_json(&retry_response)) {
-                                            eprintln!("[Nouto] Failed to emit response: {}", e);
+                                            log::error!("Failed to emit response: {}", e);
                                         }
                                     }
                                     Err(e) => {
-                                        eprintln!("[Nouto] NTLM auth retry failed: {}", e);
+                                        log::warn!("NTLM auth retry failed: {}", e);
                                         if let Err(err) = app.emit("requestResponse", serde_json::json!({ "data": create_error_response(e) })) {
-                                            eprintln!("[Nouto] Failed to emit error response: {}", err);
+                                            log::error!("Failed to emit error response: {}", err);
                                         }
                                     }
                                 }
                             }
                             Err(e) => {
-                                eprintln!("[Nouto] Failed to parse NTLM Type 2 challenge: {}", e);
+                                log::warn!("Failed to parse NTLM Type 2 challenge: {}", e);
                                 emit_response_context(&app, &response);
                                 script_response_json = Some(build_script_response(&response));
                                 record_history(&app_for_history, &response);
                                 if let Err(err) = app.emit("requestResponse", build_response_json(&response)) {
-                                    eprintln!("[Nouto] Failed to emit response: {}", err);
+                                    log::error!("Failed to emit response: {}", err);
                                 }
                             }
                         }
@@ -521,23 +521,23 @@ pub fn spawn_request_execution(
                         script_response_json = Some(build_script_response(&response));
                         record_history(&app_for_history, &response);
                         if let Err(e) = app.emit("requestResponse", build_response_json(&response)) {
-                            eprintln!("[Nouto] Failed to emit response: {}", e);
+                            log::error!("Failed to emit response: {}", e);
                         }
                     }
                 } else {
-                    println!("[Nouto] Request successful, status: {}", response.status);
+                    log::debug!("Request successful, status: {}", response.status);
                     emit_response_context(&app, &response);
                     script_response_json = Some(build_script_response(&response));
                     record_history(&app_for_history, &response);
                     if let Err(e) = app.emit("requestResponse", build_response_json(&response)) {
-                        eprintln!("[Nouto] Failed to emit response: {}", e);
+                        log::error!("Failed to emit response: {}", e);
                     }
                 }
             }
             Err(e) => {
-                eprintln!("[Nouto] Request failed: {}", e);
+                log::warn!("Request failed: {}", e);
                 if let Err(err) = app.emit("requestResponse", serde_json::json!({ "data": create_error_response(e) })) {
-                    eprintln!("[Nouto] Failed to emit error response: {}", err);
+                    log::error!("Failed to emit error response: {}", err);
                 }
             }
         }

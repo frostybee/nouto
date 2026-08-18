@@ -4,6 +4,7 @@
   "identifier": "com.nouto.app",
   "version": "0.1.0",
   "build": {
+    "removeUnusedCommands": true,
     "beforeDevCommand": "pnpm -F @nouto/desktop run dev",
     "devUrl": "http://localhost:5174",
     "beforeBuildCommand": "pnpm -F @nouto/desktop exec vite build",
@@ -21,8 +22,7 @@
         "resizable": true,
         "fullscreen": false,
         "visible": false,
-        "decorations": false,
-        "theme": "Dark"
+        "decorations": false
       }
     ],
     "security": {

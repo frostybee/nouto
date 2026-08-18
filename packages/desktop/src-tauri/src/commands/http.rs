@@ -115,7 +115,7 @@ pub async fn send_request(
                 })
             }
             _ => {
-                eprintln!("[Nouto] AWS auth missing required fields (access_key, secret_key, region, service)");
+                log::warn!("AWS auth missing required fields (access_key, secret_key, region, service)");
                 None
             }
         }

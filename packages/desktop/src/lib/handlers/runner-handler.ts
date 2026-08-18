@@ -5,6 +5,7 @@ import type { OutgoingMessage } from '@nouto/transport';
 import { RunnerExportService } from '@nouto/core/services';
 import type { RunnerExportFormat } from '@nouto/core/services';
 import type { NotifyFn } from './types';
+import { logger } from '../logger';
 
 export async function handleRunnerMessage(message: OutgoingMessage, notify: NotifyFn): Promise<void> {
   const data = 'data' in message ? (message as any).data : undefined;
@@ -21,7 +22,7 @@ export async function handleRunnerMessage(message: OutgoingMessage, notify: Noti
           environmentId: data?.environmentId,
         },
       }).catch((error) => {
-        console.error('[TauriMessageBus] retryFailedRequests failed:', error);
+        logger.error('[TauriMessageBus] retryFailedRequests failed:', error);
         notify({ type: 'showNotification', data: { level: 'error', message: `Retry failed: ${error}` } } as any);
       });
       break;
@@ -44,7 +45,7 @@ export async function handleRunnerMessage(message: OutgoingMessage, notify: Noti
           notify({ type: 'showNotification', data: { level: 'info', message: 'Results exported successfully.' } } as any);
         }
       } catch (error) {
-        console.error('[TauriMessageBus] Export failed:', error);
+        logger.error('[TauriMessageBus] Export failed:', error);
         notify({ type: 'showNotification', data: { level: 'error', message: `Failed to export results: ${error}` } } as any);
       }
       break;

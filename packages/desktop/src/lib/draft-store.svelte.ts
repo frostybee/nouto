@@ -1,6 +1,7 @@
 import { activeTab as activeTabFn, activeTabId as activeTabIdFn, createRequestTab, openTab } from '@nouto/ui/stores/tabs.svelte';
 import { request as requestStore } from '@nouto/ui/stores';
 import { ui } from '@nouto/ui/stores/ui.svelte';
+import { logger } from './logger';
 
 const DRAFTS_STORAGE_KEY = 'nouto_drafts';
 let draftSaveTimer: ReturnType<typeof setTimeout> | null = null;
@@ -11,21 +12,34 @@ let _pendingDrafts: Record<string, any> = $state({});
 export function showDraftRecovery() { return _showDraftRecovery; }
 export function pendingDrafts() { return _pendingDrafts; }
 
+function saveDraftNow() {
+  const atId = activeTabIdFn();
+  if (!atId) return;
+  const tab = activeTabFn();
+  if (!tab || tab.dirty === false) return;
+  try {
+    const drafts = JSON.parse(localStorage.getItem(DRAFTS_STORAGE_KEY) || '{}');
+    drafts[atId] = { ...$state.snapshot(requestStore), connectionMode: ui.connectionMode };
+    localStorage.setItem(DRAFTS_STORAGE_KEY, JSON.stringify(drafts));
+  } catch (e) {
+    logger.error('Failed to save draft:', e);
+  }
+}
+
 export function saveDraftDebounced() {
   if (draftSaveTimer) clearTimeout(draftSaveTimer);
   draftSaveTimer = setTimeout(() => {
-    const atId = activeTabIdFn();
-    if (!atId) return;
-    const tab = activeTabFn();
-    if (!tab || tab.dirty === false) return;
-    try {
-      const drafts = JSON.parse(localStorage.getItem(DRAFTS_STORAGE_KEY) || '{}');
-      drafts[atId] = { ...$state.snapshot(requestStore), connectionMode: ui.connectionMode };
-      localStorage.setItem(DRAFTS_STORAGE_KEY, JSON.stringify(drafts));
-    } catch (e) {
-      console.error('[Nouto] Failed to save draft:', e);
-    }
+    draftSaveTimer = null;
+    saveDraftNow();
   }, 2000);
+}
+
+/** Write a pending draft immediately. Called from the close handshake. */
+export function flushDraftSave() {
+  if (!draftSaveTimer) return;
+  clearTimeout(draftSaveTimer);
+  draftSaveTimer = null;
+  saveDraftNow();
 }
 
 export function clearDraftForTab(tabId: string) {
@@ -34,7 +48,7 @@ export function clearDraftForTab(tabId: string) {
     delete drafts[tabId];
     localStorage.setItem(DRAFTS_STORAGE_KEY, JSON.stringify(drafts));
   } catch (e) {
-    console.error('[Nouto] Failed to clear draft:', e);
+    logger.error('Failed to clear draft:', e);
   }
 }
 

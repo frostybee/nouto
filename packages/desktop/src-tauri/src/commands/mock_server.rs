@@ -99,7 +99,7 @@ pub async fn start_mock_server(
             "data": { "status": "running" }
         }));
 
-        println!("[Nouto Mock] Server listening on {}", addr);
+        log::info!("Mock server listening on {}", addr);
 
         let mut shutdown_rx = shutdown_rx;
 
@@ -125,18 +125,18 @@ pub async fn start_mock_server(
                                     .serve_connection(io, service)
                                     .await
                                 {
-                                    eprintln!("[Nouto Mock] Connection error: {}", err);
+                                    log::error!("Mock server connection error: {}", err);
                                 }
                             });
                         }
                         Err(e) => {
-                            eprintln!("[Nouto Mock] Accept error: {}", e);
+                            log::error!("Mock server accept error: {}", e);
                         }
                     }
                 }
                 _ = shutdown_rx.changed() => {
                     if *shutdown_rx.borrow() {
-                        println!("[Nouto Mock] Server shutting down");
+                        log::info!("Mock server shutting down");
                         break;
                     }
                 }

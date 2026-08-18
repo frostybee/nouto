@@ -4,6 +4,8 @@ mod commands;
 pub mod error;
 mod models;
 mod services;
+mod state;
+mod tray;
 
 pub use commands::*;
 use services::grpc_client::init_grpc_pool_cache;
@@ -11,7 +13,9 @@ use services::storage::StorageService;
 use services::history_storage::HistoryStorage;
 use services::ws_session_storage::WsSessionStorage;
 use services::runner_history::RunnerHistory;
+use std::sync::atomic::Ordering;
 use tauri::{Emitter, Listener, Manager};
+use state::AppState;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -47,9 +51,9 @@ pub fn run() {
         // CRITICAL: Single instance plugin MUST be first
         .plugin(
             tauri_plugin_single_instance::init(|app, args, cwd| {
-                println!("[Nouto] Second instance detected");
-                println!("[Nouto] Args: {:?}", args);
-                println!("[Nouto] CWD: {}", cwd);
+                log::info!("Second instance detected");
+                log::debug!("Second instance args: {:?}", args);
+                log::debug!("Second instance cwd: {}", cwd);
 
                 // Restore and focus the existing window
                 #[cfg(desktop)]
@@ -62,6 +66,58 @@ pub fn run() {
                 }
             })
         )
+        // Logging goes second so every later plugin's setup is captured.
+        .plugin({
+            #[allow(unused_mut)]
+            let mut targets = vec![
+                tauri_plugin_log::Target::new(tauri_plugin_log::TargetKind::Stdout),
+                tauri_plugin_log::Target::new(tauri_plugin_log::TargetKind::LogDir { file_name: None }),
+            ];
+            // Excluded on Linux where WebKitGTK's webview does not exist during
+            // setup(), and app.emit() deadlocks on the IPC socket.
+            #[cfg(not(target_os = "linux"))]
+            targets.push(tauri_plugin_log::Target::new(tauri_plugin_log::TargetKind::Webview));
+            // Third-party crates (rustls, keyring, tao) stay at Info; only the
+            // app crate gets Debug in dev builds.
+            tauri_plugin_log::Builder::new()
+                .level(log::LevelFilter::Info)
+                .level_for(
+                    "nouto_lib",
+                    if cfg!(debug_assertions) {
+                        log::LevelFilter::Debug
+                    } else {
+                        log::LevelFilter::Info
+                    },
+                )
+                .targets(targets)
+                .build()
+        })
+        // Window geometry (size, position, maximized) persists across launches.
+        // The Settings window is created fresh each time and is left out.
+        .plugin(
+            tauri_plugin_window_state::Builder::new()
+                .with_state_flags(
+                    tauri_plugin_window_state::StateFlags::SIZE
+                        | tauri_plugin_window_state::StateFlags::POSITION
+                        | tauri_plugin_window_state::StateFlags::MAXIMIZED,
+                )
+                .with_denylist(&["settings"])
+                .build(),
+        )
+        // Global hotkey: one handler; registration is driven by the frontend
+        // from the saved setting (commands/global_shortcut.rs).
+        .plugin(
+            tauri_plugin_global_shortcut::Builder::new()
+                .with_handler(commands::global_shortcut::handle_shortcut_event)
+                .build(),
+        )
+        // Launch at login. The OS registration is the source of truth; the
+        // Settings page reads isEnabled() live rather than mirroring a flag.
+        .plugin(tauri_plugin_autostart::init(
+            tauri_plugin_autostart::MacosLauncher::LaunchAgent,
+            None,
+        ))
+        .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_deep_link::init())
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_opener::init())
@@ -70,17 +126,37 @@ pub fn run() {
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_os::init())
-        // Auxiliary windows (Settings) are independent top-level windows, so closing
-        // the main window would otherwise leave them — and the process — alive.
-        // Destroyed (not CloseRequested) so a cancelled unsaved-changes prompt in
-        // App.svelte leaves every window untouched.
+        .manage(AppState::default())
         .on_window_event(|window, event| {
-            if matches!(event, tauri::WindowEvent::Destroyed) && window.label() == "main" {
-                for (label, w) in window.app_handle().webview_windows() {
-                    if label != "main" {
-                        let _ = w.destroy();
+            if window.label() != "main" {
+                return;
+            }
+            match event {
+                // Two-phase close: Rust prevents the close and asks the frontend
+                // to run its unsaved-changes prompt and flush debounced saves.
+                // The frontend then hides (macOS) or calls `quit_app`, which sets
+                // `force_close` so teardown is not intercepted again.
+                tauri::WindowEvent::CloseRequested { api, .. } => {
+                    let state = window.state::<AppState>();
+                    if !state.force_close.load(Ordering::SeqCst) {
+                        api.prevent_close();
+                        let _ = window.emit(
+                            "app:close-requested",
+                            commands::lifecycle::CloseRequest::for_current_platform(),
+                        );
                     }
                 }
+                // Auxiliary windows (Settings) are independent top-level windows, so
+                // closing the main window would otherwise leave them and the process
+                // alive.
+                tauri::WindowEvent::Destroyed => {
+                    for (label, w) in window.app_handle().webview_windows() {
+                        if label != "main" {
+                            let _ = w.destroy();
+                        }
+                    }
+                }
+                _ => {}
             }
         })
         .setup(|app| {
@@ -103,11 +179,16 @@ pub fn run() {
                 }
             }
 
+            // No tray is a cosmetic loss, not a reason to abort startup.
+            if let Err(e) = tray::init_tray(app.handle()) {
+                log::warn!("Tray icon unavailable: {e}");
+            }
+
             // Listen for deep-link URLs (nouto:// protocol)
             let app_handle = app.handle().clone();
             app.listen("deep-link://new-url", move |event| {
                 let payload = event.payload();
-                println!("[Nouto] Deep link received: {}", payload);
+                log::info!("Deep link received: {}", payload);
                 // Forward the deep-link URL to the frontend
                 let _ = app_handle.emit("deepLinkReceived", payload);
             });
@@ -132,6 +213,9 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             commands::ready,
             commands::load_data,
+            commands::lifecycle::quit_app,
+            commands::global_shortcut::register_global_shortcut,
+            commands::global_shortcut::unregister_global_shortcut,
             commands::save_collections,
             commands::save_environments,
             commands::save_trash,
@@ -218,6 +302,24 @@ pub fn run() {
             commands::openapi::read_openapi_ref_file,
             commands::openapi::write_openapi_ref_file,
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application")
+        .run(|app_handle, event| match event {
+            // macOS keeps the process alive after the main window is hidden, so a
+            // dock-icon click has to bring it back itself.
+            #[cfg(target_os = "macos")]
+            tauri::RunEvent::Reopen { has_visible_windows, .. } => {
+                if !has_visible_windows {
+                    if let Some(window) = app_handle.get_webview_window("main") {
+                        let _ = window.unminimize();
+                        let _ = window.show();
+                        let _ = window.set_focus();
+                    }
+                }
+            }
+            tauri::RunEvent::Exit => {
+                commands::global_shortcut::unregister_all(app_handle);
+            }
+            _ => {}
+        });
 }

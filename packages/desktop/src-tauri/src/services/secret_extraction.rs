@@ -88,11 +88,11 @@ fn resolve_optional_ref(field: &mut Option<String>, ref_key: &Option<String>) {
                 Ok(value) => { *field = Some(value); }
                 Err(keyring::Error::NoEntry) => {}
                 Err(e) => {
-                    eprintln!("[Nouto] Warning: failed to resolve secret '{}': {}", key, e);
+                    log::warn!("Failed to resolve secret '{}': {}", key, e);
                 }
             },
             Err(e) => {
-                eprintln!("[Nouto] Warning: failed to create keyring entry for '{}': {}", key, e);
+                log::warn!("Failed to create keyring entry for '{}': {}", key, e);
             }
         }
     }
@@ -200,11 +200,11 @@ fn resolve_oauth_token(token_data: &mut OAuthToken) {
                 Ok(value) => { token_data.access_token = value; }
                 Err(keyring::Error::NoEntry) => {}
                 Err(e) => {
-                    eprintln!("[Nouto] Warning: failed to resolve secret '{}': {}", ref_key, e);
+                    log::warn!("Failed to resolve secret '{}': {}", ref_key, e);
                 }
             },
             Err(e) => {
-                eprintln!("[Nouto] Warning: failed to create keyring entry for '{}': {}", ref_key, e);
+                log::warn!("Failed to create keyring entry for '{}': {}", ref_key, e);
             }
         }
     }
@@ -334,11 +334,11 @@ fn resolve_auth(auth: &mut AuthState) {
                         // Secret was deleted from keychain; leave value empty
                     }
                     Err(e) => {
-                        eprintln!("[Nouto] Warning: failed to resolve secret '{}': {}", ref_key, e);
+                        log::warn!("Failed to resolve secret '{}': {}", ref_key, e);
                     }
                 },
                 Err(e) => {
-                    eprintln!("[Nouto] Warning: failed to create keyring entry for '{}': {}", ref_key, e);
+                    log::warn!("Failed to create keyring entry for '{}': {}", ref_key, e);
                 }
             }
         }
@@ -404,11 +404,11 @@ pub fn resolve_env_secrets(environments: &mut Vec<Environment>) {
                             // Secret was deleted from keychain; leave value empty
                         }
                         Err(e) => {
-                            eprintln!("[Nouto] Warning: failed to resolve env secret '{}': {}", ref_key, e);
+                            log::warn!("Failed to resolve env secret '{}': {}", ref_key, e);
                         }
                     },
                     Err(e) => {
-                        eprintln!("[Nouto] Warning: failed to create keyring entry for '{}': {}", ref_key, e);
+                        log::warn!("Failed to create keyring entry for '{}': {}", ref_key, e);
                     }
                 }
             }
@@ -480,7 +480,7 @@ pub async fn migrate_plaintext_secrets(
                 // Create backup
                 let backup_path = collections_path.with_extension("backup.json");
                 if let Err(e) = tokio::fs::write(&backup_path, &content).await {
-                    eprintln!("[Nouto] Warning: failed to create collections backup: {}", e);
+                    log::warn!("Failed to create collections backup: {}", e);
                 }
 
                 match serde_json::from_str::<Vec<Collection>>(&content) {
@@ -506,13 +506,13 @@ pub async fn migrate_plaintext_secrets(
                         }
                     }
                     Err(e) => {
-                        eprintln!("[Nouto] Warning: failed to parse collections for migration: {}", e);
+                        log::warn!("Failed to parse collections for migration: {}", e);
                         errors.push(format!("Failed to parse collections: {}", e));
                     }
                 }
             }
             Err(e) => {
-                eprintln!("[Nouto] Warning: failed to read collections for migration: {}", e);
+                log::warn!("Failed to read collections for migration: {}", e);
             }
         }
     }
@@ -524,7 +524,7 @@ pub async fn migrate_plaintext_secrets(
                 // Create backup
                 let backup_path = environments_path.with_extension("backup.json");
                 if let Err(e) = tokio::fs::write(&backup_path, &content).await {
-                    eprintln!("[Nouto] Warning: failed to create environments backup: {}", e);
+                    log::warn!("Failed to create environments backup: {}", e);
                 }
 
                 // Environments file wraps in EnvironmentsData
@@ -558,13 +558,13 @@ pub async fn migrate_plaintext_secrets(
                         }
                     }
                     Err(e) => {
-                        eprintln!("[Nouto] Warning: failed to parse environments for migration: {}", e);
+                        log::warn!("Failed to parse environments for migration: {}", e);
                         errors.push(format!("Failed to parse environments: {}", e));
                     }
                 }
             }
             Err(e) => {
-                eprintln!("[Nouto] Warning: failed to read environments for migration: {}", e);
+                log::warn!("Failed to read environments for migration: {}", e);
             }
         }
     }
@@ -583,8 +583,8 @@ pub async fn migrate_plaintext_secrets(
         }
     }
 
-    println!(
-        "[Nouto] Secret migration complete: {} migrated, {} skipped, {} errors",
+    log::info!(
+        "Secret migration complete: {} migrated, {} skipped, {} errors",
         migrated_count, skipped_count, errors.len()
     );
 

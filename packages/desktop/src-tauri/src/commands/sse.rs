@@ -136,10 +136,10 @@ pub async fn sse_connect(
             let (cancel_tx, mut cancel_rx) = tokio::sync::oneshot::channel::<()>();
             {
                 let mut reg = registry_clone.lock().await;
-                println!("[Nouto] SSE registering connection: '{}'", connection_id_clone);
+                log::debug!("SSE registering connection: '{}'", connection_id_clone);
                 reg.insert(connection_id_clone.clone(), cancel_tx);
                 let keys: Vec<String> = reg.keys().cloned().collect();
-                println!("[Nouto] SSE registry after insert: {:?}", keys);
+                log::debug!("SSE registry after insert: {:?}", keys);
             }
 
             // Read the stream, parsing SSE format
@@ -254,17 +254,17 @@ pub async fn sse_disconnect(
     registry: tauri::State<'_, SseRegistry>,
 ) -> Result<(), AppError> {
     let connection_id = data["connectionId"].as_str().unwrap_or("default").to_string();
-    println!("[Nouto] SSE disconnect requested for connection: '{}', data: {}", connection_id, data);
+    log::debug!("SSE disconnect requested for connection: '{}', data: {}", connection_id, data);
 
     let mut reg = registry.lock().await;
     let keys: Vec<String> = reg.keys().cloned().collect();
-    println!("[Nouto] SSE registry keys: {:?}", keys);
+    log::debug!("SSE registry keys: {:?}", keys);
 
     if let Some(cancel) = reg.remove(&connection_id) {
-        println!("[Nouto] SSE cancel signal sent for '{}'", connection_id);
+        log::debug!("SSE cancel signal sent for '{}'", connection_id);
         let _ = cancel.send(());
     } else {
-        println!("[Nouto] SSE no connection found for '{}'", connection_id);
+        log::debug!("SSE no connection found for '{}'", connection_id);
     }
 
     Ok(())

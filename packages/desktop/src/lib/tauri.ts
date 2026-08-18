@@ -22,8 +22,7 @@ import { handleCollectionMessage } from './handlers/collection-handler';
 import { handleCookieMessage } from './handlers/cookie-handler';
 import { handleEnvironmentMessage, emitStoredEnvironments, cacheEnvironmentEvent } from './handlers/environment-handler';
 import { handleOpenApiMessage } from './handlers/openapi-handler';
-
-const IS_DEV = Boolean((import.meta as any).env?.DEV);
+import { logger } from './logger';
 
 const COOKIE_MESSAGE_TYPES = new Set([
   'getCookieJar', 'getCookieJars', 'createCookieJar', 'renameCookieJar',
@@ -145,9 +144,7 @@ export class TauriMessageBus implements IMessageBus {
 
     for (const eventType of eventTypes) {
       const unlisten = await listen<any>(eventType, (event) => {
-        if (IS_DEV) {
-          console.debug(`[TauriMessageBus] Received event: "${eventType}"`);
-        }
+        logger.debug(`[TauriMessageBus] Received event: "${eventType}"`);
 
         if (eventType === 'requestResponse' && event.payload?.data) {
           this.handleResponseCookies(event.payload.data);
@@ -285,7 +282,7 @@ export class TauriMessageBus implements IMessageBus {
           this.notifyListeners({ type: 'fontsListed', data: result });
         })
         .catch((error) => {
-          console.error('[TauriMessageBus] list_fonts failed:', error);
+          logger.error('[TauriMessageBus] list_fonts failed:', error);
         });
       return;
     }
@@ -366,7 +363,7 @@ export class TauriMessageBus implements IMessageBus {
     }
 
     if (!RUST_COMMAND_TYPES.has(message.type)) {
-      console.warn(`[TauriMessageBus] No Rust handler for "${message.type}", ignoring`);
+      logger.warn(`[TauriMessageBus] No Rust handler for "${message.type}", ignoring`);
       return;
     }
 
@@ -375,27 +372,20 @@ export class TauriMessageBus implements IMessageBus {
       ? this.normalizeOpenExternalPayload(message)
       : ('data' in message ? message.data : {});
 
-    if (IS_DEV) {
-      console.debug(`[TauriMessageBus] Sending command: "${command}"`);
-    }
+    logger.debug(`[TauriMessageBus] Sending command: "${command}"`);
 
     if (command === 'save_collections') {
       this._pendingSavePayload = payload;
       if (this._saveTimer) clearTimeout(this._saveTimer);
       this._saveTimer = setTimeout(() => {
         this._saveTimer = null;
-        const data = this._pendingSavePayload;
-        this._pendingSavePayload = null;
-        invoke('save_collections', { data }).catch((error) => {
-          console.error(`[TauriMessageBus] Command "save_collections" failed:`, error);
-          this.notifyListeners({ type: 'error', message: `Command failed: ${error}` });
-        });
+        void this.invokePendingSave();
       }, 300);
       return;
     }
 
     invoke(command, { data: payload }).catch((error) => {
-      console.error(`[TauriMessageBus] Command "${command}" failed:`, error);
+      logger.error(`[TauriMessageBus] Command "${command}" failed:`, error);
       this.notifyListeners({
         type: 'error',
         message: `Command failed: ${error}`,
@@ -428,8 +418,33 @@ export class TauriMessageBus implements IMessageBus {
     try {
       localStorage.setItem('nouto_state', JSON.stringify(state));
     } catch (error) {
-      console.error('Failed to persist state:', error);
+      logger.error('Failed to persist state:', error);
     }
+  }
+
+  /** Send the debounced `save_collections` payload now, if there is one. */
+  private async invokePendingSave(): Promise<void> {
+    const data = this._pendingSavePayload;
+    this._pendingSavePayload = null;
+    if (data === null) return;
+    try {
+      await invoke('save_collections', { data });
+    } catch (error) {
+      logger.error(`[TauriMessageBus] Command "save_collections" failed:`, error);
+      this.notifyListeners({ type: 'error', message: `Command failed: ${error}` });
+    }
+  }
+
+  /**
+   * Drain the debounced collection save to disk. Called from the close
+   * handshake so an edit made right before closing is not lost.
+   */
+  async flushPendingSaves(): Promise<void> {
+    if (this._saveTimer) {
+      clearTimeout(this._saveTimer);
+      this._saveTimer = null;
+    }
+    await this.invokePendingSave();
   }
 
   private notifyListeners(message: IncomingMessage) {
@@ -437,7 +452,7 @@ export class TauriMessageBus implements IMessageBus {
       try {
         listener(message);
       } catch (error) {
-        console.error('Listener error:', error);
+        logger.error('Listener error:', error);
       }
     });
   }

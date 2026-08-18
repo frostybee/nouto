@@ -1,5 +1,6 @@
 import type { OutgoingMessage } from '@nouto/transport';
 import type { NotifyFn } from './types';
+import { logger } from '../logger';
 
 const COLLECTIONS_KEY = 'nouto_collections';
 
@@ -11,7 +12,7 @@ export function handleCollectionMessage(message: OutgoingMessage, notify: Notify
         const collections = raw ? JSON.parse(raw) : [];
         notify({ type: 'collections', data: collections } as any);
       } catch (error) {
-        console.error('[TauriMessageBus] Failed to load collections:', error);
+        logger.error('[TauriMessageBus] Failed to load collections:', error);
         notify({ type: 'collections', data: [] } as any);
       }
       break;

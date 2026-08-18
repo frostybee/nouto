@@ -1,21 +1,91 @@
 // StorageService - persistent file storage for collections, environments, and settings
 // Stores data as JSON files in <app_data_dir>/nouto/
 
+use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashSet;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
+use std::sync::Mutex;
+use std::time::{SystemTime, UNIX_EPOCH};
 use tokio::fs;
+
+/// Suffix marker used when a corrupt JSON file is set aside. `clean_orphans`
+/// leaves such files alone so a backup survives the next save.
+pub const CORRUPT_MARKER: &str = ".corrupt-";
+
+/// Read and parse `path` as JSON.
+///
+/// A missing file yields `default()`. A file that cannot be parsed is renamed to
+/// `<name>.corrupt-<unix_ts>` so nothing is lost, a warning is logged, and
+/// `default()` is returned along with the backup path so callers can tell the
+/// user. Read errors other than "not found" still propagate.
+async fn read_json_or_recover<T: DeserializeOwned>(
+    path: &Path,
+    default: impl FnOnce() -> T,
+) -> Result<(T, Option<PathBuf>), String> {
+    let raw = match fs::read_to_string(path).await {
+        Ok(raw) => raw,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok((default(), None)),
+        Err(e) => return Err(format!("Failed to read {}: {}", path.display(), e)),
+    };
+    match serde_json::from_str::<T>(&raw) {
+        Ok(value) => Ok((value, None)),
+        Err(e) => {
+            let ts = SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .map(|d| d.as_secs())
+                .unwrap_or(0);
+            let file_name = path
+                .file_name()
+                .and_then(|n| n.to_str())
+                .unwrap_or("unknown");
+            let backup = path.with_file_name(format!("{file_name}{CORRUPT_MARKER}{ts}"));
+            match fs::rename(path, &backup).await {
+                Ok(()) => log::warn!(
+                    "{} could not be parsed ({}); moved it to {} and loaded defaults",
+                    path.display(),
+                    e,
+                    backup.display()
+                ),
+                Err(rename_err) => log::warn!(
+                    "{} could not be parsed ({}) and could not be moved aside ({}); loaded defaults",
+                    path.display(),
+                    e,
+                    rename_err
+                ),
+            }
+            Ok((default(), Some(backup)))
+        }
+    }
+}
 
 pub struct StorageService {
     base_dir: PathBuf,
+    recovered: Mutex<Vec<PathBuf>>,
 }
 
 impl StorageService {
     /// Create a new StorageService that stores data in `<base_dir>/nouto/`
     pub fn new(app_data_dir: PathBuf) -> Self {
         let base_dir = app_data_dir.join("nouto");
-        Self { base_dir }
+        Self {
+            base_dir,
+            recovered: Mutex::new(Vec::new()),
+        }
+    }
+
+    /// Backup paths created by `read_json_or_recover` since the last call.
+    pub fn take_recovered(&self) -> Vec<PathBuf> {
+        std::mem::take(&mut *self.recovered.lock().unwrap_or_else(|e| e.into_inner()))
+    }
+
+    async fn load_or_recover(&self, path: &Path, default: impl FnOnce() -> Value) -> Result<Value, String> {
+        let (value, backup) = read_json_or_recover(path, default).await?;
+        if let Some(backup) = backup {
+            self.recovered.lock().unwrap_or_else(|e| e.into_inner()).push(backup);
+        }
+        Ok(value)
     }
 
     /// Ensure the storage directory exists
@@ -59,14 +129,8 @@ impl StorageService {
 
     /// Load collections from disk. Returns an empty array if the file doesn't exist.
     pub async fn load_collections(&self) -> Result<Value, String> {
-        let path = self.collections_path();
-        if !path.exists() {
-            return Ok(Value::Array(vec![]));
-        }
-        let data = fs::read_to_string(&path)
+        self.load_or_recover(&self.collections_path(), || Value::Array(vec![]))
             .await
-            .map_err(|e| format!("Failed to read collections: {}", e))?;
-        serde_json::from_str(&data).map_err(|e| format!("Failed to parse collections: {}", e))
     }
 
     /// Save collections to disk (atomic write via temp file + rename).
@@ -79,14 +143,10 @@ impl StorageService {
 
     /// Load environments from disk. Returns default structure if the file doesn't exist.
     pub async fn load_environments(&self) -> Result<Value, String> {
-        let path = self.environments_path();
-        if !path.exists() {
-            return Ok(serde_json::json!({ "environments": [], "activeId": null }));
-        }
-        let data = fs::read_to_string(&path)
-            .await
-            .map_err(|e| format!("Failed to read environments: {}", e))?;
-        serde_json::from_str(&data).map_err(|e| format!("Failed to parse environments: {}", e))
+        self.load_or_recover(&self.environments_path(), || {
+            serde_json::json!({ "environments": [], "activeId": null })
+        })
+        .await
     }
 
     /// Save environments to disk (atomic write via temp file + rename).
@@ -99,14 +159,8 @@ impl StorageService {
 
     /// Load settings from disk. Returns empty object if the file doesn't exist.
     pub async fn load_settings(&self) -> Result<Value, String> {
-        let path = self.settings_path();
-        if !path.exists() {
-            return Ok(serde_json::json!({}));
-        }
-        let data = fs::read_to_string(&path)
+        self.load_or_recover(&self.settings_path(), || serde_json::json!({}))
             .await
-            .map_err(|e| format!("Failed to read settings: {}", e))?;
-        serde_json::from_str(&data).map_err(|e| format!("Failed to parse settings: {}", e))
     }
 
     /// Save settings to disk (atomic write via temp file + rename).
@@ -119,14 +173,8 @@ impl StorageService {
 
     /// Load trash from disk. Returns an empty array if the file doesn't exist.
     pub async fn load_trash(&self) -> Result<Value, String> {
-        let path = self.trash_path();
-        if !path.exists() {
-            return Ok(Value::Array(vec![]));
-        }
-        let data = fs::read_to_string(&path)
+        self.load_or_recover(&self.trash_path(), || Value::Array(vec![]))
             .await
-            .map_err(|e| format!("Failed to read trash: {}", e))?;
-        serde_json::from_str(&data).map_err(|e| format!("Failed to parse trash: {}", e))
     }
 
     /// Save trash to disk (atomic write).
@@ -261,12 +309,33 @@ const ORDER_FILE: &str = "_order.json";
 
 pub struct ProjectStorageService {
     storage_dir: PathBuf,
+    recovered: Mutex<Vec<PathBuf>>,
 }
 
 impl ProjectStorageService {
     pub fn new(project_dir: PathBuf) -> Self {
         let storage_dir = project_dir.join(".nouto");
-        Self { storage_dir }
+        Self {
+            storage_dir,
+            recovered: Mutex::new(Vec::new()),
+        }
+    }
+
+    /// Backup paths created by `read_json_or_recover` since the last call.
+    pub fn take_recovered(&self) -> Vec<PathBuf> {
+        std::mem::take(&mut *self.recovered.lock().unwrap_or_else(|e| e.into_inner()))
+    }
+
+    async fn load_or_recover<T: DeserializeOwned>(
+        &self,
+        path: &Path,
+        default: impl FnOnce() -> T,
+    ) -> Result<T, String> {
+        let (value, backup) = read_json_or_recover(path, default).await?;
+        if let Some(backup) = backup {
+            self.recovered.lock().unwrap_or_else(|e| e.into_inner()).push(backup);
+        }
+        Ok(value)
     }
 
     fn collections_dir(&self) -> PathBuf {
@@ -299,16 +368,11 @@ impl ProjectStorageService {
     pub async fn load_workspace_meta(
         &self,
     ) -> Result<Option<crate::models::types::WorkspaceMeta>, String> {
-        let path = self.workspace_meta_path();
-        if !path.exists() {
-            return Ok(None);
-        }
-        let raw = fs::read_to_string(&path)
-            .await
-            .map_err(|e| format!("Failed to read workspace.json: {}", e))?;
-        serde_json::from_str(&raw)
-            .map(Some)
-            .map_err(|e| format!("Failed to parse workspace.json: {}", e))
+        self.load_or_recover::<Option<crate::models::types::WorkspaceMeta>>(
+            &self.workspace_meta_path(),
+            || None,
+        )
+        .await
     }
 
     /// Atomically write `<dir>/.nouto/workspace.json`.
@@ -373,8 +437,8 @@ impl ProjectStorageService {
             match self.load_collection_from_dir(&entry.path()).await {
                 Ok(Some(c)) => collections.push(c),
                 Ok(None) => {}
-                Err(e) => eprintln!(
-                    "[Nouto] Failed to load collection {:?}: {}",
+                Err(e) => log::warn!(
+                    "Failed to load collection {:?}: {}",
                     entry.file_name(),
                     e
                 ),
@@ -403,11 +467,12 @@ impl ProjectStorageService {
             return Ok(None);
         }
 
-        let meta_raw = fs::read_to_string(&meta_path)
-            .await
-            .map_err(|e| format!("Failed to read {}: {}", COLLECTION_META, e))?;
-        let mut meta: Value = serde_json::from_str(&meta_raw)
-            .map_err(|e| format!("Failed to parse {}: {}", COLLECTION_META, e))?;
+        // A corrupt collection.json is set aside; without a name/id the
+        // collection cannot be represented, so it is skipped for this session.
+        let mut meta: Value = match self.load_or_recover(&meta_path, || Value::Null).await? {
+            Value::Null => return Ok(None),
+            meta => meta,
+        };
 
         let order = self.load_order(dir_path).await;
         let items = self.load_items_from_dir(dir_path, &order).await?;
@@ -421,13 +486,9 @@ impl ProjectStorageService {
 
     async fn load_order(&self, dir_path: &std::path::Path) -> Vec<String> {
         let order_path = dir_path.join(ORDER_FILE);
-        if !order_path.exists() {
-            return Vec::new();
-        }
-        match fs::read_to_string(&order_path).await {
-            Ok(raw) => serde_json::from_str::<Vec<String>>(&raw).unwrap_or_default(),
-            Err(_) => Vec::new(),
-        }
+        self.load_or_recover(&order_path, Vec::new)
+            .await
+            .unwrap_or_default()
     }
 
     async fn load_items_from_dir(
@@ -463,16 +524,15 @@ impl ProjectStorageService {
         // Load request files
         for (name, path) in &file_entries {
             let slug = name.trim_end_matches(".json");
-            match fs::read_to_string(path).await {
-                Ok(raw) => {
-                    if let Ok(mut request) = serde_json::from_str::<Value>(&raw) {
-                        if let Value::Object(ref mut obj) = request {
-                            obj.insert("type".to_string(), Value::String("request".to_string()));
-                        }
-                        item_map.insert(slug.to_string(), request);
+            match self.load_or_recover(path, || Value::Null).await {
+                Ok(Value::Null) => {}
+                Ok(mut request) => {
+                    if let Value::Object(ref mut obj) = request {
+                        obj.insert("type".to_string(), Value::String("request".to_string()));
                     }
+                    item_map.insert(slug.to_string(), request);
                 }
-                Err(e) => eprintln!("[Nouto] Failed to load request {:?}: {}", name, e),
+                Err(e) => log::warn!("Failed to load request {:?}: {}", name, e),
             }
         }
 
@@ -483,21 +543,20 @@ impl ProjectStorageService {
                 continue;
             }
 
-            match fs::read_to_string(&folder_meta_path).await {
-                Ok(raw) => {
-                    if let Ok(mut folder_meta) = serde_json::from_str::<Value>(&raw) {
-                        let folder_order = self.load_order(path).await;
-                        let children =
-                            Box::pin(self.load_items_from_dir(path, &folder_order)).await?;
+            match self.load_or_recover(&folder_meta_path, || Value::Null).await {
+                Ok(Value::Null) => {}
+                Ok(mut folder_meta) => {
+                    let folder_order = self.load_order(path).await;
+                    let children =
+                        Box::pin(self.load_items_from_dir(path, &folder_order)).await?;
 
-                        if let Value::Object(ref mut obj) = folder_meta {
-                            obj.insert("type".to_string(), Value::String("folder".to_string()));
-                            obj.insert("children".to_string(), Value::Array(children));
-                        }
-                        item_map.insert(name.clone(), folder_meta);
+                    if let Value::Object(ref mut obj) = folder_meta {
+                        obj.insert("type".to_string(), Value::String("folder".to_string()));
+                        obj.insert("children".to_string(), Value::Array(children));
                     }
+                    item_map.insert(name.clone(), folder_meta);
                 }
-                Err(e) => eprintln!("[Nouto] Failed to load folder {:?}: {}", name, e),
+                Err(e) => log::warn!("Failed to load folder {:?}: {}", name, e),
             }
         }
 
@@ -759,6 +818,11 @@ impl ProjectStorageService {
             .map_err(|e| format!("Failed to read cleanup entry: {}", e))?
         {
             let name = entry.file_name().to_string_lossy().to_string();
+            // Backups made by read_json_or_recover are not part of the model
+            // and must survive a save so the user can still recover them.
+            if name.contains(CORRUPT_MARKER) {
+                continue;
+            }
             if !kept.contains(&name) {
                 let ft = entry
                     .file_type()
@@ -779,14 +843,10 @@ impl ProjectStorageService {
     }
 
     pub async fn load_environments(&self) -> Result<Value, String> {
-        let path = self.environments_path();
-        if !path.exists() {
-            return Ok(serde_json::json!({ "environments": [], "activeId": null }));
-        }
-        let data = fs::read_to_string(&path)
-            .await
-            .map_err(|e| format!("Failed to read environments: {}", e))?;
-        serde_json::from_str(&data).map_err(|e| format!("Failed to parse environments: {}", e))
+        self.load_or_recover(&self.environments_path(), || {
+            serde_json::json!({ "environments": [], "activeId": null })
+        })
+        .await
     }
 
     pub async fn save_environments(&self, environments: &Value) -> Result<(), String> {
@@ -859,6 +919,86 @@ fn resolve_collision(base_name: &str, existing: &HashSet<String>) -> String {
 mod tests {
     use super::*;
     use tempfile::TempDir;
+
+    #[tokio::test]
+    async fn test_corrupt_collections_are_backed_up_and_default_loaded() {
+        let tmp = TempDir::new().unwrap();
+        let svc = StorageService::new(tmp.path().to_path_buf());
+        std::fs::create_dir_all(svc.base_dir()).unwrap();
+        let path = svc.base_dir().join("collections.json");
+        std::fs::write(&path, "{ not json").unwrap();
+
+        let loaded = svc.load_collections().await.unwrap();
+        assert_eq!(loaded, Value::Array(vec![]));
+        assert!(!path.exists(), "corrupt file should be renamed away");
+
+        let backups: Vec<_> = std::fs::read_dir(svc.base_dir())
+            .unwrap()
+            .filter_map(|e| e.ok())
+            .filter(|e| e.file_name().to_string_lossy().contains(CORRUPT_MARKER))
+            .collect();
+        assert_eq!(backups.len(), 1);
+        assert_eq!(std::fs::read_to_string(backups[0].path()).unwrap(), "{ not json");
+
+        let recovered = svc.take_recovered();
+        assert_eq!(recovered.len(), 1);
+        assert_eq!(recovered[0], backups[0].path());
+        assert!(svc.take_recovered().is_empty(), "take_recovered drains");
+    }
+
+    #[tokio::test]
+    async fn test_corrupt_settings_and_environments_return_defaults() {
+        let tmp = TempDir::new().unwrap();
+        let svc = StorageService::new(tmp.path().to_path_buf());
+        std::fs::create_dir_all(svc.base_dir()).unwrap();
+        std::fs::write(svc.base_dir().join("settings.json"), "[").unwrap();
+        std::fs::write(svc.base_dir().join("environments.json"), "nope").unwrap();
+
+        assert_eq!(svc.load_settings().await.unwrap(), serde_json::json!({}));
+        assert_eq!(
+            svc.load_environments().await.unwrap(),
+            serde_json::json!({ "environments": [], "activeId": null })
+        );
+        assert_eq!(svc.take_recovered().len(), 2);
+    }
+
+    #[tokio::test]
+    async fn test_project_storage_corrupt_request_survives_save() {
+        let tmp = TempDir::new().unwrap();
+        let svc = ProjectStorageService::new(tmp.path().to_path_buf());
+        let collections = serde_json::json!([
+            { "id": "c1", "name": "Alpha", "items": [
+                { "id": "r1", "type": "request", "name": "Get", "method": "GET", "url": "https://a" }
+            ] }
+        ]);
+        svc.save_collections(&collections).await.unwrap();
+
+        // Corrupt the request file on disk.
+        let dir = tmp.path().join(".nouto").join("collections");
+        let coll_dir = std::fs::read_dir(&dir).unwrap().next().unwrap().unwrap().path();
+        let req_file = std::fs::read_dir(&coll_dir)
+            .unwrap()
+            .filter_map(|e| e.ok())
+            .map(|e| e.path())
+            .find(|p| p.file_name().unwrap() != COLLECTION_META && p.file_name().unwrap() != ORDER_FILE)
+            .unwrap();
+        std::fs::write(&req_file, "{ broken").unwrap();
+
+        let loaded = svc.load_collections().await.unwrap();
+        let items = loaded[0]["items"].as_array().unwrap();
+        assert!(items.is_empty(), "corrupt request is skipped");
+        assert!(!req_file.exists());
+        assert_eq!(svc.take_recovered().len(), 1);
+
+        // Saving the (now empty) collection must keep the backup file.
+        svc.save_collections(&loaded).await.unwrap();
+        let backups: Vec<_> = std::fs::read_dir(&coll_dir)
+            .unwrap()
+            .filter_map(|e| e.ok())
+            .filter(|e| e.file_name().to_string_lossy().contains(CORRUPT_MARKER))
+            .collect();
+        assert_eq!(backups.len(), 1);
+    }
 
     #[tokio::test]
     async fn test_load_collections_empty() {

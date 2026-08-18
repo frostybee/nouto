@@ -9,6 +9,7 @@ import { bundleSpecForRender } from './bundleForRender';
 import { tryOperation } from './tryIt';
 import { generateCollectionFromOpenApi } from '../import-export.svelte';
 import { buildStandaloneDocsHtml } from './standaloneDocs';
+import { logger } from '../logger';
 
 /**
  * Desktop host adapter for the shared OpenApiPreview.svelte component.
@@ -130,7 +131,7 @@ export function createPreviewAdapter(): PreviewHostAdapter {
       await writeTextFile(filePath, html);
       await shellOpen(filePath);
     } catch (error) {
-      console.error('[PreviewAdapter] Failed to open docs in browser:', error);
+      logger.error('[PreviewAdapter] Failed to open docs in browser:', error);
     }
   }
 

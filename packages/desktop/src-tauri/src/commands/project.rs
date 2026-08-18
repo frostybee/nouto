@@ -51,7 +51,7 @@ pub async fn open_project_dir(
 
             let _ = super::load_data(app.clone(), project_dir.clone()).await;
 
-            println!("[Nouto] Project directory opened: {}", path_str);
+            log::info!("Project directory opened: {}", path_str);
         }
     }
 
@@ -76,7 +76,7 @@ pub async fn close_project(
 
     let _ = super::load_data(app.clone(), project_dir.clone()).await;
 
-    println!("[Nouto] Project directory closed");
+    log::info!("Project directory closed");
 
     Ok(())
 }
@@ -226,7 +226,7 @@ pub async fn open_recent_project(
 
     let _ = super::load_data(app.clone(), project_dir.clone()).await;
 
-    println!("[Nouto] Opened recent project: {}", path_str);
+    log::info!("Opened recent project: {}", path_str);
     Ok(())
 }
 
@@ -286,7 +286,7 @@ pub async fn create_project(
 
             let _ = super::load_data(app.clone(), project_dir.clone()).await;
 
-            println!("[Nouto] Created new project: {}", path_str);
+            log::info!("Created new project: {}", path_str);
         }
     }
 

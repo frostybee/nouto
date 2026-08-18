@@ -3,6 +3,7 @@ import { save, open } from '@tauri-apps/plugin-dialog';
 import { writeTextFile, readTextFile } from '@tauri-apps/plugin-fs';
 import type { OutgoingMessage } from '@nouto/transport';
 import type { NotifyFn } from './types';
+import { logger } from '../logger';
 
 const ENVIRONMENTS_KEY = 'nouto_environments';
 
@@ -19,10 +20,10 @@ export function saveEnvironmentData(data: { environments: any[]; activeId: strin
   try {
     localStorage.setItem(ENVIRONMENTS_KEY, JSON.stringify(data));
   } catch (error) {
-    console.error('[TauriMessageBus] Failed to cache environments:', error);
+    logger.error('[TauriMessageBus] Failed to cache environments:', error);
   }
   invoke('save_environments', { data }).catch((error) => {
-    console.error('[TauriMessageBus] Failed to save environments to disk:', error);
+    logger.error('[TauriMessageBus] Failed to save environments to disk:', error);
   });
 }
 

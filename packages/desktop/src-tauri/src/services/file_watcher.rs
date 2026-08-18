@@ -59,7 +59,7 @@ pub async fn start_watching(
         let mut debouncer = match new_debouncer(Duration::from_millis(500), tx) {
             Ok(d) => d,
             Err(e) => {
-                eprintln!("[Nouto] Failed to create file watcher: {}", e);
+                log::error!("Failed to create file watcher: {}", e);
                 return;
             }
         };
@@ -68,16 +68,16 @@ pub async fn start_watching(
             &nouto_dir_clone,
             notify::RecursiveMode::Recursive,
         ) {
-            eprintln!("[Nouto] Failed to watch directory: {}", e);
+            log::error!("Failed to watch directory: {}", e);
             return;
         }
 
-        println!("[Nouto] File watcher started on {:?}", nouto_dir_clone);
+        log::info!("File watcher started on {:?}", nouto_dir_clone);
 
         loop {
             // Check for stop signal (non-blocking)
             if stop_rx.try_recv().is_ok() {
-                println!("[Nouto] File watcher stopped");
+                log::info!("File watcher stopped");
                 break;
             }
 
@@ -100,7 +100,7 @@ pub async fn start_watching(
                             continue;
                         }
 
-                        println!("[Nouto] Detected external collection file change");
+                        log::info!("Detected external collection file change");
                         let _ = app_clone.emit(
                             "projectFileChanged",
                             serde_json::json!({
@@ -113,13 +113,13 @@ pub async fn start_watching(
                     }
                 }
                 Ok(Err(errors)) => {
-                    eprintln!("[Nouto] File watcher errors: {:?}", errors);
+                    log::error!("File watcher errors: {:?}", errors);
                 }
                 Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {
                     // Normal timeout, continue loop
                 }
                 Err(std::sync::mpsc::RecvTimeoutError::Disconnected) => {
-                    println!("[Nouto] File watcher channel disconnected");
+                    log::debug!("File watcher channel disconnected");
                     break;
                 }
             }
@@ -139,7 +139,7 @@ pub async fn stop_watching(watcher_state: FileWatcherState) {
     if state.is_some() {
         // Dropping the handle will send the stop signal (channel closes)
         *state = None;
-        println!("[Nouto] File watcher stopped");
+        log::info!("File watcher stopped");
     }
 }
 
@@ -186,7 +186,7 @@ pub async fn start_env_file_watching(
         let mut debouncer = match new_debouncer(Duration::from_millis(500), tx) {
             Ok(d) => d,
             Err(e) => {
-                eprintln!("[Nouto] Failed to create env file watcher: {}", e);
+                log::error!("Failed to create env file watcher: {}", e);
                 return;
             }
         };
@@ -195,15 +195,15 @@ pub async fn start_env_file_watching(
             &watch_dir,
             notify::RecursiveMode::NonRecursive,
         ) {
-            eprintln!("[Nouto] Failed to watch env file directory: {}", e);
+            log::error!("Failed to watch env file directory: {}", e);
             return;
         }
 
-        println!("[Nouto] Env file watcher started on {:?}", env_path_clone);
+        log::info!("Env file watcher started on {:?}", env_path_clone);
 
         loop {
             if stop_rx.try_recv().is_ok() {
-                println!("[Nouto] Env file watcher stopped");
+                log::info!("Env file watcher stopped");
                 break;
             }
 
@@ -217,7 +217,7 @@ pub async fn start_env_file_watching(
                     });
 
                     if env_changed {
-                        println!("[Nouto] Detected .env file change");
+                        log::info!("Detected .env file change");
                         // Re-parse synchronously (blocking read)
                         if let Ok(content) = std::fs::read_to_string(&env_path_clone) {
                             let variables = crate::commands::parse_env_content(&content);
@@ -234,11 +234,11 @@ pub async fn start_env_file_watching(
                     }
                 }
                 Ok(Err(errors)) => {
-                    eprintln!("[Nouto] Env file watcher errors: {:?}", errors);
+                    log::error!("Env file watcher errors: {:?}", errors);
                 }
                 Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {}
                 Err(std::sync::mpsc::RecvTimeoutError::Disconnected) => {
-                    println!("[Nouto] Env file watcher channel disconnected");
+                    log::debug!("Env file watcher channel disconnected");
                     break;
                 }
             }
@@ -256,6 +256,6 @@ pub async fn stop_env_file_watching(watcher_state: EnvFileWatcherState) {
     let mut state = watcher_state.0.lock().await;
     if state.is_some() {
         *state = None;
-        println!("[Nouto] Env file watcher stopped");
+        log::info!("Env file watcher stopped");
     }
 }

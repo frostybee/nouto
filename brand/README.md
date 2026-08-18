@@ -42,5 +42,9 @@ TODO: document brand colours once the icon design is finalized.
 
 ## Notes
 
+- The desktop system tray reuses the bundle icon (`default_window_icon()`) on
+  every platform. macOS menu bars expect a monochrome template image; a
+  dedicated tray asset derived from `nouto-vscode-icon.svg` is a follow-up
+  before enabling `icon_as_template` in `src-tauri/src/tray.rs`.
 - Draft/exploration icons live in `my-docs/website/icons/` and are not shipped.
 - `archive/` holds discarded icon variants for reference.

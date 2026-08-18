@@ -15,6 +15,7 @@ import type {
   OpenApiVersion,
 } from '@nouto/core/services/openapi/types';
 import { settings } from '@nouto/ui/stores/settings.svelte';
+import { logger } from '../logger';
 
 /** Wire shape of the Rust validate_openapi_schema command's diagnostics. */
 interface RustSchemaDiagnostic {
@@ -72,7 +73,7 @@ export async function fetchSchemaDiagnostics(
           : undefined,
     }));
   } catch (error) {
-    console.error('[openapi] validate_openapi_schema failed:', error);
+    logger.error('[openapi] validate_openapi_schema failed:', error);
     return [];
   }
 }
@@ -117,7 +118,7 @@ export async function fetchExampleDiagnostics(analysis: OpenApiAnalysis): Promis
       message: diagnostic.message,
     }));
   } catch (error) {
-    console.error('[openapi] validate_openapi_examples failed:', error);
+    logger.error('[openapi] validate_openapi_examples failed:', error);
     return [];
   }
 }

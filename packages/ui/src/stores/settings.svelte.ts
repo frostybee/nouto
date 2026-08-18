@@ -38,6 +38,12 @@ export interface UserSettings {
   openApiOutlineSortAlphabetically: boolean;
   openApiIntelliSenseEnabled: boolean;
   openApiExternalRefsEnabled: boolean;
+  /** Desktop only: closing the main window hides it to the tray instead of quitting. */
+  closeToTray: boolean;
+  /** Desktop only: OS notifications for long-running completions while unfocused. */
+  osNotifications: boolean;
+  /** Desktop only: OS-wide hotkey that brings Nouto to the front, in display format ("Ctrl+Shift+N"). */
+  globalShortcut: string | null;
 }
 
 const _settingsOpen = $state<{ value: boolean }>({ value: false });
@@ -71,6 +77,9 @@ export const settings = $state<UserSettings>({
   openApiOutlineSortAlphabetically: false,
   openApiIntelliSenseEnabled: true,
   openApiExternalRefsEnabled: true,
+  closeToTray: false,
+  osNotifications: true,
+  globalShortcut: null,
 });
 
 /** Resolved shortcuts: merges user overrides with defaults */
@@ -96,6 +105,9 @@ export function loadSettings(data: UserSettings & { hasWorkspace?: boolean; appV
   settings.openApiOutlineSortAlphabetically = data.openApiOutlineSortAlphabetically ?? false;
   settings.openApiIntelliSenseEnabled = data.openApiIntelliSenseEnabled ?? true;
   settings.openApiExternalRefsEnabled = data.openApiExternalRefsEnabled ?? true;
+  settings.closeToTray = data.closeToTray ?? false;
+  settings.osNotifications = data.osNotifications ?? true;
+  settings.globalShortcut = data.globalShortcut ?? null;
 }
 
 export function updateShortcut(id: ShortcutAction, binding: ShortcutBinding) {

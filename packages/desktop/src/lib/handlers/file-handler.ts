@@ -4,6 +4,7 @@ import { tempDir } from '@tauri-apps/api/path';
 import { open as shellOpen } from '@tauri-apps/plugin-shell';
 import type { OutgoingMessage } from '@nouto/transport';
 import type { NotifyFn } from './types';
+import { logger } from '../logger';
 
 export async function handleFileOperation(message: OutgoingMessage, notify: NotifyFn): Promise<void> {
   const data = 'data' in message ? (message as any).data : undefined;
@@ -50,7 +51,7 @@ export async function handleFileOperation(message: OutgoingMessage, notify: Noti
       await shellOpen(tmpPath);
     }
   } catch (error) {
-    console.error('[TauriMessageBus] File operation failed:', error);
+    logger.error('[TauriMessageBus] File operation failed:', error);
     notify({ type: 'showNotification', data: { level: 'error', message: `Failed to save file: ${error}` } } as any);
   }
 }

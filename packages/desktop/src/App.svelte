@@ -2,7 +2,13 @@
   // Desktop App - Single-window SPA merging sidebar + main/runner/mock/benchmark views
   import { onMount, tick } from 'svelte';
   import { getCurrentWindow } from '@tauri-apps/api/window';
-  import { isLinux } from './lib/platform';
+  import { isLinux, getPlatform } from './lib/platform';
+  import { logger } from './lib/logger';
+  import { flushAllStores, quitApp, requestQuit } from './lib/lifecycle';
+  import { syncGlobalShortcut } from './lib/global-shortcut';
+  import { notifyIfUnfocused } from './lib/os-notify';
+  import { initBrowserKeySuppression } from './lib/browser-keys';
+  import { syncNativeTheme, watchSystemTheme } from './lib/native-theme';
   import { listen as tauriListen } from '@tauri-apps/api/event';
   import { getVersion } from '@tauri-apps/api/app';
   import { getMessageBus } from './lib/tauri';
@@ -48,7 +54,7 @@
   import { setWsStatus, addWsMessage } from '@nouto/ui/stores/websocket.svelte';
   import { setSSEStatus, addSSEEvent } from '@nouto/ui/stores/sse.svelte';
   import { setConnectionMode, toggleSidebar, ui } from '@nouto/ui/stores/ui.svelte';
-  import { loadSettings, resolvedShortcuts, setAppVersion, setIconUrl } from '@nouto/ui/stores/settings.svelte';
+  import { settings, loadSettings, resolvedShortcuts, setAppVersion, setIconUrl } from '@nouto/ui/stores/settings.svelte';
   import { initTrash, autoPurgeTrash, trashCount } from '@nouto/ui/stores/trash.svelte';
   import { initHistory, setHistoryStats, setHistoryStatsLoading } from '@nouto/ui/stores/history.svelte';
   import { matchesBinding } from '@nouto/ui/lib/shortcuts';
@@ -89,7 +95,7 @@
   import { DraftsCollectionService } from '@nouto/core/services/RecentCollectionService';
   import type { IncomingMessage } from '@nouto/transport';
 
-  import { initTheme, applyAppearance, type AppearanceSettings } from '@nouto/ui/stores/theme.svelte';
+  import { initTheme, applyAppearance, currentTheme, type AppearanceSettings } from '@nouto/ui/stores/theme.svelte';
   import { open as shellOpen } from '@tauri-apps/plugin-shell';
 
   // Extracted modules
@@ -195,8 +201,11 @@
     initRequestUndo();
     initCollectionUndo();
 
-    // Initialize theme from saved preference or system default
+    // Initialize theme from saved preference or system default, and keep the
+    // native window chrome (title bar, dialogs) on the same light/dark family.
     initTheme();
+    void syncNativeTheme(currentTheme());
+    const unwatchSystemTheme = watchSystemTheme(currentTheme);
 
     // Sync theme when settings window changes appearance
     tauriListen<AppearanceSettings>('appearanceChanged', (event) => {
@@ -205,9 +214,19 @@
       } else {
         initTheme();
       }
+      void syncNativeTheme(currentTheme());
     });
     window.addEventListener('storage', (e) => {
-      if (e.key === 'nouto_appearance') initTheme();
+      if (e.key === 'nouto_appearance') {
+        initTheme();
+        void syncNativeTheme(currentTheme());
+      }
+    });
+
+    // Swallow browser-chrome shortcuts (find bar, print, reload in production).
+    // Capture phase and preventDefault only, so app shortcuts still dispatch.
+    const cleanupBrowserKeys = initBrowserKeySuppression(getPlatform(), {
+      reload: !(import.meta as any).env?.DEV,
     });
 
     // Prevent default browser context menu globally
@@ -220,26 +239,62 @@
       document.getElementById('app')?.classList.add('linux-frame');
     }
 
+    // Two-phase close. Rust prevents the window-manager close and emits this
+    // event; we run the unsaved-changes prompt, flush debounced saves, then
+    // either hide (macOS) or quit for real. Registered before show() so the
+    // close button can never be clicked without a handler in place.
+    let closing = false;
+    const unlistenClose = await tauriListen<{ hide: boolean }>('app:close-requested', async (event) => {
+      if (closing) return;
+      closing = true;
+      try {
+        // Save/Discard/Cancel for dirty OpenAPI documents; a no-op when none.
+        if (!(await confirmDiscardAllDirty('The OpenAPI document'))) return;
+        try {
+          await flushAllStores();
+        } catch (err) {
+          // Losing a debounced write is better than a window that refuses to close.
+          logger.error('Flushing stores on close failed:', err);
+        }
+        // macOS convention, or the user's "close to tray" preference.
+        if (event.payload?.hide || settings.closeToTray) {
+          await getCurrentWindow().hide();
+          return;
+        }
+        await quitApp();
+      } finally {
+        closing = false;
+      }
+    });
+
+    // Tray "Quit" goes through the same flush-then-quit path.
+    const unlistenTrayQuit = await tauriListen('tray:quit-requested', () => {
+      void requestQuit();
+    });
+
     // Show window immediately
     try {
       const appWindow = getCurrentWindow();
       await appWindow.show();
       await appWindow.setFocus();
     } catch (err) {
-      console.error('Failed to show window:', err);
+      logger.error('Failed to show window:', err);
     }
 
-    // Block app close while any OpenAPI document has unsaved changes
-    // (Save/Discard/Cancel; a no-op when no session was ever dirtied).
-    const unlistenClose = await getCurrentWindow().onCloseRequested(async (event) => {
-      if (!(await confirmDiscardAllDirty('The OpenAPI document'))) {
-        event.preventDefault();
-      }
+    // Storage files that could not be parsed were set aside on load.
+    const unlistenRecovered = await tauriListen<{ files: string[] }>('storageRecovered', (event) => {
+      const files = event.payload?.files ?? [];
+      if (files.length === 0) return;
+      const names = files.map((f) => f.split(/[\\/]/).pop() ?? f);
+      showNotification(
+        'warning',
+        `Some saved data could not be read and was reset. A backup was kept: ${names.join(', ')}`,
+      );
     });
 
     // Listen for deep-link URLs (nouto:// protocol)
     const unlistenDeepLink = await tauriListen<string>('deepLinkReceived', (event) => {
-      console.log('[Nouto] Deep link received:', event.payload);
+      logger.info('Deep link received:', event.payload);
       try {
         // Payload may be JSON-encoded string array or plain string
         const raw = typeof event.payload === 'string' ? event.payload : JSON.stringify(event.payload);
@@ -251,14 +306,14 @@
             const code = url.searchParams.get('code');
             const state = url.searchParams.get('state');
             if (code) {
-              console.log('[Nouto] OAuth callback via deep link, code:', code.substring(0, 8) + '...');
+              logger.info('OAuth callback via deep link, code:', code.substring(0, 8) + '...');
               // Emit as a message to be handled by the OAuth flow
               messageBus?.send({ type: 'oauthDeepLinkCallback', data: { code, state } });
             }
           }
         }
       } catch (err) {
-        console.warn('[Nouto] Failed to parse deep link:', err);
+        logger.warn('Failed to parse deep link:', err);
       }
     });
 
@@ -332,9 +387,13 @@
 
     return () => {
       document.removeEventListener('contextmenu', preventContextMenu);
+      cleanupBrowserKeys();
+      unwatchSystemTheme();
       unsubscribe();
       unlistenDeepLink();
       unlistenClose();
+      unlistenTrayQuit();
+      unlistenRecovered();
       messageBus?.destroy();
     };
   });
@@ -520,6 +579,8 @@
 
       case 'loadSettings':
         loadSettings(message.data);
+        // Keep the OS-wide hotkey in line with the saved setting (startup and changes).
+        void syncGlobalShortcut(settings.globalShortcut ?? null);
         break;
 
       case 'scriptOutput':
@@ -583,7 +644,7 @@
         break;
 
       case 'error':
-        console.error('[Nouto]', message.message);
+        logger.error(message.message);
         break;
 
       case 'openSettings':
@@ -682,9 +743,20 @@
         break;
 
       // Collection Runner events: forward to window so CollectionRunnerPanel receives them
+      case 'collectionRunComplete': {
+        const r = message.data ?? {};
+        const total = r.totalRequests ?? 0;
+        const passed = r.passedRequests ?? 0;
+        const failed = r.failedRequests ?? 0;
+        void notifyIfUnfocused(
+          'Collection run finished',
+          `${r.collectionName ?? 'Collection'}: ${passed}/${total} passed, ${failed} failed`,
+        );
+        window.postMessage({ type: message.type, data: message.data }, '*');
+        break;
+      }
       case 'collectionRunProgress':
       case 'collectionRunRequestResult':
-      case 'collectionRunComplete':
       case 'collectionRunCancelled':
       case 'collectionRunWarning':
       case 'runnerHistoryList':
@@ -708,9 +780,18 @@
       case 'benchmarkIterationComplete':
         addBenchmarkIteration(message.data);
         break;
-      case 'benchmarkComplete':
+      case 'benchmarkComplete': {
         setBenchmarkCompleted(message.data);
+        const stats = message.data?.statistics;
+        if (stats) {
+          void notifyIfUnfocused(
+            'Benchmark finished',
+            `${message.data.requestName ?? 'Request'}: ${stats.totalIterations} iterations, ` +
+              `${stats.failCount} failed, ${Math.round(stats.requestsPerSecond)} req/s`,
+          );
+        }
         break;
+      }
       case 'benchmarkCancelled':
         setBenchmarkCancelled();
         break;
@@ -940,7 +1021,7 @@
       }
     }
     } catch (err) {
-      console.error('[Nouto] Error handling message:', (message as any)?.type, err);
+      logger.error('Error handling message:', (message as any)?.type, err);
     }
   }
 

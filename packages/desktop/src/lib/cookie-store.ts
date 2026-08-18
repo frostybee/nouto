@@ -3,6 +3,7 @@
  * Mirrors the core CookieJarService interface but persists to localStorage.
  */
 import { generateId } from '@nouto/core';
+import { logger } from './logger';
 
 export interface Cookie {
   name: string;
@@ -83,7 +84,7 @@ export class TauriCookieJarService {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     } catch (error) {
-      console.error('[CookieJarService] Failed to save:', error);
+      logger.error('[CookieJarService] Failed to save:', error);
     }
   }
 

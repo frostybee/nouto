@@ -621,7 +621,7 @@ impl HttpClient {
 impl Default for HttpClient {
     fn default() -> Self {
         Self::new().unwrap_or_else(|e| {
-            eprintln!("[Nouto] Warning: HTTP client init with TLS failed ({}), creating plain client", e);
+            log::warn!("HTTP client init with TLS failed ({}), creating plain client", e);
             // Fallback: build a minimal client without native-tls
             HttpClient {
                 client: reqwest::Client::builder()

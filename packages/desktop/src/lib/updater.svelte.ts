@@ -1,4 +1,6 @@
 import { invoke } from '@tauri-apps/api/core';
+import { logger } from './logger';
+import { notifyIfUnfocused } from './os-notify';
 
 let _updateAvailable = $state(false);
 let _updateVersion = $state('');
@@ -45,10 +47,10 @@ export async function checkForUpdates(): Promise<void> {
   try {
     _updateSupported = await invoke<boolean>('is_update_supported');
     _installType = await invoke<string>('get_install_type');
-    console.debug('[Nouto] Install type:', _installType);
+    logger.debug('Install type:', _installType);
 
     if (!_updateSupported) {
-      console.debug('[Nouto] Auto-update not supported on this install type:', _installType);
+      logger.debug('Auto-update not supported on this install type:', _installType);
       return;
     }
 
@@ -59,18 +61,19 @@ export async function checkForUpdates(): Promise<void> {
       _updateVersion = update.version;
       _updateBody = update.body || '';
       _updateAvailable = true;
+      void notifyIfUnfocused('Nouto update available', `Version ${update.version} is ready to install.`);
 
       // Start background pre-download silently so install is near-instant
       update.download(makeProgressHandler()).then(() => {
         _preDownloaded = true;
-        console.debug('[Nouto] Update pre-downloaded:', _updateVersion);
+        logger.debug('Update pre-downloaded:', _updateVersion);
       }).catch((err: unknown) => {
-        console.debug('[Nouto] Background pre-download failed, will download on install:', err);
+        logger.debug('Background pre-download failed, will download on install:', err);
       });
     }
   } catch (err) {
     // Silently fail: updater may not be configured or network unavailable
-    console.debug('[Nouto] Update check skipped:', err);
+    logger.debug('Update check skipped:', err);
   }
 }
 
@@ -91,7 +94,7 @@ export async function installUpdate(): Promise<void> {
     const { relaunch } = await import('@tauri-apps/plugin-process');
     await relaunch();
   } catch (err) {
-    console.error('[Nouto] Update install failed:', err);
+    logger.error('Update install failed:', err);
     _downloading = false;
   }
 }

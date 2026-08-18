@@ -70,7 +70,7 @@ pub async fn start_benchmark(
                 let _ = app.emit("benchmarkCancelled", serde_json::json!({
                     "data": {}
                 }));
-                eprintln!("[Nouto Benchmark] Failed to create HTTP client: {}", e);
+                log::error!("Failed to create HTTP client: {}", e);
                 return;
             }
         };

@@ -144,7 +144,7 @@ pub async fn start_collection_run(
                         "stoppedEarly": true
                     }
                 }));
-                eprintln!("[Nouto Runner] Failed to create HTTP client: {}", e);
+                log::error!("Failed to create HTTP client: {}", e);
                 return;
             }
         };
@@ -482,7 +482,7 @@ pub async fn start_collection_run(
                         global_index += 1;
                         continue; // jump — skip delay and sequential cursor advance
                     }
-                    eprintln!("[Nouto] setNextRequest: '{}' not found, advancing sequentially", next_name);
+                    log::warn!("setNextRequest: '{}' not found, advancing sequentially", next_name);
                 }
 
                 // Delay between requests
@@ -527,7 +527,7 @@ pub async fn start_collection_run(
         let history = app.state::<RunnerHistorySvc>();
         let run_value = serde_json::to_value(&run_result).unwrap_or(Value::Null);
         if let Err(e) = history.save_run(&run_value).await {
-            eprintln!("[Nouto] Failed to save runner history: {}", e);
+            log::error!("Failed to save runner history: {}", e);
         }
 
         let _ = app.emit("collectionRunComplete", serde_json::json!({
