@@ -179,19 +179,20 @@ pub async fn sse_connect(
                                                 event_data.pop();
                                             }
 
+                                            // Same shape as core's SSEEvent, which the
+                                            // VS Code side already emits.
                                             let now = chrono::Utc::now().timestamp_millis();
                                             let mut event_json = json!({
                                                 "data": {
+                                                    "id": format!("sse-{}", uuid::Uuid::new_v4()),
+                                                    "eventType": if event_type.is_empty() { "message" } else { event_type.as_str() },
                                                     "data": event_data,
                                                     "timestamp": now
                                                 }
                                             });
 
-                                            if !event_type.is_empty() {
-                                                event_json["data"]["type"] = json!(event_type);
-                                            }
                                             if !event_id.is_empty() {
-                                                event_json["data"]["id"] = json!(event_id);
+                                                event_json["data"]["eventId"] = json!(event_id);
                                             }
 
                                             let _ = app.emit("sseEvent", event_json);

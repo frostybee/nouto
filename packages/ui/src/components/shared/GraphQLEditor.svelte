@@ -2,7 +2,7 @@
   import { onMount, onDestroy } from 'svelte';
   import type { BodyState, AuthState, KeyValue } from '../../types';
   import { postMessage, onMessage } from '../../lib/vscode';
-  import { setSchemaLoading, setSchema, setSchemaError, clearSchema, graphqlSchemaStore } from '../../stores/graphqlSchema.svelte';
+  import { setSchemaLoading, setSchema, setSchemaError, graphqlSchemaStore } from '../../stores/graphqlSchema.svelte';
   import GraphQLSchemaExplorer from './GraphQLSchemaExplorer.svelte';
   import CodeMirrorEditor from './CodeMirrorEditor.svelte';
   import Tooltip from './Tooltip.svelte';

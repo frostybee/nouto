@@ -1,6 +1,5 @@
 <script lang="ts">
   import { trashItemsSorted, trashCount, restoreFromTrash, permanentlyDeleteFromTrash, emptyTrash } from '../../stores/trash.svelte';
-  import { collections } from '../../stores/collections.svelte';
   import { showNotification } from '../../stores/notifications.svelte';
   import Tooltip from '../shared/Tooltip.svelte';
   import ConfirmDialog from '../shared/ConfirmDialog.svelte';

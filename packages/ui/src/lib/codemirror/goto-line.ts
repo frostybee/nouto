@@ -1,5 +1,5 @@
 import { StateEffect, StateField, type Extension } from '@codemirror/state';
-import { EditorView, showPanel, keymap, type Panel } from '@codemirror/view';
+import { EditorView, showPanel, type Panel } from '@codemirror/view';
 
 const toggleGotoLine = StateEffect.define<boolean>();
 

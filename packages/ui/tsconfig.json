@@ -12,7 +12,19 @@
     "lib": ["ESNext", "DOM", "DOM.Iterable"],
     "strict": true,
     "noEmit": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    /* Mirror the vite.config.ts aliases so svelte-check resolves subpath imports */
+    "baseUrl": ".",
+    "paths": {
+      "@nouto/core": ["../core/src"],
+      "@nouto/core/*": ["../core/src/*"],
+      "@nouto/transport": ["../transport/src"],
+      "@nouto/transport/*": ["../transport/src/*"],
+      "@nouto/json-explorer": ["../json-explorer/src"],
+      "@nouto/json-explorer/*": ["../json-explorer/src/*"],
+      "@nouto/ui": ["src"],
+      "@nouto/ui/*": ["src/*"]
+    }
   },
   "include": ["src/**/*.ts", "src/**/*.svelte"]
 }

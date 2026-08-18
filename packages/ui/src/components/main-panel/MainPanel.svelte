@@ -1,17 +1,16 @@
 <script lang="ts">
   import { ui, setRequestTab, setResponseTab, response, isLoading, setLoading, request, setParams, setHeaders, setAuth, setBody, downloadProgress, formatBytes } from '../../stores';
   import { setPathParams } from '../../stores/request.svelte';
-  import { togglePanelLayout, setPanelLayout, toggleHistoryDrawer, toggleResponseWordWrap } from '../../stores/ui.svelte';
+  import { togglePanelLayout, setPanelLayout, toggleResponseWordWrap } from '../../stores/ui.svelte';
   import type { AuthState, BodyState } from '../../stores/request.svelte';
   import { setDescription, setScripts, setSsl, setProxy, setTimeout as setRequestTimeout, setRedirects, isDirty, requestContext, setAuthInheritance, setScriptInheritance } from '../../stores/request.svelte';
   import RequestSettingsPanel from '../shared/RequestSettingsPanel.svelte';
-  import type { Collection, CollectionItem, ResponseExample } from '../../types';
+  import type { Collection, CollectionItem, ResponseExample, KeyValue, PathParam } from '../../types';
   import { isRequest, isFolder, generateId } from '../../types';
   import ExamplesTab from '../shared/ExamplesTab.svelte';
   import UrlBar from './UrlBar.svelte';
   import ActionBar from './ActionBar.svelte';
   import PanelSplitter from '../shared/PanelSplitter.svelte';
-  import HistoryDrawer from '../shared/HistoryDrawer.svelte';
   import KeyValueEditor from '../shared/KeyValueEditor.svelte';
   import PathParamsEditor from '../shared/PathParamsEditor.svelte';
   import AuthEditor from '../shared/AuthEditor.svelte';
@@ -49,7 +48,6 @@
   import { formatSize, substitutePathParams } from '@nouto/core';
   import { getStatusClass, resolveRequestVariables } from '../../lib/http-helpers';
   import { postMessage as vsCodePostMessage } from '../../lib/vscode';
-  import { conflictState, clearConflict } from '../../stores/conflict.svelte';
   import { assertionResults, assertionSummary } from '../../stores/assertions.svelte';
   import { scriptOutput, clearScriptOutput } from '../../stores/scripts.svelte';
   import { resolvedShortcuts, settings, settingsOpen, setSettingsOpen } from '../../stores/settings.svelte';
@@ -83,7 +81,6 @@
     hideActionBar?: boolean;
   }
   let {
-    requestId,
     collectionId,
     collectionName,
     collections,
@@ -106,8 +103,8 @@
   // Use provided postMessage or fallback to VSCode postMessage (for VSCode extension)
   const messageBus = $derived(postMessage || vsCodePostMessage);
 
-  type RequestTab = 'query' | 'path' | 'headers' | 'auth' | 'body' | 'tests' | 'scripts' | 'notes' | 'settings';
-  type ResponseTab = 'body' | 'headers' | 'cookies' | 'redirects' | 'timing' | 'timeline' | 'tests' | 'scripts';
+  type RequestTab = import('../../stores/ui.svelte').RequestTab;
+  type ResponseTab = import('../../stores/ui.svelte').ResponseTab;
 
   // Editor zoom (local, per-session, not persisted)
   const ZOOM_STEP = 2;
@@ -141,15 +138,15 @@
   const auth = $derived(request.auth);
   const body = $derived(request.body);
 
-  function handleParamsChange(items: Array<{ key: string; value: string; enabled: boolean }>) {
+  function handleParamsChange(items: KeyValue[]) {
     setParams(items);
   }
 
-  function handlePathParamsChange(items: Array<{ key: string; value: string; description: string; enabled: boolean }>) {
+  function handlePathParamsChange(items: PathParam[]) {
     setPathParams(items);
   }
 
-  function handleHeadersChange(items: Array<{ key: string; value: string; enabled: boolean }>) {
+  function handleHeadersChange(items: KeyValue[]) {
     setHeaders(items);
   }
 
@@ -384,7 +381,7 @@
 
   function handleSaveRequest() {
     const ctx = requestContext();
-    if (!isDirty() || !ctx?.collectionId) return;
+    if (!isDirty() || !ctx?.collectionId || !ctx.requestId) return;
 
     messageBus({
       type: 'saveCollectionRequest',
@@ -423,7 +420,7 @@
 
   function handleRevertRequest() {
     const ctx = requestContext();
-    if (!ctx?.collectionId) return;
+    if (!ctx?.collectionId || !ctx.requestId) return;
 
     messageBus({
       type: 'revertRequest',
@@ -475,13 +472,6 @@
       handleToggleLayout();
       return;
     }
-    // Toggle history drawer (disabled - history is in sidebar tab now)
-    // const historyBinding = shortcuts.get('toggleHistoryDrawer');
-    // if (historyBinding && matchesBinding(event, historyBinding)) {
-    //   event.preventDefault();
-    //   toggleHistoryDrawer();
-    //   return;
-    // }
     // New request
     const newBinding = shortcuts.get('newRequest');
     if (newBinding && matchesBinding(event, newBinding)) {
@@ -599,7 +589,7 @@
 
   const currentRequestExamples = $derived.by((): ResponseExample[] => {
     const ctx = requestContext();
-    if (!ctx) return [];
+    if (!ctx?.collectionId || !ctx.requestId) return [];
     const coll = collections.find((c) => c.id === ctx.collectionId);
     if (!coll) return [];
     const req = findRequestInItems(coll.items, ctx.requestId);
@@ -633,7 +623,7 @@
   function handleConfirmSaveExample() {
     const ctx = requestContext();
     const res = currentResponse;
-    if (!ctx || !res || !newExampleName.trim()) return;
+    if (!ctx?.collectionId || !ctx.requestId || !res || !newExampleName.trim()) return;
 
     const example: ResponseExample = {
       id: generateId(),
@@ -664,7 +654,7 @@
 
   function handleDeleteExample(exampleId: string) {
     const ctx = requestContext();
-    if (!ctx) return;
+    if (!ctx?.collectionId || !ctx.requestId) return;
     messageBus({
       type: 'deleteResponseExample',
       data: {
@@ -743,7 +733,6 @@
     }
 
     const timelineCount = currentResponse?.timeline?.length ?? 0;
-    const hasTiming = !!(currentResponse?.timing);
     const tabs: { id: ResponseTab; label: string; badge?: string }[] = [];
 
     // Body tab is always shown
@@ -908,10 +897,11 @@
             showBulkEdit={true}
           />
         {:else if activeRequestTab === 'auth'}
-          {#if requestContext()?.collectionId}
+          {@const authCtx = requestContext()}
+          {#if authCtx?.collectionId}
             <AuthInheritanceSelector
               mode={request.authInheritance}
-              inheritedFromName={requestContext().collectionName}
+              inheritedFromName={authCtx.collectionName ?? undefined}
               onchange={setAuthInheritance}
             />
           {/if}
@@ -1171,9 +1161,6 @@
       </div>
     </section>
   </div>
-
-  <!-- History Drawer (disabled - history is in sidebar tab now) -->
-  <!-- <HistoryDrawer postMessage={messageBus} {requestId} /> -->
   {/if}
 
 

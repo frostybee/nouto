@@ -33,6 +33,8 @@
 
   const { vscode, sourceUri }: Props = $props();
 
+  // The initial value is all that is needed here: state is read once on mount.
+  // svelte-ignore state_referenced_locally
   const persisted = (vscode.getState() ?? {}) as Partial<PersistedState>;
 
   let renderer = $state<OpenApiPreviewRenderer>(

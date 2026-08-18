@@ -3,7 +3,6 @@
   import MethodBadge from '../shared/MethodBadge.svelte';
   import { generateCode, formatTimestamp, formatFullDate } from '@nouto/core';
   import { substituteVariablesWithScope, getScopedContextForRequest } from '../../stores/environment.svelte';
-  import { request } from '../../stores/request.svelte';
   import { selectRequest, duplicateRequest, deleteRequest, bulkDelete, selectedRequestId, collections, togglePinRequest } from '../../stores/collections.svelte';
   import { dragState, startDrag, startMultiDrag, endDrag, setDropTarget, dropTarget, computeDropPosition } from '../../stores/dragdrop.svelte';
   import { moveItemToPosition } from '../../stores/collections.svelte';

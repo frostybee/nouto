@@ -76,6 +76,8 @@
     // Recreate when original or modified content changes
     const _o = original;
     const _m = modified;
+    void _o;
+    void _m;
     if (container && mergeView) {
       createView();
     }

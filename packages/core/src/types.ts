@@ -328,6 +328,8 @@ export interface Collection {
 // --- Environment ---
 
 export interface EnvironmentVariable {
+  /** Stable row id used by editors; assigned lazily, may be absent in stored data. */
+  id?: string;
   key: string;
   value: string;
   enabled: boolean;
@@ -563,6 +565,8 @@ export interface GrpcConnection {
   elapsed: number;
   error?: string;
   createdAt: string;
+  /** Attached by the backend when the request carried assertions. */
+  assertionResults?: AssertionResult[];
 }
 
 export interface GrpcEvent {
@@ -766,6 +770,8 @@ export interface ResponseData {
   requestHeaders?: Record<string, string>;
   requestUrl?: string;
   redirectChain?: RedirectHop[];
+  /** Attached by the backend when the request carried assertions. */
+  assertionResults?: AssertionResult[];
 }
 
 // --- Storage ---

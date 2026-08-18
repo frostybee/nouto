@@ -8,7 +8,7 @@ import { ensureSyntaxTree, foldable } from '@codemirror/language';
 export function findChildFoldableRanges(
   view: EditorView,
   parentFrom: number,
-  parentTo: number
+  _parentTo: number
 ): Array<{ from: number; to: number }> {
   const tree = ensureSyntaxTree(view.state, view.state.doc.length, 5000);
   if (!tree) return [];

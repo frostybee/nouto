@@ -3,6 +3,14 @@
 
 import type {
   Collection,
+  Environment,
+  TrashItem,
+  WebSocketConnectionStatus,
+  SSEConnectionStatus,
+  GqlSubStatus,
+  GqlSubEvent,
+  SSEEvent,
+  AssertionOperator,
   ResponseData,
   SavedRequest,
   ResponseExample,
@@ -99,7 +107,7 @@ export interface SendRequestMessage {
 
 export interface PickSslFileMessage {
   type: 'pickSslFile';
-  data: { field: 'cert' | 'key' | `global-${'cert' | 'key'}` };
+  data: { field: 'cert' | 'key' | 'ca' | `global-${'cert' | 'key' | 'ca'}` };
 }
 
 export interface UpdateDocumentMessage {
@@ -112,6 +120,27 @@ export interface SaveToCollectionMessage {
   data: {
     collectionId: string;
     request: Omit<SavedRequest, 'id' | 'createdAt' | 'updatedAt'>;
+  };
+}
+
+/** Save the current panel request into a collection and link the panel to it. */
+export interface SaveToCollectionWithLinkMessage {
+  type: 'saveToCollectionWithLink';
+  data: {
+    collectionId: string;
+    folderId?: string;
+    request?: Partial<SavedRequest>;
+  };
+}
+
+/** Create a collection, save the current panel request into it, and link the panel. */
+export interface SaveToNewCollectionWithLinkMessage {
+  type: 'saveToNewCollectionWithLink';
+  data: {
+    name: string;
+    color?: string;
+    icon?: string;
+    request?: Partial<SavedRequest>;
   };
 }
 
@@ -549,6 +578,7 @@ export interface PickProtoImportDirMessage {
 // WebSocket Session Recording Messages (Webview -> Extension)
 export interface WsStartRecordingMessage {
   type: 'wsStartRecording';
+  data?: { url?: string; protocols?: string[] };
 }
 
 export interface WsStopRecordingMessage {
@@ -784,12 +814,26 @@ export interface OpenApiProxyCancelMessage {
   data: { requestId: string };
 }
 
+export interface OpenJsonExplorerMessage {
+  type: 'openJsonExplorer';
+  data: {
+    json: unknown;
+    contentType: string;
+    requestName: string;
+    requestMethod: string;
+    requestUrl: string;
+  };
+}
+
 export type OutgoingMessage =
   | ReadyMessage
+  | OpenJsonExplorerMessage
   | SendRequestMessage
   | CancelRequestMessage
   | UpdateDocumentMessage
   | SaveToCollectionMessage
+  | SaveToCollectionWithLinkMessage
+  | SaveToNewCollectionWithLinkMessage
   | GetCollectionsMessage
   | SaveCollectionsMessage
   | SaveEnvironmentsMessage
@@ -912,8 +956,20 @@ export interface CollectionsLoadedMessage {
 
 export interface InitialDataMessage {
   type: 'initialData';
+  // Desktop and VS Code each send a different superset of these fields.
   data: {
     collections: Collection[];
+    environments?: Environment[];
+    trash?: TrashItem[];
+    // Desktop only
+    projectPath?: string | null;
+    workspaceMeta?: WorkspaceMeta | null;
+    generation?: number;
+    // VS Code only
+    envFileVariables?: EnvironmentVariable[];
+    envFilePath?: string | null;
+    history?: { entries: HistoryIndexEntry[]; total: number; hasMore: boolean };
+    appVersion?: string;
   };
 }
 
@@ -950,10 +1006,10 @@ export interface LoadSettingsMessage {
   data: {
     autoCorrectUrls: boolean;
     shortcuts: Record<string, string>;
-    minimap: string;
+    minimap: 'auto' | 'always' | 'never';
     saveResponseBody: boolean;
     sslRejectUnauthorized: boolean;
-    storageMode: string;
+    storageMode: 'global' | 'workspace';
     hasWorkspace: boolean;
     globalProxy?: {
       enabled: boolean;
@@ -968,6 +1024,12 @@ export interface LoadSettingsMessage {
     openApiLintRules?: Record<string, 'error' | 'warning' | 'off'>;
     openApiOutlineSortAlphabetically?: boolean;
   };
+}
+
+/** Sent by the JSON Explorer panel to add an assertion to the originating request panel. */
+export interface AddAssertionFromExplorerMessage {
+  type: 'addAssertionFromExplorer';
+  data: { path: string; operator?: AssertionOperator; expected?: unknown };
 }
 
 export interface SecurityWarningMessage {
@@ -1104,7 +1166,7 @@ export interface ScriptOutputMessage {
 
 export interface WsStatusMessage {
   type: 'wsStatus';
-  data: { status: string; error?: string };
+  data: { status: WebSocketConnectionStatus; error?: string };
 }
 
 export interface WsMessageMessage {
@@ -1114,22 +1176,22 @@ export interface WsMessageMessage {
 
 export interface SseStatusMessage {
   type: 'sseStatus';
-  data: { status: string; error?: string };
+  data: { status: SSEConnectionStatus; error?: string };
 }
 
 export interface SseEventMessage {
   type: 'sseEvent';
-  data: { type?: string; data: string; id?: string; timestamp: number };
+  data: SSEEvent;
 }
 
 export interface GqlSubStatusMessage {
   type: 'gqlSubStatus';
-  data: { status: string; error?: string };
+  data: { status: GqlSubStatus; error?: string };
 }
 
 export interface GqlSubEventMessage {
   type: 'gqlSubEvent';
-  data: { id: string; type: 'data' | 'error' | 'complete'; data: string; timestamp: number };
+  data: GqlSubEvent;
 }
 
 export interface SetVariablesMessage {
@@ -1211,6 +1273,11 @@ export interface ShowCreateItemDialogMessage {
 }
 
 // gRPC Messages (Extension -> Webview)
+export interface GrpcProtoDirScannedMessage {
+  type: 'protoDirScanned';
+  data: { dir: string; files: string[] };
+}
+
 export interface GrpcProtoLoadedMessage {
   type: 'grpcProtoLoaded';
   data: GrpcProtoDescriptor;
@@ -1443,6 +1510,7 @@ export type IncomingMessage =
   | LoadEnvironmentsMessage
   | StoreResponseContextMessage
   | LoadSettingsMessage
+  | AddAssertionFromExplorerMessage
   | SecurityWarningMessage
   | OAuthTokenReceivedMessage
   | OAuthFlowErrorMessage
@@ -1483,6 +1551,7 @@ export type IncomingMessage =
   | ShowQuickPickMessage
   | ShowConfirmMessage
   | ShowCreateItemDialogMessage
+  | GrpcProtoDirScannedMessage
   | GrpcProtoLoadedMessage
   | GrpcProtoErrorMessage
   | ProtoFilesPickedMessage

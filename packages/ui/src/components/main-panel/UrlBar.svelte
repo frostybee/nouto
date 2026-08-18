@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { request, setMethod, setUrl, setHeaders, setParams, setAuth, setBody, isLoading, setLoading, downloadProgress, formatBytes, type HttpMethod } from '../../stores';
+  import { request, setMethod, setUrl, setHeaders, setAuth, setBody, isLoading, setLoading, downloadProgress, type HttpMethod } from '../../stores';
   import { setUrlAndParams, setPathParams, resetRequest, requestContext } from '../../stores/request.svelte';
   import { resolveRequestVariables } from '../../lib/http-helpers';
   import { ui, setConnectionMode } from '../../stores/ui.svelte';
@@ -7,7 +7,6 @@
   import { tick } from 'svelte';
   import { getUnresolvedVariables, activeVariables, activeVariablesList, activeEnvironment, globalVariables } from '../../stores/environment.svelte';
   import { MOCK_VARIABLES } from '../../lib/value-transforms';
-  import type { ActiveVariableEntry } from '../../stores/environment.svelte';
   import { validateUrl, isIncompleteUrl, suggestUrlFix, STANDARD_HTTP_METHODS } from '@nouto/core';
   import { clearScriptOutput } from '../../stores/scripts.svelte';
   import { settings, resolvedShortcuts } from '../../stores/settings.svelte';
@@ -64,15 +63,6 @@
 
   // Build the full method list: standard + user-added custom methods
   // Also include the current method if it's not already in the list (e.g. loaded from a saved request)
-  const methods = $derived.by(() => {
-    const all = [...standardMethods, ...customMethods];
-    const current = request.method;
-    if (current && !all.includes(current)) {
-      all.push(current);
-    }
-    return all;
-  });
-
   let urlInput = $state<HTMLInputElement>(undefined!);
   let validationError = $state<string | null>(null);
   let urlSuggestion = $state<string | null>(null);
@@ -777,7 +767,6 @@
 
   // Send dropdown menu state
   let showSendMenu = $state(false);
-  let sendMenuEl = $state<HTMLDivElement>(undefined!);
 
   function toggleSendMenu(e: MouseEvent) {
     e.stopPropagation();
@@ -1101,7 +1090,7 @@
       <button class="send-button" onclick={() => messageBus({ type: 'grpcSendMessage', data: { connectionId: conn?.id, body: request.body.content || '{}' } } as any)}>
         Send
       </button>
-      {#if mType === 'client_streaming' || mType === 'bidi'}
+      {#if mType === 'client_streaming' || mType === 'streaming'}
         <button class="send-button" style="margin-left: 0.308rem;" onclick={() => messageBus({ type: 'grpcCommitStream', data: { connectionId: conn?.id } } as any)}>
           Commit
         </button>
@@ -1111,7 +1100,7 @@
       <button class="cancel-button" onclick={handleCancel}>Cancel</button>
     {:else}
       <button class="send-button" onclick={handleGrpcInvoke} disabled={!currentUrl.trim() || !request.grpc?.serviceName || !request.grpc?.methodName}>
-        {mType === 'server_streaming' ? 'Stream' : mType === 'client_streaming' ? 'Start Stream' : mType === 'bidi' ? 'Start Stream' : 'Invoke'}
+        {mType === 'server_streaming' ? 'Stream' : mType === 'client_streaming' ? 'Start Stream' : mType === 'streaming' ? 'Start Stream' : 'Invoke'}
       </button>
     {/if}
   {:else if connectionMode === 'sse'}
@@ -1157,7 +1146,7 @@
       </Tooltip>
       {#if showSendMenu}
         <!-- svelte-ignore a11y_interactive_supports_focus -->
-        <div class="send-menu" bind:this={sendMenuEl} onclick={(e) => e.stopPropagation()} onkeydown={(e) => e.stopPropagation()} role="menu">
+        <div class="send-menu" onclick={(e) => e.stopPropagation()} onkeydown={(e) => e.stopPropagation()} role="menu">
           <button class="send-menu-item" onclick={handleImportCurl} type="button">
             <i class="codicon codicon-terminal"></i>
             <span>Import cURL</span>

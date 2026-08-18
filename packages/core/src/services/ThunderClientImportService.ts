@@ -65,13 +65,6 @@ interface ThunderCollection {
   // Alternative: some versions store as flat arrays
 }
 
-interface ThunderEnvironment {
-  _id: string;
-  name: string;
-  default?: boolean;
-  data?: Array<{ name: string; value: string; isDisabled?: boolean }>;
-}
-
 export class ThunderClientImportService {
   /**
    * Import from the combined JSON format (array of collections or single collection).

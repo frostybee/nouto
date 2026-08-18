@@ -161,7 +161,7 @@
 
           // Capture the fold range by intercepting the first call
           const originalOnclick = onclick;
-          onclick = (e: MouseEvent) => {
+          onclick = (e: Event) => {
             // Find the fold decoration at the click position
             const folded = view.state.field(foldState, false);
             if (folded) {
@@ -218,9 +218,9 @@
           return el;
         },
         domEventHandlers: {
-          click: (view, line, event) => {
+          click: (view, line) => {
             // Check if line is currently folded
-            const foldedRange = (() => {
+            const foldedRange = ((): { from: number; to: number } | null => {
               let found: { from: number; to: number } | null = null;
               const folded = view.state.field(foldState, false);
               if (folded) {
@@ -374,6 +374,7 @@
   // Recreate editor when language changes
   $effect(() => {
     const _lang = language;
+    void _lang;
     if (container && view) {
       createEditor();
     }

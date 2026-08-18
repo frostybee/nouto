@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { classifyVariables, aggregateStatus, type VariableInfo, type VariableStatus } from '../../lib/variable-validator';
+  import { classifyVariables, aggregateStatus, type VariableStatus } from '../../lib/variable-validator';
   import { activeVariables } from '../../stores/environment.svelte';
   import Tooltip from './Tooltip.svelte';
 

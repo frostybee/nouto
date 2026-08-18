@@ -93,7 +93,6 @@
   function handleContextAction(action: string) {
     if (!contextMenu) return;
     const tabId = contextMenu.tabId;
-    const tab = tabList.find(t => t.id === tabId);
     closeContextMenu();
 
     switch (action) {
@@ -300,10 +299,11 @@
 </div>
 
 {#if contextMenu}
-  {@const ctxTab = tabList.find(t => t.id === contextMenu.tabId)}
+  {@const menu = contextMenu}
+  {@const ctxTab = tabList.find(t => t.id === menu.tabId)}
   <div
     class="context-menu"
-    style="left: {contextMenu.x}px; top: {contextMenu.y}px"
+    style="left: {menu.x}px; top: {menu.y}px"
   >
     {#if ctxTab?.pinned}
       <button class="context-item" onclick={() => handleContextAction('unpin')}>Unpin Tab</button>

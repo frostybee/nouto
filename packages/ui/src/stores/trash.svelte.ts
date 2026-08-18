@@ -1,5 +1,5 @@
 import type { TrashItem, TrashItemKind, Collection, Folder, SavedRequest, CollectionItem } from '../types';
-import { generateId, isFolder, isRequest } from '../types';
+import { generateId, isFolder } from '../types';
 import { postMessage } from '../lib/vscode';
 import { findFolderRecursive } from '@nouto/core/utils/collection-tree';
 

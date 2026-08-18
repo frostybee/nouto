@@ -62,7 +62,7 @@ function freshTab(): Record<string, any> {
 
 describe('tryOperation', () => {
   let tab: Record<string, any>;
-  let setView: ReturnType<typeof vi.fn>;
+  let setView: ReturnType<typeof vi.fn<(view: string) => void>>;
 
   beforeEach(() => {
     tauriMocks.invoke.mockReset();
@@ -74,7 +74,7 @@ describe('tryOperation', () => {
     bundleMocks.bundleSpecForRender.mockReset();
     tab = freshTab();
     tabsMocks.createRequestTab.mockReturnValue(tab);
-    setView = vi.fn();
+    setView = vi.fn<(view: string) => void>();
     initTryIt({ setView });
   });
 

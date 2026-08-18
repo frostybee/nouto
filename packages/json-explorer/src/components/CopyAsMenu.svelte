@@ -38,8 +38,9 @@
       return values;
     }
 
-    if (selectedPath()) {
-      return getValueAtPath(explorerState().rawJson, selectedPath());
+    const path = selectedPath();
+    if (path) {
+      return getValueAtPath(explorerState().rawJson, path);
     }
     return explorerState().rawJson;
   }

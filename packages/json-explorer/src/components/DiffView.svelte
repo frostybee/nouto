@@ -1,6 +1,5 @@
 <script lang="ts">
-  import { computeStructuralDiff, type DiffNode, type DiffSummary } from '../lib/diff';
-  import Tooltip from '@nouto/ui/components/shared/Tooltip.svelte';
+  import { computeStructuralDiff } from '../lib/diff';
 
   interface Props {
     left: any;

@@ -17,7 +17,7 @@
     onclose?: () => void;
     onselect?: (data: any) => void;
   }
-  let { isModal = false, collections = [], environments = null, onclose, onselect }: Props = $props();
+  let { isModal = false, collections = [], onclose, onselect }: Props = $props();
 
   // Input element reference
   let searchInput: HTMLInputElement = $state(null!);
@@ -263,7 +263,7 @@
               title="RECENT"
               count={paletteResultsByType().recent.length}
             >
-              {#each paletteResultsByType().recent as result, i}
+              {#each paletteResultsByType().recent as result}
                 {@const globalIndex = palette().results.findIndex(r => r.id === result.id)}
                 <PaletteResultItem
                   {result}
@@ -282,7 +282,7 @@
               title="RESULTS"
               count={paletteResultsByType().request.length}
             >
-              {#each paletteResultsByType().request as result, i}
+              {#each paletteResultsByType().request as result}
                 {@const globalIndex = palette().results.findIndex(r => r.id === result.id)}
                 <PaletteResultItem
                   {result}

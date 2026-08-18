@@ -1,4 +1,4 @@
-import { resolveShortcuts, type ShortcutMap, type ShortcutAction, type ShortcutBinding, SHORTCUT_DEFINITIONS, bindingToDisplayString } from '../lib/shortcuts';
+import { resolveShortcuts, type ShortcutMap, type ShortcutAction, type ShortcutBinding, bindingToDisplayString } from '../lib/shortcuts';
 import { postMessage } from '../lib/vscode';
 
 export type MinimapMode = 'auto' | 'always' | 'never';
@@ -85,7 +85,7 @@ export const settings = $state<UserSettings>({
 /** Resolved shortcuts: merges user overrides with defaults */
 export function resolvedShortcuts() { return resolveShortcuts(settings.shortcuts); }
 
-export function loadSettings(data: UserSettings & { hasWorkspace?: boolean; appVersion?: string; iconUrl?: string }) {
+export function loadSettings(data: Partial<UserSettings> & { hasWorkspace?: boolean; appVersion?: string; iconUrl?: string }) {
   _hasWorkspace.value = data.hasWorkspace ?? false;
   if (data.appVersion) _appVersion.value = data.appVersion;
   if (data.iconUrl) _iconUrl.value = data.iconUrl;

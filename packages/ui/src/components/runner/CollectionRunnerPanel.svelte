@@ -20,8 +20,6 @@
     setHistoryDetail,
     clearHistoryDetail,
   } from '../../stores/collectionRunner.svelte';
-  import type { CollectionRunRequestResult, CollectionRunResult } from '../../types';
-  import type { ResultFilter, RunnerHistoryEntry } from '../../stores/collectionRunner.svelte';
   import RunnerResultRow from './RunnerResultRow.svelte';
   import RunnerRequestList from './RunnerRequestList.svelte';
   import Tooltip from '../shared/Tooltip.svelte';
@@ -29,14 +27,14 @@
 
   let showHistory = $state(false);
 
-  const state = $derived(runnerState);
+  const runner = $derived(runnerState);
   const results = $derived(filteredResults());
-  const isRunning = $derived(state.status === 'running');
-  const hasResults = $derived(state.results.length > 0);
-  const enabledCount = $derived(state.requests.filter(r => r.enabled).length);
+  const isRunning = $derived(runner.status === 'running');
+  const hasResults = $derived(runner.results.length > 0);
+  const enabledCount = $derived(runner.requests.filter(r => r.enabled).length);
   const progressPercent = $derived(
-    state.progress.total > 0
-      ? Math.round((state.progress.current / state.progress.total) * 100)
+    runner.progress.total > 0
+      ? Math.round((runner.progress.current / runner.progress.total) * 100)
       : 0
   );
 
@@ -46,11 +44,11 @@
     postMessage($state.snapshot({
       type: 'startCollectionRun',
       data: {
-        collectionId: state.collectionId,
-        folderId: state.folderId,
-        config: state.config,
+        collectionId: runner.collectionId,
+        folderId: runner.folderId,
+        config: runner.config,
         requestIds,
-        environmentId: state.selectedEnvironmentId,
+        environmentId: runner.selectedEnvironmentId,
       },
     }));
   }
@@ -64,15 +62,15 @@
   }
 
   function handleRetryFailed() {
-    const failedIds = state.results.filter(r => !r.passed).map(r => r.requestId);
+    const failedIds = runner.results.filter(r => !r.passed).map(r => r.requestId);
     if (failedIds.length === 0) return;
     setRunning();
     postMessage($state.snapshot({
       type: 'retryFailedRequests',
       data: {
         requestIds: failedIds,
-        config: state.config,
-        environmentId: state.selectedEnvironmentId,
+        config: runner.config,
+        environmentId: runner.selectedEnvironmentId,
       },
     }));
   }
@@ -80,28 +78,28 @@
   function handleExportJson() {
     postMessage({
       type: 'exportRunResults',
-      data: { format: 'json', results: $state.snapshot(state.results), summary: $state.snapshot(state.summary), collectionName: state.collectionName },
+      data: { format: 'json', results: $state.snapshot(runner.results), summary: $state.snapshot(runner.summary), collectionName: runner.collectionName },
     });
   }
 
   function handleExportCsv() {
     postMessage({
       type: 'exportRunResults',
-      data: { format: 'csv', results: $state.snapshot(state.results), summary: $state.snapshot(state.summary), collectionName: state.collectionName },
+      data: { format: 'csv', results: $state.snapshot(runner.results), summary: $state.snapshot(runner.summary), collectionName: runner.collectionName },
     });
   }
 
   function handleExportJunit() {
     postMessage({
       type: 'exportRunResults',
-      data: { format: 'junit', results: $state.snapshot(state.results), summary: $state.snapshot(state.summary), collectionName: state.collectionName },
+      data: { format: 'junit', results: $state.snapshot(runner.results), summary: $state.snapshot(runner.summary), collectionName: runner.collectionName },
     });
   }
 
   function handleExportHtml() {
     postMessage({
       type: 'exportRunResults',
-      data: { format: 'html', results: $state.snapshot(state.results), summary: $state.snapshot(state.summary), collectionName: state.collectionName },
+      data: { format: 'html', results: $state.snapshot(runner.results), summary: $state.snapshot(runner.summary), collectionName: runner.collectionName },
     });
   }
 
@@ -127,7 +125,7 @@
   function toggleHistory() {
     showHistory = !showHistory;
     if (showHistory) {
-      postMessage({ type: 'getRunnerHistory', data: { collectionId: state.collectionId } });
+      postMessage({ type: 'getRunnerHistory', data: { collectionId: runner.collectionId } });
     } else {
       clearHistoryDetail();
     }
@@ -160,7 +158,7 @@
       case 'collectionRunComplete':
         setCompleted(message.data);
         if (showHistory) {
-          postMessage({ type: 'getRunnerHistory', data: { collectionId: state.collectionId } });
+          postMessage({ type: 'getRunnerHistory', data: { collectionId: runner.collectionId } });
         }
         break;
       case 'collectionRunCancelled':
@@ -185,24 +183,24 @@
   <div class="runner-header">
     <div class="runner-header-top">
       <h2 class="runner-title">Collection Runner</h2>
-      <span class="collection-name">{state.collectionName}</span>
+      <span class="collection-name">{runner.collectionName}</span>
       <Tooltip text={showHistory ? 'Hide history' : 'Show run history'} position="bottom">
         <button class="history-toggle" class:active={showHistory} onclick={toggleHistory} aria-label="Toggle run history">
           <span class="codicon codicon-history"></span>
         </button>
       </Tooltip>
     </div>
-    {#if state.environments.length > 0}
+    {#if runner.environments.length > 0}
       <div class="runner-env-bar">
         <span class="codicon codicon-server-environment"></span>
         <select
           id="runner-env"
           class="env-select-prominent"
-          value={state.selectedEnvironmentId ?? ''}
+          value={runner.selectedEnvironmentId ?? ''}
           onchange={(e) => setSelectedEnvironment(e.currentTarget.value || null)}
         >
           <option value="">No Environment</option>
-          {#each state.environments as env}
+          {#each runner.environments as env}
             <option value={env.id}>{env.name}</option>
           {/each}
         </select>
@@ -210,7 +208,7 @@
     {/if}
   </div>
 
-  {#if state.status === 'idle'}
+  {#if runner.status === 'idle'}
     <div class="config-section">
       <RunnerRequestList />
 
@@ -219,7 +217,7 @@
           <label class="config-label">
             <input
               type="checkbox"
-              checked={state.config.stopOnFailure}
+              checked={runner.config.stopOnFailure}
               onchange={(e) => updateConfig({ stopOnFailure: e.currentTarget.checked })}
             />
             Stop on first failure
@@ -235,7 +233,7 @@
               min="0"
               max="60000"
               step="100"
-              value={state.config.delayMs}
+              value={runner.config.delayMs}
               oninput={(e) => updateConfig({ delayMs: parseInt(e.currentTarget.value) || 0 })}
             />
             <span class="delay-unit">ms</span>
@@ -251,7 +249,7 @@
               min="0"
               max="300000"
               step="1000"
-              value={state.config.timeoutMs ?? 0}
+              value={runner.config.timeoutMs ?? 0}
               oninput={(e) => updateConfig({ timeoutMs: parseInt(e.currentTarget.value) || 0 })}
             />
             <span class="delay-unit">ms</span>
@@ -259,10 +257,10 @@
         </div>
         <div class="config-row data-file-row">
           <span class="config-label">Data Source (CSV/JSON)</span>
-          {#if state.dataFile}
+          {#if runner.dataFile}
             <div class="data-file-info">
-              <span class="data-file-name">{state.dataFile.path.split(/[\\/]/).pop()}</span>
-              <span class="data-file-meta">{state.dataFile.rowCount} rows, {state.dataFile.columns.length} columns</span>
+              <span class="data-file-name">{runner.dataFile.path.split(/[\\/]/).pop()}</span>
+              <span class="data-file-meta">{runner.dataFile.rowCount} rows, {runner.dataFile.columns.length} columns</span>
               <Tooltip text="Clear data file" position="top">
                 <button class="clear-data-btn" onclick={handleClearDataFile} aria-label="Clear data file">
                   <span class="codicon codicon-close"></span>
@@ -276,8 +274,8 @@
                 type="number"
                 class="delay-input"
                 min="0"
-                max={state.dataFile.rowCount}
-                value={state.config.iterations ?? 0}
+                max={runner.dataFile.rowCount}
+                value={runner.config.iterations ?? 0}
                 oninput={(e) => setIterationLimit(parseInt(e.currentTarget.value) || 0)}
               />
             </div>
@@ -292,8 +290,8 @@
 
       <button class="run-button" onclick={handleRun} disabled={enabledCount === 0}>
         Run {enabledCount} Request{enabledCount !== 1 ? 's' : ''}
-        {#if state.dataFile}
-          ({state.config.iterations && state.config.iterations > 0 ? state.config.iterations : state.dataFile.rowCount} iterations)
+        {#if runner.dataFile}
+          ({runner.config.iterations && runner.config.iterations > 0 ? runner.config.iterations : runner.dataFile.rowCount} iterations)
         {/if}
       </button>
     </div>
@@ -302,8 +300,8 @@
   {#if isRunning}
     <div class="progress-section">
       <div class="progress-info">
-        <span>Running: {state.progress.requestName}</span>
-        <span>{state.progress.current}/{state.progress.total}</span>
+        <span>Running: {runner.progress.requestName}</span>
+        <span>{runner.progress.current}/{runner.progress.total}</span>
       </div>
       <div class="progress-bar-container">
         <div class="progress-bar" style="width: {progressPercent}%"></div>
@@ -315,34 +313,34 @@
   {#if hasResults}
     <div class="summary-section">
       <div class="summary-stats">
-        <span class="stat pass">{state.summary.passed} passed</span>
+        <span class="stat pass">{runner.summary.passed} passed</span>
         <span class="stat-divider">|</span>
-        <span class="stat fail">{state.summary.failed} failed</span>
-        {#if state.summary.skipped > 0}
+        <span class="stat fail">{runner.summary.failed} failed</span>
+        {#if runner.summary.skipped > 0}
           <span class="stat-divider">|</span>
-          <span class="stat skip">{state.summary.skipped} skipped</span>
+          <span class="stat skip">{runner.summary.skipped} skipped</span>
         {/if}
         <span class="stat-divider">|</span>
-        <span class="stat time">{formatDuration(state.summary.totalDuration)} total</span>
+        <span class="stat time">{formatDuration(runner.summary.totalDuration)} total</span>
       </div>
     </div>
 
     <div class="filter-bar">
       <button
         class="filter-btn"
-        class:active={state.resultFilter === 'all'}
+        class:active={runner.resultFilter === 'all'}
         onclick={() => setResultFilter('all')}
-      >All ({state.results.length})</button>
+      >All ({runner.results.length})</button>
       <button
         class="filter-btn pass"
-        class:active={state.resultFilter === 'passed'}
+        class:active={runner.resultFilter === 'passed'}
         onclick={() => setResultFilter('passed')}
-      >Passed ({state.summary.passed})</button>
+      >Passed ({runner.summary.passed})</button>
       <button
         class="filter-btn fail"
-        class:active={state.resultFilter === 'failed'}
+        class:active={runner.resultFilter === 'failed'}
         onclick={() => setResultFilter('failed')}
-      >Failed ({state.summary.failed})</button>
+      >Failed ({runner.summary.failed})</button>
     </div>
 
     <div class="results-section">
@@ -350,7 +348,7 @@
         <thead>
           <tr>
             <th class="th-index">#</th>
-            {#if state.dataFile}
+            {#if runner.dataFile}
               <th class="th-iteration">Iter</th>
             {/if}
             <th class="th-name">Name</th>
@@ -362,20 +360,20 @@
         </thead>
         <tbody>
           {#each results as result, i (result.requestId + '-' + i)}
-            <RunnerResultRow {result} index={i} expandedId={state.expandedResultId} showIteration={!!state.dataFile} />
+            <RunnerResultRow {result} index={i} expandedId={runner.expandedResultId} showIteration={!!runner.dataFile} />
           {/each}
         </tbody>
       </table>
     </div>
 
-    {#if state.status === 'completed' || state.status === 'cancelled'}
+    {#if runner.status === 'completed' || runner.status === 'cancelled'}
       <div class="actions-section">
         <button class="action-button" onclick={handleExportJson}>Export JSON</button>
         <button class="action-button" onclick={handleExportCsv}>Export CSV</button>
         <button class="action-button" onclick={handleExportJunit}>Export JUnit XML</button>
         <button class="action-button" onclick={handleExportHtml}>Export HTML</button>
-        {#if state.summary.failed > 0}
-          <button class="action-button retry" onclick={handleRetryFailed}>Retry Failed ({state.summary.failed})</button>
+        {#if runner.summary.failed > 0}
+          <button class="action-button retry" onclick={handleRetryFailed}>Retry Failed ({runner.summary.failed})</button>
         {/if}
         <button class="action-button primary" onclick={handleRunAgain}>Run Again</button>
       </div>
@@ -441,7 +439,7 @@
                 </span>
                 <span class="history-duration">{formatDuration(entry.totalDuration)}</span>
               </button>
-              <Tooltip text="Delete this run" position="left">
+              <Tooltip text="Delete this run" position="top">
                 <button class="history-delete" onclick={() => deleteHistoryEntry(entry.id)} aria-label="Delete run">
                   <span class="codicon codicon-trash"></span>
                 </button>

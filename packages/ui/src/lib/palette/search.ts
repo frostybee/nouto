@@ -1,5 +1,5 @@
 import MiniSearch from 'minisearch';
-import type { Collection, SavedRequest, Folder, CollectionItem, KeyValue, BodyState, HttpMethod } from '../../types';
+import type { Collection, SavedRequest, CollectionItem, KeyValue, BodyState, HttpMethod, ConnectionMode } from '../../types';
 import { isFolder, isRequest } from '../../types';
 import { getScore as getFrecencyScoreFromStore } from '../../stores/frecency.svelte';
 
@@ -10,6 +10,8 @@ export interface SearchableRequest {
   name: string;
   url: string;
   method: HttpMethod;
+  connectionMode?: ConnectionMode;
+  body?: BodyState;
   collectionName: string;
   collectionId: string;
   folderPath?: string;       // "Auth > OAuth" — folder ancestry breadcrumb
@@ -90,7 +92,7 @@ const MINISEARCH_OPTIONS = {
 /**
  * Extract searchable text from query parameters
  */
-function extractParamsText(url: string, params: KeyValue[]): string {
+function extractParamsText(_url: string, params: KeyValue[]): string {
   const enabledParams = params.filter(p => p.enabled);
   return enabledParams.map(p => `${p.key} ${p.value}`).join(' ');
 }
@@ -261,6 +263,8 @@ export function toSearchableRequest(
     name: request.name,
     url: request.url,
     method: request.method,
+    connectionMode: request.connectionMode,
+    body: request.body,
     collectionName,
     collectionId,
     folderPath,
@@ -466,7 +470,7 @@ function mapFieldToLocation(key?: string): MatchContext['location'] {
  */
 export function extractMatchContext(
   match: Record<string, string[]> | undefined,
-  terms: string[]
+  _terms: string[]
 ): MatchContext | null {
   if (!match || Object.keys(match).length === 0) return null;
 

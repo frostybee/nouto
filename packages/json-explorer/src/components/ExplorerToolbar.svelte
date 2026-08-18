@@ -68,7 +68,7 @@
     }
   });
 
-  function getJsonText(): string {
+  async function getJsonText(): Promise<string> {
     if (explorerState().rawJson === undefined) return '';
     return JSON.stringify(explorerState().rawJson, null, 2);
   }

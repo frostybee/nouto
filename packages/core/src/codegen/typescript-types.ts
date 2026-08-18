@@ -33,11 +33,6 @@ function singularize(name: string): string {
   return name;
 }
 
-interface TypeInfo {
-  inline: string;
-  interfaces: Map<string, string>; // name → interface definition
-}
-
 function inferType(value: unknown, name: string, interfaces: Map<string, string>, depth: number): string {
   if (value === null || value === undefined) return 'unknown';
   if (typeof value === 'string') return 'string';

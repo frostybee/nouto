@@ -579,7 +579,7 @@
       {:else if effectiveCategory === 'binary' && data}
         <BinaryPreview base64Data={data} {contentType} />
       {:else if showDiff && previousResponseBody() && viewMode === 'text'}
-        <ResponseDiffView original={previousResponseBody()} modified={displayData} {language} />
+        <ResponseDiffView original={previousResponseBody() ?? ''} modified={displayData} {language} />
       {:else if viewMode === 'tree' && isJson}
         <JsonTreeView data={treeData} expandMode={treeExpandMode} expandKey={treeExpandKey} />
       {:else if viewMode === 'tree' && isXml}

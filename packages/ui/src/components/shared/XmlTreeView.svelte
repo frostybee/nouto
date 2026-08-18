@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { parseXml, type XmlNode } from '../../lib/xml-parser';
+  import { parseXml } from '../../lib/xml-parser';
   import XmlTreeNode from './XmlTreeNode.svelte';
   import Tooltip from './Tooltip.svelte';
 
@@ -8,18 +8,15 @@
   }
   let { data }: Props = $props();
 
-  let allExpanded = $state(false);
   let collapseKey = $state(0);
 
   const parsed = $derived(parseXml(data));
 
   function expandAll() {
-    allExpanded = true;
     collapseKey++;
   }
 
   function collapseAll() {
-    allExpanded = false;
     collapseKey++;
   }
 </script>

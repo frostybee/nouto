@@ -1,4 +1,4 @@
-import type { Collection, SavedRequest, CollectionItem, Folder, HttpMethod, KeyValue, AuthState, BodyState, GrpcConfig, ConnectionMode, PathParam, Assertion, AuthInheritance, ScriptInheritance, ScriptConfig, SslConfig, ProxyConfig } from '../types';
+import type { Collection, SavedRequest, CollectionItem, Folder } from '../types';
 import { generateId, createCollection, createFolder, isFolder, isRequest } from '../types';
 import { postMessage } from '../lib/vscode';
 import { addToTrash, setTrashCollectionAccessors } from './trash.svelte';

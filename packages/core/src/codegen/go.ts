@@ -14,7 +14,6 @@ function generate(request: CodegenRequest): string {
 
   const needsProxy = !!getProxy(request);
   const needsSsl = !!getSsl(request);
-  const needsTransport = needsProxy || needsSsl;
 
   lines.push('package main');
   lines.push('');

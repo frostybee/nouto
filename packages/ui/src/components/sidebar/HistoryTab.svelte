@@ -6,10 +6,10 @@
   import type { ContextMenuItem } from '../shared/ContextMenu.svelte';
   import {
     historyEntries, historyTotal, historyHasMore, historySearchQuery,
-    historyMethodFilters, historyIsLoading, groupedHistory, flatHistory,
+    historyMethodFilters, historyIsLoading, flatHistory,
     historyCollectionFilter, historySearchRegex, historySearchFields,
-    historyShowStats, historyStatsLoading, historySortBy,
-    initHistory, appendHistory, historyPendingAppend, setSearchQuery, toggleMethodFilter, clearFilters,
+    historyShowStats, historySortBy,
+    setSearchQuery, toggleMethodFilter, clearFilters,
     setHistoryIsLoading, setHistoryPendingAppend, setHistoryCollectionFilter,
     setHistorySearchRegex, setHistorySearchFields, setHistoryShowStats, setHistoryStatsLoading,
     setHistorySortBy,
@@ -22,7 +22,6 @@
   import type { HistoryIndexEntry } from '@nouto/core/services';
   import { extractPathname, formatTimestamp, formatFullDate } from '@nouto/core';
   import type { HttpMethod } from '../../types';
-  import { recordOpen } from '../../stores/frecency.svelte';
   import { substituteVariables } from '../../stores/environment.svelte';
 
   interface Props {
@@ -72,6 +71,7 @@
   // Fetch on mount and re-fetch when collection filter changes
   $effect(() => {
     const _filter = historyCollectionFilter();
+    void _filter;
     requestHistory();
   });
 
@@ -166,13 +166,6 @@
     requestHistory(historyEntries().length);
   }
 
-  function handleClick(entry: HistoryIndexEntry) {
-    if (entry.requestId) {
-      recordOpen(entry.requestId);
-    }
-    postMessage({ type: 'openHistoryEntry', data: { id: entry.id } });
-  }
-
   function handleContextMenu(e: MouseEvent, entry: HistoryIndexEntry) {
     e.preventDefault();
     e.stopPropagation();
@@ -199,12 +192,6 @@
   function closeContextMenu() {
     showContextMenu = false;
     contextEntry = null;
-  }
-
-  function closeAllMenus() {
-    closeContextMenu();
-    showImportMenu = false;
-    showMoreMenu = false;
   }
 
   const contextMenuItems: ContextMenuItem[] = $derived([
@@ -486,9 +473,10 @@ function getStatusClass(status?: number): string {
 
   <!-- Collection Filter Badge -->
   {#if historyCollectionFilter()}
+    {@const collectionFilter = historyCollectionFilter()!}
     <div class="collection-filter-badge">
       <span class="codicon codicon-filter"></span>
-      <span class="filter-label">Filtered: {historyCollectionFilter().requestName}</span>
+      <span class="filter-label">Filtered: {collectionFilter.requestName}</span>
       <Tooltip text="Clear filter" position="top">
         <button class="filter-clear" onclick={handleClearCollectionFilter} aria-label="Clear filter">
           <span class="codicon codicon-close"></span>

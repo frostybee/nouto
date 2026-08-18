@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onDestroy } from 'svelte';
-  import { notifications, dismissNotification, forceRefreshNotifications, type Notification } from '../../stores/notifications.svelte';
+  import { notifications, dismissNotification, forceRefreshNotifications } from '../../stores/notifications.svelte';
 
   // Track hiding state and timers outside of reactive state to avoid $effect loops
   const hidingSet = new Set<string>();

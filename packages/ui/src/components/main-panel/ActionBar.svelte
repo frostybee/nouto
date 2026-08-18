@@ -17,7 +17,7 @@
   }
 
   let {
-    collectionId,
+    
     collections,
     postMessage
   }: Props = $props();

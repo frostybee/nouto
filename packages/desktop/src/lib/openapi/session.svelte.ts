@@ -186,13 +186,14 @@ function refreshDiagnostics(
     // warnings at pointers it cannot resolve; once the async external pass
     // has handled a pointer, its definitive diagnostic replaces the
     // placeholder (mirrors VS Code's OpenApiDiagnosticsManager swap).
-    const filteredSync = externalHandled
+    const handled = externalHandled;
+    const filteredSync = handled
       ? sync.filter(
           (d) =>
             !(
               d.code === 'external-ref-unsupported' &&
               d.pointer !== undefined &&
-              externalHandled.has(d.pointer)
+              handled.has(d.pointer)
             ),
         )
       : sync;

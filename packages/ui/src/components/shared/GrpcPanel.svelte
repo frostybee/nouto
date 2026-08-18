@@ -1,6 +1,5 @@
 <script lang="ts">
-  import type { GrpcServiceDescriptor, GrpcMethodDescriptor } from '../../types';
-  import { GRPC_STATUS_CODES } from '../../types';
+  import type { GrpcMethodDescriptor } from '../../types';
   import { untrack } from 'svelte';
   import { grpcProtoStatus, grpcProtoDescriptor, grpcProtoError, grpcActiveMethodSchema } from '../../stores/grpc.svelte';
   import { request } from '../../stores';

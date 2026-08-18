@@ -21,12 +21,14 @@ export interface FormDataItem {
 /**
  * Parse JSON string to form data array
  */
-export function parseFormData(content: string): FormDataItem[] {
+export function parseFormData(content: string): Array<FormDataItem & { id: string }> {
   if (!content) return [];
   try {
     const parsed = JSON.parse(content);
     if (Array.isArray(parsed)) {
-      return parsed.map((item: FormDataItem) => (item.id ? item : { ...item, id: formItemId() }));
+      return parsed.map((item: FormDataItem) =>
+        item.id ? { ...item, id: item.id } : { ...item, id: formItemId() },
+      );
     }
   } catch {
     // If not valid JSON, return empty

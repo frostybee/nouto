@@ -18,7 +18,7 @@
     showSecretToggle?: boolean;
     showBulkEdit?: boolean;
     onchange?: (items: KeyValue[]) => void;
-    keySuggestions?: string[];
+    keySuggestions?: readonly string[];
     keyDescriptions?: Record<string, HeaderInfo>;
     valueSuggestions?: Record<string, string[]>;
     keyValidator?: (key: string) => string | null;

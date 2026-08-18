@@ -1,6 +1,6 @@
 <script lang="ts">
   import { collections, addCollection, sortCollections, expandAllFolders, collapseAllFolders, revealActiveRequest, selectedRequestId } from '../../stores/collections.svelte';
-  import type { Collection, CollectionItem as CollectionItemType, SavedRequest, Folder } from '../../types';
+  import type { Collection, CollectionItem as CollectionItemType, Folder } from '../../types';
   import { isFolder, isRequest } from '../../types';
   import { ui, setCollectionSortOrder, type CollectionSortOrder } from '../../stores/ui.svelte';
   import { isMultiSelectActive, selectedCount, clearMultiSelect, getTopLevelSelectedIds, multiSelect } from '../../stores/multiSelect.svelte';
@@ -132,6 +132,7 @@
   }
 
   // Filter and sort collections
+  const sortOrder = $derived(ui.collectionSortOrder);
   const filteredCollections = $derived(sortCollections(filterCollections(collections(), searchQuery), sortOrder));
   const hasResults = $derived(filteredCollections.length > 0);
   const showNoResults = $derived(hasCollections && !hasResults && searchQuery.trim().length > 0);
@@ -164,7 +165,6 @@
   let showBulkExportModal = $state(false);
   let bulkExportFormat = $state<'postman' | 'nouto'>('postman');
 
-  const sortOrder = $derived(ui.collectionSortOrder);
   const isSorting = $derived(sortOrder !== 'manual');
 
   const sortOptions: { key: CollectionSortOrder; label: string }[] = [
@@ -187,10 +187,6 @@
     e.stopPropagation();
     showSortMenu = !showSortMenu;
     showImportMenu = false;
-  }
-
-  function closeSortMenu() {
-    showSortMenu = false;
   }
 
   function handleNewCollection() {

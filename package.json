@@ -33,7 +33,8 @@
     "rust:fmt": "cd packages/desktop/src-tauri && cargo fmt --all -- --check",
     "rust:clippy": "cd packages/desktop/src-tauri && cargo clippy --all-targets -- -D warnings",
     "release:desktop": "node scripts/prepare-desktop-release.mjs",
-    "knip": "knip --workspace packages/desktop"
+    "knip": "knip --workspace packages/desktop",
+    "check:ui": "pnpm -F @nouto/ui run check"
   },
   "packageManager": "pnpm@11.21.0",
   "version": "0.0.0",
@@ -47,7 +48,7 @@
     "prettier": "^3.9.5",
     "prettier-plugin-svelte": "^4.1.1",
     "svelte": "^5.55.1",
-    "svelte-check": "^4.0.0",
+    "svelte-check": "^4.7.6",
     "typescript": "^6.0.2",
     "typescript-eslint": "^8.64.0"
   }

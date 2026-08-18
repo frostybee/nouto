@@ -15,8 +15,9 @@
 
   const targetValue = $derived.by(() => {
     if (explorerState().rawJson === undefined) return undefined;
-    if (selectedPath() && selectedPath() !== '$') {
-      return getValueAtPath(explorerState().rawJson, selectedPath());
+    const path = selectedPath();
+    if (path && path !== '$') {
+      return getValueAtPath(explorerState().rawJson, path);
     }
     return explorerState().rawJson;
   });

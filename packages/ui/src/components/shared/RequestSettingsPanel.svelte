@@ -31,7 +31,7 @@
     onProxyChange?.(updated.enabled || updated.host ? updated : undefined);
   }
 
-  function pickFile(field: 'cert' | 'key') {
+  function pickFile(field: 'cert' | 'key' | 'ca') {
     postMessage({ type: 'pickSslFile', data: { field } });
   }
 

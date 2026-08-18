@@ -5,6 +5,8 @@ import { generateId } from '../types';
 export type { HttpMethod, KeyValue, AuthState, BodyState };
 
 export interface RequestState {
+  /** Display name of the loaded saved request; unset for scratch requests. */
+  name?: string;
   method: HttpMethod;
   url: string;
   params: KeyValue[];
@@ -42,9 +44,10 @@ export const request = $state<RequestState>({ ...initialState });
 
 export interface RequestContext {
   panelId: string;
-  requestId: string;
-  collectionId: string;
-  collectionName: string;
+  /** null while the tab holds an unsaved request. */
+  requestId: string | null;
+  collectionId: string | null;
+  collectionName: string | null;
 }
 
 const _originalRequest = $state<{ value: RequestState | null }>({ value: null });
@@ -209,6 +212,11 @@ export function setDescription(description: string) {
   request.description = description;
 }
 
+/** Name is metadata (not part of the editable request), so no undo entry. */
+export function setName(name: string | undefined) {
+  request.name = name;
+}
+
 export function setSsl(ssl: SslConfig | undefined) {
   notifyChange('Change SSL config', 'immediate');
   request.ssl = ssl ? clone(ssl) : undefined;
@@ -244,6 +252,7 @@ export function patchGrpc(partial: Partial<GrpcConfig>) {
 export function resetRequest() {
   suppressUndoTracking(() => {
     Object.assign(request, clone(initialState));
+    request.name = undefined;
     clearOriginalSnapshot();
     clearRequestContext();
   });
@@ -252,6 +261,7 @@ export function resetRequest() {
 // Bulk restore for tab switching: sets all request fields + context + original snapshot in one call
 // Always suppressed from undo tracking (tab switching is not undoable)
 export function bulkSetRequest(data: {
+  name?: string;
   method?: string;
   url?: string;
   params?: KeyValue[];
@@ -274,6 +284,7 @@ export function bulkSetRequest(data: {
   originalSnapshot?: RequestState | null;
 }) {
   suppressUndoTracking(() => {
+    request.name = data.name;
     request.method = (data.method || 'GET') as HttpMethod;
     request.url = data.url || '';
     request.params = Array.isArray(data.params) ? ensureKvIds(data.params) : [];

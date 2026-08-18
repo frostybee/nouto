@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { Folder, CollectionItem as CollectionItemType, SavedRequest, RequestKind } from '../../types';
+  import type { Folder, CollectionItem as CollectionItemType, RequestKind } from '../../types';
   import { isFolder, isRequest, REQUEST_KIND } from '../../types';
   import {
     toggleFolderExpanded,
@@ -8,7 +8,7 @@
     deleteFolder,
     bulkDelete,
     updateRequest,
-    moveItem,
+    
     moveItemToPosition,
     sortItems,
     selectedFolderId,
@@ -16,7 +16,6 @@
   } from '../../stores/collections.svelte';
   import { ui } from '../../stores/ui.svelte';
   import { dragState, startDrag, startMultiDrag, endDrag, setDropTarget, dropTarget, computeDropPosition } from '../../stores/dragdrop.svelte';
-  import type { DropPosition } from '../../stores/dragdrop.svelte';
   import { multiSelect, isMultiSelectActive, selectedCount, toggleItemSelection, rangeSelectTo, clearMultiSelect, getTopLevelSelectedIds } from '../../stores/multiSelect.svelte';
   import RequestItem from './RequestItem.svelte';
   import CreateItemDialog from '../shared/CreateItemDialog.svelte';

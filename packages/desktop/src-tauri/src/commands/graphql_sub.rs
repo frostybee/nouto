@@ -283,14 +283,17 @@ pub async fn gql_sub_subscribe(
                                 if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(&text) {
                                     let msg_type = parsed["type"].as_str().unwrap_or("");
                                     match msg_type {
-                                        "next" | "data" => {
+                                        // Same shape as core's GqlSubEvent (id/type/data/timestamp),
+                                        // which the VS Code side already emits.
+                                        "next" | "data" | "error" => {
+                                            let event_type = if msg_type == "error" { "error" } else { "data" };
                                             let _ = app.emit("gqlSubEvent", json!({
-                                                "data": { "subscriptionId": sub_id, "payload": parsed["payload"], "timestamp": chrono::Utc::now().timestamp_millis() }
-                                            }));
-                                        }
-                                        "error" => {
-                                            let _ = app.emit("gqlSubEvent", json!({
-                                                "data": { "subscriptionId": sub_id, "error": parsed["payload"], "timestamp": chrono::Utc::now().timestamp_millis() }
+                                                "data": {
+                                                    "id": format!("gql-{}", uuid::Uuid::new_v4()),
+                                                    "type": event_type,
+                                                    "data": parsed["payload"].to_string(),
+                                                    "timestamp": chrono::Utc::now().timestamp_millis(),
+                                                }
                                             }));
                                         }
                                         "complete" => { break; }

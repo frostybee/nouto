@@ -37,6 +37,7 @@ export function createVscodeTheme(isDark: boolean) {
     '.cm-scroller': {
       fontFamily: 'var(--hf-editor-font-family, Consolas, Monaco, monospace)',
       fontSize: 'var(--hf-editor-font-size, 13px)',
+      overflow: 'auto',
     },
     '.cm-content': {
       caretColor: 'var(--hf-editorCursor-foreground, #d4d4d4)',
@@ -217,9 +218,6 @@ export function createVscodeTheme(isDark: boolean) {
     '.cm-panel.cm-search button[name="close"]:hover': {
       opacity: '1',
       backgroundColor: 'var(--hf-toolbar-hoverBackground, rgba(127, 127, 127, 0.15))',
-    },
-    '.cm-scroller': {
-      overflow: 'auto',
     },
     // Lint: error squiggly underline
     '.cm-lintRange-error': {

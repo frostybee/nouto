@@ -1,6 +1,7 @@
 <script lang="ts">
   export interface ContextMenuItem {
-    label: string;
+    /** Omitted for divider entries. */
+    label?: string;
     icon?: string;
     danger?: boolean;
     divider?: boolean;

@@ -92,21 +92,21 @@ describe('crossFileRefTargets', () => {
     const targets = await crossFileRefTargets(
       FROM_URI,
       partial,
-      'schema',
+      'Schema',
       makeResolver({ [COMMON_URI]: COMMON_YAML }, loads),
     );
     expect(targets).toEqual(['#/components/schemas/Pet', '#/components/schemas/Toy']);
   });
 
   it('returns [] for unresolvable or unparsable files', async () => {
-    expect(await crossFileRefTargets(FROM_URI, partial, 'schema', makeResolver({}, []))).toEqual(
+    expect(await crossFileRefTargets(FROM_URI, partial, 'Schema', makeResolver({}, []))).toEqual(
       [],
     );
     expect(
       await crossFileRefTargets(
         FROM_URI,
         partial,
-        'schema',
+        'Schema',
         makeResolver({ [COMMON_URI]: '{{{{not yaml' }, []),
       ),
     ).toEqual([]);
@@ -115,8 +115,8 @@ describe('crossFileRefTargets', () => {
   it('caches closed-file parses for the process lifetime', async () => {
     const loads: string[] = [];
     const resolver = makeResolver({ [COMMON_URI]: COMMON_YAML }, loads);
-    await crossFileRefTargets(FROM_URI, partial, 'schema', resolver);
-    await crossFileRefTargets(FROM_URI, partial, 'schema', resolver);
+    await crossFileRefTargets(FROM_URI, partial, 'Schema', resolver);
+    await crossFileRefTargets(FROM_URI, partial, 'Schema', resolver);
     expect(loads).toHaveLength(1);
   });
 
@@ -126,12 +126,12 @@ describe('crossFileRefTargets', () => {
     // Resolver reads the open buffer in production; the fixture map stands in.
     const resolver = makeResolver({ [COMMON_URI]: COMMON_YAML }, loads);
 
-    await crossFileRefTargets(FROM_URI, partial, 'schema', resolver);
-    await crossFileRefTargets(FROM_URI, partial, 'schema', resolver);
+    await crossFileRefTargets(FROM_URI, partial, 'Schema', resolver);
+    await crossFileRefTargets(FROM_URI, partial, 'Schema', resolver);
     expect(loads).toHaveLength(1); // same revision — cached
 
     setContentFor(id, COMMON_YAML + '# edit\n');
-    await crossFileRefTargets(FROM_URI, partial, 'schema', resolver);
+    await crossFileRefTargets(FROM_URI, partial, 'Schema', resolver);
     expect(loads).toHaveLength(2); // revision bumped — reloaded
   });
 });

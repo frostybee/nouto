@@ -1,6 +1,6 @@
-import type { GqlSubConfig, GqlSubStatus, GqlSubEvent, KeyValue } from '../types';
+import type { GqlSubConfig, GqlSubStatus, GqlSubEvent } from '../types';
 import { generateId } from '../types';
-import WebSocket = require('ws');
+import WebSocket from 'ws';
 
 // graphql-ws protocol message types (https://github.com/enisdenjo/graphql-ws/blob/master/PROTOCOL.md)
 const MSG_CONNECTION_INIT = 'connection_init';

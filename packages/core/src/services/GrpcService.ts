@@ -145,7 +145,7 @@ export class GrpcService {
   }
 
   private async reflectWithProto(
-    grpc: any, protoLoader: any, path: any,
+    grpc: any, protoLoader: any, _path: any,
     address: string, credentials: any, meta: any,
     protoPath: string, servicePath: string
   ): Promise<GrpcProtoDescriptor> {
@@ -770,11 +770,6 @@ export class GrpcService {
                 createdAt: now,
               });
             }
-          });
-
-          let initialMeta: Record<string, string> = {};
-          call.on('metadata', (md: any) => {
-            initialMeta = this.metadataToRecord(md);
           });
 
           this.activeCalls.set(connectionId, call);

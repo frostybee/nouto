@@ -3,7 +3,7 @@
   import MainPanel from './components/main-panel/MainPanel.svelte';
   import { setResponse, setMethod, setUrl, setParams, setHeaders, setAuth, setBody, setLoading, loadEnvironments, clearResponse, loadEnvFileVariables, setAssertions, setAuthInheritance, setScriptInheritance, setDownloadProgress } from './stores';
   import { environments, activeEnvironmentId, globalVariables, updateEnvironmentVariables, updateGlobalVariables, updateCollectionScopedVariables } from './stores/environment.svelte';
-  import { setScripts, setDescription, setUrlAndParams, setSsl, setProxy, setTimeout as setRequestTimeout, setRedirects, setPathParams, isDirty, originalRequest, setOriginalSnapshot, clearOriginalSnapshot, setRequestContext, clearRequestContext, setGrpc, patchGrpc } from './stores/request.svelte';
+  import { setScripts, setDescription, setName, setUrlAndParams, setSsl, setProxy, setTimeout as setRequestTimeout, setRedirects, setPathParams, isDirty, originalRequest, setOriginalSnapshot, clearOriginalSnapshot, setRequestContext, clearRequestContext, setGrpc, patchGrpc } from './stores/request.svelte';
   import type { RequestState } from './stores/request.svelte';
   import { loadSettings } from './stores/settings.svelte';
   import { request } from './stores/request.svelte';
@@ -286,7 +286,7 @@
           console.warn('[Nouto]', message.data.message);
           break;
         case 'envFileVariablesUpdated':
-          loadEnvFileVariables(message.data);
+          loadEnvFileVariables({ ...message.data, filePath: message.data.filePath ?? null });
           break;
         case 'scriptOutput':
           if (message.data.phase === 'preRequest') {
@@ -493,6 +493,7 @@
     clearResponse();
     clearAssertionResults();
     clearScriptOutput();
+    setName(data.name);
     setMethod(data.method || 'GET');
     // Ensure params and headers are arrays (defensive coding)
     const params = Array.isArray(data.params) ? data.params : [];
@@ -625,8 +626,9 @@
       showPalette = false;
     }}
     onConflictReload={async () => {
-      if (conflictState()?.updatedRequest) {
-        loadRequest(conflictState().updatedRequest);
+      const conflict = conflictState();
+      if (conflict?.updatedRequest) {
+        loadRequest(conflict.updatedRequest);
         clearConflict();
         await tick();
         setOriginalSnapshot($state.snapshot(request));

@@ -7,3 +7,6 @@ declare module '*?raw' {
   const content: string;
   export default content;
 }
+
+// No published types for the CodeMirror rainbow-brackets extension.
+declare module 'rainbowbrackets';

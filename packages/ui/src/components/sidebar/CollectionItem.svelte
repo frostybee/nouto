@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { Collection, CollectionItem as CollectionItemType, SavedRequest, RequestKind } from '../../types';
+  import type { Collection, RequestKind } from '../../types';
   import { isFolder, isRequest, REQUEST_KIND } from '../../types';
   import { countAllItems } from '../../lib/tree-helpers';
   import { ui } from '../../stores/ui.svelte';
@@ -9,12 +9,12 @@
     deleteCollection,
     addFolder,
     updateRequest,
-    moveItem,
+    
     moveItemToPosition,
     reorderCollections,
     sortItems,
     selectedCollectionId,
-    getAllRequests,
+    
     isDraftsCollection,
   } from '../../stores/collections.svelte';
   import { dragState, startDrag, endDrag, setDropTarget, dropTarget, computeDropPosition } from '../../stores/dragdrop.svelte';

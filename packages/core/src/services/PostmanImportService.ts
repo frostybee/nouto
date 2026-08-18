@@ -1,6 +1,6 @@
 import type {
   Collection, CollectionItem, SavedRequest, Folder, KeyValue,
-  AuthState, BodyState, HttpMethod, Environment, EnvironmentVariable,
+  AuthState, BodyState, HttpMethod, Environment, 
 } from '../types';
 import { generateId } from '../types';
 

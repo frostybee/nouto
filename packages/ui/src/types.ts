@@ -5,5 +5,5 @@ export * from '@nouto/core';
 // UI-only types (webview-specific, not shared with extension)
 
 export type SidebarTab = 'collections' | 'history';
-export type RequestTab = 'query' | 'path' | 'headers' | 'auth' | 'body' | 'tests' | 'scripts' | 'notes' | 'settings';
+export type { RequestTab } from './stores/ui.svelte';
 export type ResponseTab = 'body' | 'headers' | 'cookies' | 'redirects' | 'timing' | 'timeline' | 'tests' | 'scripts';

@@ -61,12 +61,11 @@ jobs:
       - name: ESLint
         run: pnpm run lint
 
-      # svelte-check currently reports pre-existing type errors coming from
-      # @nouto/ui and @nouto/core (desktop's tsconfig is stricter than theirs).
-      # Advisory until that debt is paid down; flip continue-on-error off then.
-      - name: svelte-check (advisory)
+      - name: svelte-check (desktop)
         run: pnpm run check:desktop
-        continue-on-error: true
+
+      - name: svelte-check (ui)
+        run: pnpm run check:ui
 
       - name: Desktop unit tests
         run: pnpm -F @nouto/desktop test

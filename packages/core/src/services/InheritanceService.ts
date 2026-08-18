@@ -39,7 +39,7 @@ export function getItemPath(collection: Collection, itemId: string): (Collection
  *   state to take precedence over the persisted value.
  */
 export function resolveAuthForRequest(
-  collection: Collection,
+  _collection: Collection,
   ancestors: (Collection | Folder)[],
   request: SavedRequest,
   overrideInheritance?: AuthInheritance

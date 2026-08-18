@@ -5,7 +5,6 @@
 
 import type { ConnectionMode } from '@nouto/core';
 import type { ResponseState } from './response.svelte';
-import type { RequestState, RequestContext } from './request.svelte';
 import { clearRequestUndoStack } from './requestUndo.svelte';
 
 // --- Imports for capture (reading singleton stores) ---

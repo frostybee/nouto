@@ -13,7 +13,7 @@ import { foldService } from '@codemirror/language';
  * on parser completion.
  */
 export function rootFoldService() {
-  return foldService.of((state, lineStart, lineEnd) => {
+  return foldService.of((state, lineStart) => {
     // Only handle the first line
     if (lineStart !== 0) return null;
 

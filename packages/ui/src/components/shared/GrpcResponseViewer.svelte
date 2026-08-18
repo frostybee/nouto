@@ -1,9 +1,8 @@
 <script lang="ts">
   import { GRPC_STATUS_CODES } from '../../types';
-  import type { GrpcEvent } from '../../types';
   import { grpcConnection, grpcEvents, grpcConnectionHistory, selectPreviousConnection, grpcIsStreaming } from '../../stores/grpc.svelte';
   import { formatBytes } from '../../stores/response.svelte';
-  import { ui, togglePanelLayout, setPanelLayout } from '../../stores/ui.svelte';
+  import { ui, togglePanelLayout } from '../../stores/ui.svelte';
   import { resolvedShortcuts } from '../../stores/settings.svelte';
   import { bindingToDisplayString } from '../../lib/shortcuts';
   import Tooltip from './Tooltip.svelte';
@@ -178,12 +177,8 @@
 
   const testResults = $derived(assertionResults());
 
-  let manualLayoutOverride = $state(false);
-
   function handleToggleLayout() {
-    manualLayoutOverride = true;
     togglePanelLayout();
-    setTimeout(() => { manualLayoutOverride = false; }, 5000);
   }
 
   function handleConnectionChange(e: Event) {

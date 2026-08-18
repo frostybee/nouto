@@ -1,7 +1,7 @@
 // Runner result export service - generates JSON, CSV, JUnit XML, and HTML reports
 // from collection runner results. Platform-independent, used by VS Code, Desktop, and future CLI.
 
-import type { CollectionRunRequestResult, AssertionResult, ScriptTestResult } from '../types';
+import type { CollectionRunRequestResult } from '../types';
 
 export type RunnerExportFormat = 'json' | 'csv' | 'junit' | 'html';
 

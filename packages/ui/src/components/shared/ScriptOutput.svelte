@@ -1,6 +1,5 @@
 <script lang="ts">
   import { scriptOutput } from '../../stores/scripts.svelte';
-  import type { ScriptResult } from '../../types';
 
   const preResult = $derived(scriptOutput.preRequest);
   const postResult = $derived(scriptOutput.postResponse);

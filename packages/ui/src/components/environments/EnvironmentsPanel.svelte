@@ -246,9 +246,10 @@
   }
 
   // ── .env file section ──────────────────────────────────────────────
-  const envFileName = $derived(
-    envFilePath() ? envFilePath().split(/[\\/]/).pop() || '.env' : null
-  );
+  const envFileName = $derived.by(() => {
+    const path = envFilePath();
+    return path ? path.split(/[\\/]/).pop() || '.env' : null;
+  });
 
   function handleLinkEnvFile() {
     postMessage({ type: 'linkEnvFile' });

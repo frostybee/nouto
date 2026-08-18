@@ -1,6 +1,6 @@
 <script lang="ts">
   // Desktop App - Single-window SPA merging sidebar + main/runner/mock/benchmark views
-  import { onMount } from 'svelte';
+  import { onMount, onDestroy } from 'svelte';
   import { getCurrentWindow } from '@tauri-apps/api/window';
   import { isLinux, getPlatform } from './lib/platform';
   import { logger } from './lib/logger';
@@ -111,6 +111,7 @@
     setScriptInheritance,
     setScripts,
     setDescription,
+    setName,
     setUrlAndParams,
     setDownloadProgress,
     setSsl,
@@ -178,7 +179,6 @@
     openTab,
     closeTab,
     switchTab as switchTabFn,
-    updateTabLabel,
     setTabRequestId,
     findTabByRequestId,
     findSingletonTab,
@@ -228,6 +228,7 @@
     generateId,
     deriveNameFromUrl,
     type SavedRequest,
+    type KeyValue,
     type Collection,
     type ConnectionMode,
   } from '@nouto/core';
@@ -330,7 +331,7 @@
 
   // Request identity (for MainPanel)
   let panelId: string | null = null;
-  let requestId: string | null = null;
+  let requestId: string | null = $state<string | null>(null);
   let collectionId: string | null = $state<string | null>(null);
   let collectionName: string | null = $state<string | null>(null);
   let showSaveNudge = $state(false);
@@ -375,6 +376,12 @@
       typeof (payload as AppearanceSettings).editorFontSize === 'number'
     );
   }
+
+  // Svelte ignores a cleanup function returned from an async onMount (it only
+  // honours a synchronous function return), so the teardown is registered
+  // through onDestroy instead.
+  let unmountCleanup: (() => void) | null = null;
+  onDestroy(() => unmountCleanup?.());
 
   onMount(async () => {
     // Initialize onboarding state from localStorage
@@ -603,7 +610,7 @@
     // Check for updates after a short delay (non-blocking)
     setTimeout(() => checkForUpdates(), 5000);
 
-    return () => {
+    unmountCleanup = () => {
       document.removeEventListener('contextmenu', preventContextMenu);
       cleanupBrowserKeys();
       unwatchSystemTheme();
@@ -697,7 +704,7 @@
         }
 
         case 'envFileVariablesUpdated':
-          loadEnvFileVariables(message.data);
+          loadEnvFileVariables({ ...message.data, filePath: message.data.filePath ?? null });
           break;
 
         case 'loadRequest':
@@ -851,17 +858,9 @@
           setSSEStatus(message.data.status, message.data.error);
           break;
 
-        case 'sseEvent': {
-          const raw = message.data;
-          addSSEEvent({
-            id: `sse-${generateId()}`,
-            eventId: raw.id,
-            eventType: raw.type || 'message',
-            data: raw.data,
-            timestamp: raw.timestamp,
-          });
+        case 'sseEvent':
+          addSSEEvent(message.data);
           break;
-        }
 
         case 'cookieJarData':
           setCookieJarData(message.data || {});
@@ -932,7 +931,6 @@
           const atId = activeTabIdFn();
           if (atId) {
             setTabRequestId(atId, requestId, collectionId, collectionName);
-            if (message.data.requestName) updateTabLabel(atId, message.data.requestName);
           }
           break;
         }
@@ -1047,16 +1045,9 @@
         case 'gqlSubStatus':
           setGqlSubStatus(message.data.status, message.data.error);
           break;
-        case 'gqlSubEvent': {
-          const gqlRaw = message.data;
-          addGqlSubEvent({
-            id: `gql-${generateId()}`,
-            type: gqlRaw.error ? 'error' : 'data',
-            data: JSON.stringify(gqlRaw.error || gqlRaw.payload),
-            timestamp: gqlRaw.timestamp,
-          });
+        case 'gqlSubEvent':
+          addGqlSubEvent(message.data);
           break;
-        }
 
         // gRPC events
         case 'grpcProtoLoaded':
@@ -1174,7 +1165,7 @@
               timeout: requestStore.timeout,
               followRedirects: requestStore.followRedirects,
               maxRedirects: requestStore.maxRedirects,
-              connectionMode: reqData?.connectionMode || requestStore.connectionMode,
+              connectionMode: reqData?.connectionMode || ui.connectionMode,
               grpc: requestStore.grpc,
             },
             targetFolderId || undefined,
@@ -1228,7 +1219,7 @@
             timeout: requestStore.timeout,
             followRedirects: requestStore.followRedirects,
             maxRedirects: requestStore.maxRedirects,
-            connectionMode: newReqData?.connectionMode || requestStore.connectionMode,
+            connectionMode: newReqData?.connectionMode || ui.connectionMode,
             grpc: requestStore.grpc,
           });
           if (!savedNew) break;
@@ -1309,6 +1300,7 @@
     clearResponse();
     clearAssertionResults();
     clearScriptOutput();
+    setName(data.name);
     setMethod(data.method || 'GET');
     const params = Array.isArray(data.params) ? data.params : [];
     const headers = Array.isArray(data.headers) ? data.headers : [];
@@ -2275,39 +2267,40 @@
   </div>
 {/if}
 
-{#if pendingInput()?.type === 'inputBox'}
-  <InputBoxModal
-    open={true}
-    prompt={pendingInput().data.prompt}
-    placeholder={pendingInput().data.placeholder}
-    value={pendingInput().data.value}
-    validateNotEmpty={pendingInput().data.validateNotEmpty}
-    onsubmit={(value) => respondInputBox(value)}
-    oncancel={() => respondInputBox(null)}
-  />
-{:else if pendingInput()?.type === 'quickPick'}
-  <QuickPickModal
-    open={true}
-    title={pendingInput().data.title}
-    items={pendingInput().data.items}
-    canPickMany={pendingInput().data.canPickMany}
-    onselect={(value) => respondQuickPick(value)}
-    oncancel={() => respondQuickPick(null)}
-  />
-{:else if pendingInput()?.type === 'confirm'}
-  <ConfirmDialog
-    open={true}
-    message={pendingInput().data.message}
-    confirmLabel={pendingInput().data.confirmLabel}
-    cancelLabel={pendingInput().data.cancelLabel}
-    tertiaryLabel={pendingInput().data.tertiaryLabel}
-    variant={pendingInput().data.variant}
-    onconfirm={() => respondConfirmTriState('save')}
-    oncancel={() => respondConfirmTriState('cancel')}
-    ontertiary={pendingInput().data.tertiaryLabel
-      ? () => respondConfirmTriState('discard')
-      : undefined}
-  />
+{#if pendingInput()}
+  {@const input = pendingInput()!}
+  {#if input.type === 'inputBox'}
+    <InputBoxModal
+      open={true}
+      prompt={input.data.prompt}
+      placeholder={input.data.placeholder}
+      value={input.data.value}
+      validateNotEmpty={input.data.validateNotEmpty}
+      onsubmit={(value) => respondInputBox(value)}
+      oncancel={() => respondInputBox(null)}
+    />
+  {:else if input.type === 'quickPick'}
+    <QuickPickModal
+      open={true}
+      title={input.data.title}
+      items={input.data.items}
+      canPickMany={input.data.canPickMany}
+      onselect={(value) => respondQuickPick(value)}
+      oncancel={() => respondQuickPick(null)}
+    />
+  {:else if input.type === 'confirm'}
+    <ConfirmDialog
+      open={true}
+      message={input.data.message}
+      confirmLabel={input.data.confirmLabel}
+      cancelLabel={input.data.cancelLabel}
+      tertiaryLabel={input.data.tertiaryLabel}
+      variant={input.data.variant}
+      onconfirm={() => respondConfirmTriState('save')}
+      oncancel={() => respondConfirmTriState('cancel')}
+      ontertiary={input.data.tertiaryLabel ? () => respondConfirmTriState('discard') : undefined}
+    />
+  {/if}
 {/if}
 
 {#if collectionSettingsDialogData}
@@ -2365,7 +2358,7 @@
       params: entry.params || [],
       pathParams: entry.pathParams || [],
       headers: (entry.headers || []).filter(
-        (h) => h.key && !h.key.toLowerCase().startsWith('content-length'),
+        (h: KeyValue) => h.key && !h.key.toLowerCase().startsWith('content-length'),
       ),
       auth: entry.auth || { type: 'none' },
       body: entry.body || { type: 'none', content: '' },
@@ -2616,9 +2609,6 @@
             onLoadSampleCollection={handleLoadSampleCollection}
             {projectPath}
             onCloseProject={handleCloseProject}
-            {recentProjects}
-            onOpenRecentProject={handleOpenRecentProject}
-            onClearRecentProjects={() => messageBus.send({ type: 'clearRecentProjectsCmd' } as any)}
           />
         {:else if sidebarView === 'history'}
           <HistoryTab {postMessage} />
@@ -2676,6 +2666,7 @@
       {:else}
         <div style:display={tabsList().length === 0 ? 'none' : 'contents'}>
           <MainPanel
+            requestId={activeTabFn()?.requestId ?? requestId}
             collectionId={activeTabFn()?.collectionId ?? collectionId}
             collectionName={activeTabFn()?.collectionName ?? collectionName}
             {collections}
@@ -2693,7 +2684,7 @@
         </div>
       {/if}
     {:else if currentView === 'runner'}
-      <CollectionRunnerPanel {postMessage} />
+      <CollectionRunnerPanel />
     {:else if currentView === 'mock'}
       <MockServerPanel {postMessage} />
     {:else if currentView === 'benchmark'}

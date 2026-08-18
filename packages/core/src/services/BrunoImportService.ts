@@ -43,7 +43,6 @@ export class BrunoImportService {
     const now = new Date().toISOString();
 
     // Build folder tree from file paths
-    const root: Map<string, any> = new Map();
     const requests: Array<{ path: string[]; request: SavedRequest }> = [];
 
     for (const [filePath, content] of files) {

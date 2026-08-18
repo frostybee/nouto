@@ -52,7 +52,6 @@
     { id: 'anyItemEndsWith', label: 'any[] ends' },
   ];
 
-  const numericTargets: AssertionTarget[] = ['status', 'responseTime', 'responseSize', 'streamMessageCount'];
   const showProperty = $derived(
     assertion.target === 'jsonQuery' || assertion.target === 'header' || assertion.target === 'setVariable'
     || assertion.target === 'trailer' || assertion.target === 'streamMessage'

@@ -3,7 +3,7 @@
   import {
     setSearchQuery, setSearchOptions, nextSearchResult, prevSearchResult,
     clearSearch, searchResults, searchCurrentIndex, searchQuery,
-    filterMode, toggleFilterMode, searchFuzzy,
+    filterMode, toggleFilterMode, 
     searchScopePath, setSearchScopePath,
   } from '../stores/jsonExplorer.svelte';
   import Tooltip from '@nouto/ui/components/shared/Tooltip.svelte';

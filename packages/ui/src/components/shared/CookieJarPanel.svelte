@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { cookieJarData, cookieJars, activeCookieJarId, activeCookieJar, switchCookieJar, createCookieJar, renameCookieJar, deleteCookieJar as deleteJar, type Cookie, addCookie, updateCookie, deleteCookie, deleteCookieDomain, clearCookieJar, requestCookieJarData, requestCookieJars } from '../../stores/cookieJar.svelte';
+  import { cookieJarData, cookieJars, activeCookieJarId, switchCookieJar, createCookieJar, renameCookieJar, deleteCookieJar as deleteJar, type Cookie, addCookie, updateCookie, deleteCookie, deleteCookieDomain, clearCookieJar, requestCookieJarData, requestCookieJars } from '../../stores/cookieJar.svelte';
   import { onMount } from 'svelte';
   import Tooltip from './Tooltip.svelte';
 
@@ -18,7 +18,6 @@
 
   const jarList = $derived(cookieJars());
   const activeId = $derived(activeCookieJarId());
-  const activeJar = $derived(activeCookieJar());
 
   // Selected jar for viewing cookies (defaults to active jar)
   let selectedJarId = $state<string | null>(null);

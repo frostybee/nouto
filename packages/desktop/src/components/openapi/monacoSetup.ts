@@ -146,7 +146,7 @@ function yamlOptions(version: OpenApiVersion, intelliSenseEnabled: boolean) {
     hover: false,
     completion: intelliSenseEnabled,
     validate: false,
-    format: false,
+    format: { enable: false },
     schemas: yamlSchemas(version),
   };
 }

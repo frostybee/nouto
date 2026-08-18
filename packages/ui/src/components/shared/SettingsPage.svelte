@@ -9,7 +9,7 @@
     bindingToDisplayString,
     detectConflicts,
     type ShortcutAction,
-    type ShortcutBinding,
+    
   } from '../../lib/shortcuts';
   import { postMessage } from '../../lib/vscode';
   import type { DesktopHost } from '../../lib/desktop-host';

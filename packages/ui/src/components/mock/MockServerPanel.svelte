@@ -5,7 +5,7 @@
     addRoute,
     removeRoute,
     updateRoute,
-    updateRoutes,
+    
     clearLogs,
   } from '../../stores/mockServer.svelte';
   import MockRouteRow from './MockRouteRow.svelte';
@@ -17,14 +17,14 @@
 
   let { postMessage = defaultPostMessage }: { postMessage?: (message: any) => void } = $props();
 
-  const state = $derived(mockServerState);
+  const server = $derived(mockServerState);
 
   let activeTab = $state<'routes' | 'logs'>('routes');
 
   function handleStart() {
     postMessage({
       type: 'startMockServer',
-      data: { config: $state.snapshot(state.config) },
+      data: { config: $state.snapshot(server.config) },
     });
   }
 
@@ -71,12 +71,12 @@
     // Debounced: send current routes to extension for persistence and live update
     postMessage({
       type: 'updateMockRoutes',
-      data: { config: $state.snapshot(state.config) },
+      data: { config: $state.snapshot(server.config) },
     });
   }
 
-  const isRunning = $derived(state.status === 'running');
-  const isBusy = $derived(state.status === 'starting' || state.status === 'stopping');
+  const isRunning = $derived(server.status === 'running');
+  const isBusy = $derived(server.status === 'starting' || server.status === 'stopping');
 </script>
 
 <div class="mock-panel">
@@ -98,7 +98,7 @@
             type="number"
             min="1024"
             max="65535"
-            value={state.config.port}
+            value={server.config.port}
             disabled={isRunning || isBusy}
             onchange={(e) => {
               setPort(parseInt((e.target as HTMLInputElement).value) || 3000);
@@ -108,22 +108,22 @@
         </div>
         {#if isRunning}
           <button class="stop-btn" onclick={handleStop} disabled={isBusy}>Stop Server</button>
-          <span class="status-badge running">Running on :{state.config.port}</span>
+          <span class="status-badge running">Running on :{server.config.port}</span>
         {:else}
-          <button class="start-btn" onclick={handleStart} disabled={isBusy || state.config.routes.length === 0}>
+          <button class="start-btn" onclick={handleStart} disabled={isBusy || server.config.routes.length === 0}>
             Start Server
           </button>
-          <span class="status-badge stopped">{state.status === 'error' ? 'Error' : 'Stopped'}</span>
+          <span class="status-badge stopped">{server.status === 'error' ? 'Error' : 'Stopped'}</span>
         {/if}
       </div>
     </div>
 
     <div class="tabs">
       <button class="tab" class:active={activeTab === 'routes'} onclick={() => activeTab = 'routes'}>
-        Routes ({state.config.routes.length})
+        Routes ({server.config.routes.length})
       </button>
       <button class="tab" class:active={activeTab === 'logs'} onclick={() => activeTab = 'logs'}>
-        Request Log ({state.logs.length})
+        Request Log ({server.logs.length})
       </button>
     </div>
 
@@ -133,22 +133,22 @@
         <button class="tool-btn" onclick={handleImportCollection}>Import from Collection</button>
       </div>
       <div class="routes-list">
-        {#each state.config.routes as route (route.id)}
+        {#each server.config.routes as route (route.id)}
           <MockRouteRow
             {route}
             onUpdate={(updates) => handleUpdateRoute(route.id, updates)}
             onRemove={() => handleRemoveRoute(route.id)}
           />
         {/each}
-        {#if state.config.routes.length === 0}
+        {#if server.config.routes.length === 0}
           <div class="empty">No routes defined. Add a route or import from a collection.</div>
         {/if}
       </div>
     {:else}
       <div class="log-toolbar">
-        <button class="tool-btn" onclick={handleClearLogs} disabled={state.logs.length === 0}>Clear Logs</button>
+        <button class="tool-btn" onclick={handleClearLogs} disabled={server.logs.length === 0}>Clear Logs</button>
       </div>
-      <MockRequestLogTable logs={state.logs} routes={state.config.routes} />
+      <MockRequestLogTable logs={server.logs} routes={server.config.routes} />
     {/if}
   </div>
 </div>

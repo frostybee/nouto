@@ -1,7 +1,6 @@
 <script lang="ts">
   import type { FormDataItem } from '../../lib/form-helpers';
   import { postMessage, onMessage } from '../../lib/vscode';
-  import { generateId } from '../../types';
   import VariableResolverButton from './VariableResolverButton.svelte';
   import VariableAutocompleteInput from './VariableAutocompleteInput.svelte';
   import Tooltip from './Tooltip.svelte';

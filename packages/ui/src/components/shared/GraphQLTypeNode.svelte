@@ -21,13 +21,6 @@
     return ref.name || 'Unknown';
   }
 
-  function getTypeName(ref: GraphQLTypeRef): string | undefined {
-    if (ref.kind === 'NON_NULL' || ref.kind === 'LIST') {
-      return ref.ofType ? getTypeName(ref.ofType) : undefined;
-    }
-    return ref.name || undefined;
-  }
-
   function handleCopyName() {
     copyToClipboard(field.name);
   }

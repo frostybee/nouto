@@ -9,13 +9,13 @@
 
   let { postMessage = defaultPostMessage }: { postMessage?: (message: any) => void } = $props();
 
-  const state = $derived(benchmarkState);
+  const bench = $derived(benchmarkState);
 
   function handleStart() {
     setRunning();
     postMessage({
       type: 'startBenchmark',
-      data: { config: $state.snapshot(state.config) },
+      data: { config: $state.snapshot(bench.config) },
     });
   }
 
@@ -35,7 +35,7 @@
   }
 
   const progressPercent = $derived(
-    state.progress.total > 0 ? Math.round((state.progress.current / state.progress.total) * 100) : 0
+    bench.progress.total > 0 ? Math.round((bench.progress.current / bench.progress.total) * 100) : 0
   );
 </script>
 
@@ -50,49 +50,49 @@
   <div class="panel-content">
     <div class="header">
       <h2>Performance Benchmark</h2>
-      {#if state.requestName}
+      {#if bench.requestName}
         <div class="request-info">
-          <span class="method method-{state.requestMethod.toLowerCase()}">{state.requestMethod}</span>
-          <span class="url">{state.requestUrl}</span>
+          <span class="method method-{bench.requestMethod.toLowerCase()}">{bench.requestMethod}</span>
+          <span class="url">{bench.requestUrl}</span>
         </div>
       {/if}
     </div>
 
-    {#if state.status === 'idle'}
+    {#if bench.status === 'idle'}
       <BenchmarkConfigForm
-        config={state.config}
+        config={bench.config}
         onUpdate={(updates) => updateConfig(updates)}
         onStart={handleStart}
       />
-    {:else if state.status === 'running'}
+    {:else if bench.status === 'running'}
       <div class="progress-section">
         <div class="progress-header">
-          <span>Running... {state.progress.current} / {state.progress.total} ({progressPercent}%)</span>
+          <span>Running... {bench.progress.current} / {bench.progress.total} ({progressPercent}%)</span>
           <button class="cancel-btn" onclick={handleCancel}>Cancel</button>
         </div>
         <div class="progress-bar">
           <div class="progress-fill" style="width: {progressPercent}%"></div>
         </div>
       </div>
-      {#if state.iterations.length > 0}
-        <BenchmarkIterationTable iterations={state.iterations} />
+      {#if bench.iterations.length > 0}
+        <BenchmarkIterationTable iterations={bench.iterations} />
       {/if}
-    {:else if state.status === 'completed' || state.status === 'cancelled'}
+    {:else if bench.status === 'completed' || bench.status === 'cancelled'}
       <div class="results-actions">
         <button class="action-btn" onclick={handleReset}>New Benchmark</button>
         <button class="action-btn" onclick={() => handleExport('json')}>Export JSON</button>
         <button class="action-btn" onclick={() => handleExport('csv')}>Export CSV</button>
-        {#if state.status === 'cancelled'}
+        {#if bench.status === 'cancelled'}
           <span class="cancelled-badge">Cancelled</span>
         {/if}
       </div>
-      {#if state.statistics}
-        <BenchmarkStatisticsTable statistics={state.statistics} />
+      {#if bench.statistics}
+        <BenchmarkStatisticsTable statistics={bench.statistics} />
       {/if}
-      {#if state.distribution.length > 0}
-        <BenchmarkDistributionChart distribution={state.distribution} />
+      {#if bench.distribution.length > 0}
+        <BenchmarkDistributionChart distribution={bench.distribution} />
       {/if}
-      <BenchmarkIterationTable iterations={state.iterations} />
+      <BenchmarkIterationTable iterations={bench.iterations} />
     {/if}
   </div>
 </div>

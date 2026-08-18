@@ -8,7 +8,7 @@
   interface Props {
     value: string;
     placeholder?: string;
-    suggestions?: string[];
+    suggestions?: readonly string[];
     suggestionDescriptions?: Record<string, HeaderInfo>;
     oninput?: (value: string) => void;
     onkeydown?: (e: KeyboardEvent) => void;

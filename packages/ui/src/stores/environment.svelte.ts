@@ -1,4 +1,4 @@
-import type { EnvironmentVariable as CoreEnvironmentVariable, Collection, CollectionItem, Folder } from '@nouto/core';
+import type { EnvironmentVariable as CoreEnvironmentVariable, Collection, CollectionItem, Folder, KeyValue } from '@nouto/core';
 import { resolveDynamicVariable, isFolder, generateId } from '@nouto/core';
 import { postMessage } from '../lib/vscode';
 import { getResponseValue, getResponseValueByName } from './responseContext.svelte';
@@ -23,7 +23,7 @@ const _activeEnvironmentId = $state<{ value: string | null }>({ value: null });
 const _envFileVariables = $state<{ value: EnvironmentVariable[] }>({ value: [] });
 const _envFilePath = $state<{ value: string | null }>({ value: null });
 const _collectionScopedVariables = $state<{ value: EnvironmentVariable[] }>({ value: [] });
-const _collectionScopedHeaders = $state<{ value: { key: string; value: string; enabled: boolean }[] }>({ value: [] });
+const _collectionScopedHeaders = $state<{ value: KeyValue[] }>({ value: [] });
 const _projectPath = $state<{ value: string | null }>({ value: null });
 
 export interface InheritedScriptEntry {
@@ -52,7 +52,7 @@ export function setActiveEnvironmentId(id: string | null) { _activeEnvironmentId
 export function setEnvFileVariables(vars: EnvironmentVariable[]) { _envFileVariables.value = vars; }
 export function setEnvFilePath(path: string | null) { _envFilePath.value = path; }
 export function setCollectionScopedVariables(vars: EnvironmentVariable[]) { _collectionScopedVariables.value = vars; }
-export function setCollectionScopedHeaders(headers: { key: string; value: string; enabled: boolean }[]) { _collectionScopedHeaders.value = headers; }
+export function setCollectionScopedHeaders(headers: KeyValue[]) { _collectionScopedHeaders.value = headers; }
 export function setCollectionScopedScripts(scripts: InheritedScriptEntry[]) { _collectionScopedScripts.value = scripts; }
 export function setProjectPath(path: string | null) { _projectPath.value = path; }
 
@@ -139,7 +139,7 @@ export function updateCollectionScopedVariables(
   }
 
   // Merge headers: collection first, then folders top-to-bottom (child overrides parent by key)
-  const headerMap = new Map<string, { key: string; value: string; enabled: boolean }>();
+  const headerMap = new Map<string, KeyValue>();
   if (collection.headers) {
     for (const h of collection.headers) {
       if (h.key) headerMap.set(h.key.toLowerCase(), h);
@@ -208,13 +208,13 @@ export function getScopedContextForRequest(
   allCollections: Collection[],
   collectionId: string,
   requestId: string
-): { variables: Map<string, string>; headers: { key: string; value: string; enabled: boolean }[] } {
+): { variables: Map<string, string>; headers: KeyValue[] } {
   const empty = { variables: new Map<string, string>(), headers: [] };
   const collection = allCollections.find(c => c.id === collectionId);
   if (!collection) return empty;
 
   const varMap = new Map<string, string>();
-  const headerMap = new Map<string, { key: string; value: string; enabled: boolean }>();
+  const headerMap = new Map<string, KeyValue>();
 
   // Collection-level
   if (collection.variables) {

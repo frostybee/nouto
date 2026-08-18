@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { explorerState, viewMode, setViewMode, isTableable, tableData, tableSourcePath, viewArrayAsTable, flatNodes, initJsonExplorer, updateJsonData, searchQuery, searchMatchPaths, searchResults, searchCurrentIndex, filterMode, comparisonJson, clearComparison, queryMatchPaths, queryCurrentPath, multiSelectCount, multiSelectedPaths, isBookmarked, toggleBookmark, sortKeys, toggleSortKeys, showScrollToTop } from '../stores/jsonExplorer.svelte';
+  import { explorerState, viewMode, setViewMode, isTableable, tableData, tableSourcePath, viewArrayAsTable, flatNodes, updateJsonData, searchQuery, searchMatchPaths, searchResults, searchCurrentIndex, filterMode, comparisonJson, clearComparison, queryMatchPaths, queryCurrentPath, multiSelectCount, multiSelectedPaths, isBookmarked, toggleBookmark, sortKeys, toggleSortKeys, showScrollToTop } from '../stores/jsonExplorer.svelte';
   import ExplorerToolbar from './ExplorerToolbar.svelte';
   import SearchBar from './SearchBar.svelte';
   import JsonPathFilterBar from './JsonPathFilterBar.svelte';

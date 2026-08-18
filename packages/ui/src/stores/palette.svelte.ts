@@ -73,16 +73,12 @@ export function initPaletteSearch(collectionsData?: any[]): void {
 function buildRecentResults(): PaletteResult[] {
   const recentRequestIds = topRequests().slice(0, 5);
   const allRequests = getAllSearchableRequests();
-  return recentRequestIds
-    .map(id => {
-      const request = allRequests.find(r => r.id === id);
-      return request ? {
-        type: 'recent' as const,
-        id: request.id,
-        request,
-      } : null;
-    })
-    .filter((r): r is PaletteResult => r !== null);
+  const results: PaletteResult[] = [];
+  for (const id of recentRequestIds) {
+    const request = allRequests.find(r => r.id === id);
+    if (request) results.push({ type: 'recent', id: request.id, request });
+  }
+  return results;
 }
 
 // ─── Actions ───

@@ -230,10 +230,10 @@
       <button class="toolbar-btn" onclick={openExampleDocument} title="Open Example">
         <span class="codicon codicon-beaker"></span>
       </button>
-      <button class="toolbar-btn" onclick={saveDocument} title="Save (Ctrl+S)">
+      <button class="toolbar-btn" onclick={() => void saveDocument()} title="Save (Ctrl+S)">
         <span class="codicon codicon-save"></span>
       </button>
-      <button class="toolbar-btn" onclick={saveDocumentAs} title="Save As…">
+      <button class="toolbar-btn" onclick={() => void saveDocumentAs()} title="Save As…">
         <span class="codicon codicon-save-as"></span>
       </button>
     </div>
@@ -268,21 +268,23 @@
           class="editor-pane-host"
           style="flex: {openApiSession.previewVisible ? 1 - openApiSession.previewSplitRatio : 1}"
         >
-          <OpenApiEditorSurface
-            bind:this={surfaceRef}
-            sessionId={openApiSession.id}
-            content={openApiSession.content}
-            format={openApiSession.format}
-            schemaVersion={openApiSession.version}
-            diagnostics={openApiSession.diagnostics}
-            {pointerMap}
-            onchange={setContent}
-            onsave={() => void saveDocument()}
-            oncursorchange={(info) => {
-              lastCursorOffset = info.offset;
-              syncCursor(info.offset);
-            }}
-          />
+          {#if openApiSession.format}
+            <OpenApiEditorSurface
+              bind:this={surfaceRef}
+              sessionId={openApiSession.id}
+              content={openApiSession.content}
+              format={openApiSession.format}
+              schemaVersion={openApiSession.version}
+              diagnostics={openApiSession.diagnostics}
+              {pointerMap}
+              onchange={setContent}
+              onsave={() => void saveDocument()}
+              oncursorchange={(info) => {
+                lastCursorOffset = info.offset;
+                syncCursor(info.offset);
+              }}
+            />
+          {/if}
         </div>
         {#if openApiSession.previewVisible}
           <PanelSplitter

@@ -63,7 +63,7 @@
     onOpenRecent(path);
   }
 
-  function removeRecent(e: MouseEvent, path: string) {
+  function removeRecent(e: MouseEvent | KeyboardEvent, path: string) {
     e.stopPropagation();
     onRemoveRecent(path);
   }

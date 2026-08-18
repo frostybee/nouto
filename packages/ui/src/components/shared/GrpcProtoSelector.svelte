@@ -1,11 +1,9 @@
 <script lang="ts">
-  import type { GrpcConfig } from '../../types';
   import { untrack } from 'svelte';
   import { grpcProtoStatus, grpcProtoError, setGrpcProtoLoading, scannedDirFiles } from '../../stores/grpc.svelte';
   import { request } from '../../stores';
   import { patchGrpc } from '../../stores/request.svelte';
   import { postMessage } from '../../lib/vscode';
-  import Tooltip from './Tooltip.svelte';
 
   let { onclose }: { onclose: () => void } = $props();
 
