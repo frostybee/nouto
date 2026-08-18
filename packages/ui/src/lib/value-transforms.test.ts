@@ -23,8 +23,8 @@ describe('VALUE_TRANSFORMS', () => {
       expect(transform('')).toBe('');
     });
 
-    it('should encode UTF-8 strings', () => {
-      const encoded = transform('Héllo 日本語');
+    it('should encode UTF-8 strings', async () => {
+      const encoded = await transform('Héllo 日本語');
       expect(typeof encoded).toBe('string');
       expect(encoded.length).toBeGreaterThan(0);
     });

@@ -10,14 +10,11 @@ export async function handleFileOperation(
   message: OutgoingMessage,
   notify: NotifyFn,
 ): Promise<void> {
-  const data = 'data' in message ? (message as any).data : undefined;
-
   try {
     if (message.type === 'downloadResponse') {
-      const content = data?.content ?? '';
-      const defaultName = data?.filename || 'response.txt';
+      const { content, filename } = message.data;
       const filePath = await save({
-        defaultPath: defaultName,
+        defaultPath: filename || 'response.txt',
         filters: [{ name: 'All Files', extensions: ['*'] }],
       });
       if (filePath) {
@@ -25,13 +22,12 @@ export async function handleFileOperation(
         notify({
           type: 'showNotification',
           data: { level: 'info', message: 'Response saved to file.' },
-        } as any);
+        });
       }
     } else if (message.type === 'downloadBinaryResponse') {
-      const base64Content = data?.base64 ?? '';
-      const defaultName = data?.filename || 'response.bin';
+      const { base64: base64Content, filename } = message.data;
       const filePath = await save({
-        defaultPath: defaultName,
+        defaultPath: filename || 'response.bin',
         filters: [{ name: 'All Files', extensions: ['*'] }],
       });
       if (filePath) {
@@ -44,11 +40,10 @@ export async function handleFileOperation(
         notify({
           type: 'showNotification',
           data: { level: 'info', message: 'Response saved to file.' },
-        } as any);
+        });
       }
     } else if (message.type === 'openBinaryResponse') {
-      const base64Content = data?.base64 ?? '';
-      const filename = data?.filename || 'response.bin';
+      const { base64: base64Content, filename = 'response.bin' } = message.data;
       const tmpDir = await tempDir();
       const tmpPath = `${tmpDir.endsWith('/') || tmpDir.endsWith('\\') ? tmpDir : tmpDir + '/'}${filename}`;
       const binaryStr = atob(base64Content);
@@ -64,6 +59,6 @@ export async function handleFileOperation(
     notify({
       type: 'showNotification',
       data: { level: 'error', message: `Failed to save file: ${error}` },
-    } as any);
+    });
   }
 }

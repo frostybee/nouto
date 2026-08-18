@@ -58,7 +58,7 @@ describe('collectionSettings store', () => {
     it('should include optional fields when provided', () => {
       const data = makeSettingsData({
         initialAuth: { type: 'bearer', token: 'abc' },
-        initialHeaders: [{ key: 'X-Test', value: 'true', enabled: true }],
+        initialHeaders: [{ id: 'X-Test', key: 'X-Test', value: 'true', enabled: true }],
         initialVariables: [{ key: 'baseUrl', value: 'https://api.test.com', enabled: true }],
         initialNotes: 'Some notes',
       });

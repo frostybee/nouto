@@ -177,6 +177,15 @@ pub fn run() {
             let runner_history = RunnerHistory::new(app_data_dir);
             app.manage(runner_history);
 
+            // Purge crash recovery files older than 7 days
+            let cleanup_handle = app.handle().clone();
+            tauri::async_runtime::spawn(async move {
+                if let Err(e) = commands::recovery::cleanup_old_recovery_files(cleanup_handle).await
+                {
+                    log::warn!("Recovery cleanup failed: {e}");
+                }
+            });
+
             // Set window icon (needed for dev mode; production uses bundle icon)
             if let Some(main_window) = app.get_webview_window("main") {
                 if let Ok(icon) =
@@ -221,6 +230,8 @@ pub fn run() {
             commands::ready,
             commands::load_data,
             commands::lifecycle::quit_app,
+            commands::recovery::save_emergency_data,
+            commands::recovery::cleanup_old_recovery_files,
             commands::global_shortcut::register_global_shortcut,
             commands::global_shortcut::unregister_global_shortcut,
             commands::save_collections,

@@ -34,7 +34,8 @@
     "rust:clippy": "cd packages/desktop/src-tauri && cargo clippy --all-targets -- -D warnings",
     "release:desktop": "node scripts/prepare-desktop-release.mjs",
     "knip": "knip --workspace packages/desktop",
-    "check:ui": "pnpm -F @nouto/ui run check"
+    "check:ui": "pnpm -F @nouto/ui run check",
+    "check:all": "pnpm run format:check && pnpm run lint && pnpm run check:desktop && pnpm run check:ui && pnpm run knip && pnpm run rust:fmt && pnpm run rust:clippy"
   },
   "packageManager": "pnpm@11.21.0",
   "version": "0.0.0",

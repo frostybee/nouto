@@ -8,6 +8,7 @@
   import { syncGlobalShortcut } from './lib/global-shortcut';
   import { notifyIfUnfocused } from './lib/os-notify';
   import { initBrowserKeySuppression } from './lib/browser-keys';
+  import { saveEmergencyData, describeError, captureGlobalError } from './lib/recovery';
   import { syncNativeTheme, watchSystemTheme } from './lib/native-theme';
   import { listen as tauriListen } from '@tauri-apps/api/event';
   import { getVersion } from '@tauri-apps/api/app';
@@ -377,6 +378,20 @@
     );
   }
 
+  function handleRenderError(error: unknown): void {
+    logger.error('Uncaught render error', error);
+    void saveEmergencyData(`crash-${Date.now()}`, error);
+  }
+
+  async function copyDetails(error: unknown): Promise<void> {
+    try {
+      await navigator.clipboard.writeText(describeError(error));
+      showNotification('info', 'Crash details copied to clipboard.');
+    } catch {
+      showNotification('error', 'Could not copy crash details.');
+    }
+  }
+
   // Svelte ignores a cleanup function returned from an async onMount (it only
   // honours a synchronous function return), so the teardown is registered
   // through onDestroy instead.
@@ -424,6 +439,14 @@
     const cleanupBrowserKeys = initBrowserKeySuppression(getPlatform(), {
       reload: !(import.meta as any).env?.DEV,
     });
+
+    // Capture uncaught errors and unhandled rejections for crash diagnostics
+    window.addEventListener('error', (e) =>
+      captureGlobalError(e.error ?? e.message, 'window-error'),
+    );
+    window.addEventListener('unhandledrejection', (e) =>
+      captureGlobalError(e.reason, 'unhandled-rejection'),
+    );
 
     // Prevent default browser context menu globally
     // Existing custom menus will continue to work because they use stopPropagation()
@@ -2625,96 +2648,113 @@
 
   <!-- Main Content Area -->
   <main class="content">
-    <UpdateBanner
-      show={showUpdateBanner()}
-      version={updateVersion()}
-      isDownloading={downloading()}
-      progress={downloadProgress()}
-      preDownloaded={preDownloaded()}
-      oninstall={installUpdate}
-      ondismiss={dismissUpdate}
-    />
-    <ActionBar {collectionId} {collections} {postMessage} />
-    {#if currentView === 'main'}
-      <TabBar />
-      {#if tabsList().length === 0}
-        <WelcomeScreen
-          {recentProjects}
-          isFirstRun={isFirstRun()}
-          iconSrc={noutoIconUrl}
-          {projectPath}
-          collectionCount={collections.length}
-          environmentCount={environmentsList().length}
-          onNewProject={handleNewProject}
-          onOpenFolder={handleOpenFolder}
-          onImportCollection={handleImportAuto}
-          onLoadSampleCollection={collections.some(
-            (c) => c.name === 'Sample Collection (httpbin.org)',
-          )
-            ? undefined
-            : handleLoadSampleCollection}
-          onStartFromScratch={handleStartFromScratch}
-          onNewRequest={() => handleNewRequestKind('http')}
-          onOpenDocs={handleOpenDocs}
-          onOpenEnvironments={openEnvironmentsTab}
-          onOpenRecentProject={handleOpenRecentProject}
-          onRemoveRecentProject={handleRemoveRecentProject}
-        />
-      {/if}
-      {#if activeTabFn()?.type === 'environments'}
-        <EnvironmentsPanel />
-      {:else}
-        <div style:display={tabsList().length === 0 ? 'none' : 'contents'}>
-          <MainPanel
-            requestId={activeTabFn()?.requestId ?? requestId}
-            collectionId={activeTabFn()?.collectionId ?? collectionId}
-            collectionName={activeTabFn()?.collectionName ?? collectionName}
-            {collections}
-            {showSaveNudge}
-            {postMessage}
-            hideActionBar
-            onDismissNudge={() => {
-              showSaveNudge = false;
-              nudgeDismissed = true;
-            }}
-            onSaveToCollection={() => {
-              messageBus.send({ type: 'getCollections' });
-            }}
+    <svelte:boundary onerror={handleRenderError}>
+      <UpdateBanner
+        show={showUpdateBanner()}
+        version={updateVersion()}
+        isDownloading={downloading()}
+        progress={downloadProgress()}
+        preDownloaded={preDownloaded()}
+        oninstall={installUpdate}
+        ondismiss={dismissUpdate}
+      />
+      <ActionBar {collectionId} {collections} {postMessage} />
+      {#if currentView === 'main'}
+        <TabBar />
+        {#if tabsList().length === 0}
+          <WelcomeScreen
+            {recentProjects}
+            isFirstRun={isFirstRun()}
+            iconSrc={noutoIconUrl}
+            {projectPath}
+            collectionCount={collections.length}
+            environmentCount={environmentsList().length}
+            onNewProject={handleNewProject}
+            onOpenFolder={handleOpenFolder}
+            onImportCollection={handleImportAuto}
+            onLoadSampleCollection={collections.some(
+              (c) => c.name === 'Sample Collection (httpbin.org)',
+            )
+              ? undefined
+              : handleLoadSampleCollection}
+            onStartFromScratch={handleStartFromScratch}
+            onNewRequest={() => handleNewRequestKind('http')}
+            onOpenDocs={handleOpenDocs}
+            onOpenEnvironments={openEnvironmentsTab}
+            onOpenRecentProject={handleOpenRecentProject}
+            onRemoveRecentProject={handleRemoveRecentProject}
           />
-        </div>
-      {/if}
-    {:else if currentView === 'runner'}
-      <CollectionRunnerPanel />
-    {:else if currentView === 'mock'}
-      <MockServerPanel {postMessage} />
-    {:else if currentView === 'benchmark'}
-      <BenchmarkPanel {postMessage} />
-    {:else if currentView === 'openapi'}
-      <OpenApiEditorView />
-    {:else if currentView === 'json-explorer'}
-      <div class="json-explorer-view">
-        <div class="json-explorer-header">
-          <button class="json-explorer-back" onclick={handleCloseJsonExplorer}>
-            <span class="codicon codicon-arrow-left"></span>
-            Back to Requests
-          </button>
-          {#if jsonExplorerDocStack.length > 0}
-            <button
-              class="json-explorer-back json-explorer-back-doc"
-              onclick={handleBackToPreviousJsonExplorerDoc}
-            >
-              <span class="codicon codicon-chevron-left"></span>
-              Back to previous document
-            </button>
-          {/if}
-        </div>
-        {#if jsonExplorerReady}
-          <div class="json-explorer-content">
-            <JsonExplorerPanel />
+        {/if}
+        {#if activeTabFn()?.type === 'environments'}
+          <EnvironmentsPanel />
+        {:else}
+          <div style:display={tabsList().length === 0 ? 'none' : 'contents'}>
+            <MainPanel
+              requestId={activeTabFn()?.requestId ?? requestId}
+              collectionId={activeTabFn()?.collectionId ?? collectionId}
+              collectionName={activeTabFn()?.collectionName ?? collectionName}
+              {collections}
+              {showSaveNudge}
+              {postMessage}
+              hideActionBar
+              onDismissNudge={() => {
+                showSaveNudge = false;
+                nudgeDismissed = true;
+              }}
+              onSaveToCollection={() => {
+                messageBus.send({ type: 'getCollections' });
+              }}
+            />
           </div>
         {/if}
-      </div>
-    {/if}
+      {:else if currentView === 'runner'}
+        <CollectionRunnerPanel />
+      {:else if currentView === 'mock'}
+        <MockServerPanel {postMessage} />
+      {:else if currentView === 'benchmark'}
+        <BenchmarkPanel {postMessage} />
+      {:else if currentView === 'openapi'}
+        <OpenApiEditorView />
+      {:else if currentView === 'json-explorer'}
+        <div class="json-explorer-view">
+          <div class="json-explorer-header">
+            <button class="json-explorer-back" onclick={handleCloseJsonExplorer}>
+              <span class="codicon codicon-arrow-left"></span>
+              Back to Requests
+            </button>
+            {#if jsonExplorerDocStack.length > 0}
+              <button
+                class="json-explorer-back json-explorer-back-doc"
+                onclick={handleBackToPreviousJsonExplorerDoc}
+              >
+                <span class="codicon codicon-chevron-left"></span>
+                Back to previous document
+              </button>
+            {/if}
+          </div>
+          {#if jsonExplorerReady}
+            <div class="json-explorer-content">
+              <JsonExplorerPanel />
+            </div>
+          {/if}
+        </div>
+      {/if}
+
+      {#snippet failed(error)}
+        <div class="panel-crash-fallback">
+          <h2>Something went wrong rendering this view</h2>
+          <p class="panel-crash-message">{describeError(error)}</p>
+          <div class="panel-crash-actions">
+            <button class="draft-recovery-btn dismiss" onclick={() => copyDetails(error)}
+              >Copy details</button
+            >
+            <button class="draft-recovery-btn recover" onclick={() => location.reload()}
+              >Reload</button
+            >
+          </div>
+        </div>
+      {/snippet}
+    </svelte:boundary>
   </main>
 </div>
 
@@ -2749,6 +2789,29 @@
     background: transparent;
     color: var(--hf-foreground, var(--hf-editor-foreground));
     border: 1px solid var(--hf-input-border, var(--hf-panel-border));
+  }
+
+  .panel-crash-fallback {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.923rem;
+    height: 100%;
+    padding: 2rem;
+    text-align: center;
+    color: var(--hf-editor-foreground);
+  }
+  .panel-crash-message {
+    max-width: 30rem;
+    font-size: 0.923rem;
+    color: var(--hf-descriptionForeground, var(--hf-editor-foreground));
+    white-space: pre-wrap;
+    opacity: 0.8;
+  }
+  .panel-crash-actions {
+    display: flex;
+    gap: 0.615rem;
   }
 
   .app-container {

@@ -16,6 +16,7 @@ const RAW_INVOKE_ALLOWLIST = [
   'packages/desktop/src/lib/lifecycle.ts',
   'packages/desktop/src/lib/updater.svelte.ts',
   'packages/desktop/src/lib/global-shortcut.ts',
+  'packages/desktop/src/lib/recovery.ts',
   'packages/desktop/src/lib/handlers/environment-handler.ts',
   'packages/desktop/src/lib/handlers/runner-handler.ts',
   'packages/desktop/src/lib/handlers/ws-session-handler.ts',
@@ -61,10 +62,7 @@ export default ts.config(
         'error',
         { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_' },
       ],
-      // 241 `any` sites at adoption time (mostly the message-bus boundary in
-      // lib/tauri.ts and handlers). Off for now; re-enable per directory as
-      // they get typed.
-      '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/no-explicit-any': 'error',
       // Flags every `new Map/Set/Date/URL` inside .svelte.ts modules, including
       // plain non-reactive helpers, so it is mostly noise here. Off; genuine
       // reactive-collection cases are covered by review.
@@ -98,6 +96,23 @@ export default ts.config(
     files: ['scripts/**/*.{js,mjs,cjs}', '**/*.config.{js,mjs,ts}'],
     languageOptions: { globals: { ...globals.node } },
     rules: { 'no-console': 'off' },
+  },
+  // Files with heavy `any` usage that need transport-layer typing work.
+  // Shrink this list as each file is typed.
+  {
+    files: [
+      'packages/desktop/src/lib/import-export.svelte.ts',
+      'packages/desktop/src/App.svelte',
+      'packages/desktop/src/lib/handlers/environment-handler.ts',
+      'packages/desktop/src/lib/collection-crud.svelte.ts',
+      'packages/desktop/src/lib/handlers/ws-session-handler.ts',
+      'packages/desktop/src/lib/tauri.ts',
+    ],
+    rules: { '@typescript-eslint/no-explicit-any': 'off' },
+  },
+  {
+    files: ['**/*.test.ts'],
+    rules: { '@typescript-eslint/no-explicit-any': 'warn' },
   },
   prettier,
 );

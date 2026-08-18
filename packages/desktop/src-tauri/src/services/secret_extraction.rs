@@ -631,3 +631,145 @@ async fn read_storage_version(meta_path: &Path) -> u32 {
     }
     0
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::models::types::AuthType;
+
+    fn request_json(id: &str, auth: serde_json::Value) -> serde_json::Value {
+        serde_json::json!({
+            "type": "request",
+            "id": id,
+            "name": "Req",
+            "method": "GET",
+            "url": "https://api.example.com",
+            "params": [],
+            "headers": [],
+            "auth": auth,
+            "body": { "type": "none", "content": "" },
+            "createdAt": "2026-01-01T00:00:00Z",
+            "updatedAt": "2026-01-01T00:00:00Z",
+        })
+    }
+
+    fn no_auth() -> serde_json::Value {
+        serde_json::json!({ "type": "none" })
+    }
+
+    fn bearer_auth(token: &str) -> serde_json::Value {
+        serde_json::json!({ "type": "bearer", "token": token })
+    }
+
+    #[test]
+    fn extract_auth_bearer_token_generates_owner_scoped_key_and_clears_value() {
+        let mut auth = AuthState {
+            auth_type: AuthType::Bearer,
+            token: Some("secret123".to_string()),
+            ..Default::default()
+        };
+        let secrets = extract_auth(&mut auth, "req-1");
+        assert_eq!(secrets.len(), 1);
+        assert_eq!(
+            secrets[0],
+            ("auth.req-1.token".to_string(), "secret123".to_string())
+        );
+        assert_eq!(auth.token.as_deref(), Some(""));
+        assert_eq!(auth.token_ref.as_deref(), Some("auth.req-1.token"));
+    }
+
+    #[test]
+    fn extract_auth_no_value_but_existing_ref_clears_stale_ref() {
+        let mut auth = AuthState {
+            auth_type: AuthType::Bearer,
+            token: None,
+            token_ref: Some("stale-key".to_string()),
+            ..Default::default()
+        };
+        let secrets = extract_auth(&mut auth, "req-1");
+        assert!(secrets.is_empty());
+        assert!(auth.token_ref.is_none());
+    }
+
+    #[test]
+    fn extract_auth_empty_string_value_is_not_extracted() {
+        let mut auth = AuthState {
+            auth_type: AuthType::Bearer,
+            token: Some(String::new()),
+            ..Default::default()
+        };
+        let secrets = extract_auth(&mut auth, "req-1");
+        assert!(secrets.is_empty());
+    }
+
+    #[test]
+    fn extract_auth_secrets_aggregates_across_collections_and_nested_items() {
+        let collection_json = serde_json::json!({
+            "id": "col-1",
+            "name": "Collection",
+            "items": [
+                request_json("req-1", bearer_auth("token-a")),
+                {
+                    "type": "folder",
+                    "id": "folder-1",
+                    "name": "Folder",
+                    "children": [request_json("req-2", bearer_auth("token-b"))],
+                    "expanded": false,
+                    "createdAt": "2026-01-01T00:00:00Z",
+                    "updatedAt": "2026-01-01T00:00:00Z",
+                },
+            ],
+            "expanded": false,
+            "auth": no_auth(),
+            "createdAt": "2026-01-01T00:00:00Z",
+            "updatedAt": "2026-01-01T00:00:00Z",
+        });
+        let mut collections: Vec<Collection> =
+            vec![serde_json::from_value(collection_json).unwrap()];
+        let secrets = extract_auth_secrets(&mut collections);
+
+        assert_eq!(secrets.len(), 2);
+        assert!(secrets.contains(&("auth.req-1.token".to_string(), "token-a".to_string())));
+        assert!(secrets.contains(&("auth.req-2.token".to_string(), "token-b".to_string())));
+    }
+
+    #[test]
+    fn extract_env_secrets_only_extracts_variables_marked_secret() {
+        let env_json = serde_json::json!({
+            "id": "env-1",
+            "name": "Dev",
+            "variables": [
+                { "key": "plain", "value": "not-secret", "enabled": true },
+                { "key": "apiKey", "value": "shh", "enabled": true, "isSecret": true },
+            ],
+        });
+        let mut environments: Vec<Environment> = vec![serde_json::from_value(env_json).unwrap()];
+        let secrets = extract_env_secrets(&mut environments);
+
+        assert_eq!(
+            secrets,
+            vec![("env.env-1.apiKey".to_string(), "shh".to_string())]
+        );
+        assert_eq!(environments[0].variables[0].value, "not-secret");
+        assert_eq!(environments[0].variables[1].value, "");
+        assert_eq!(
+            environments[0].variables[1].secret_ref.as_deref(),
+            Some("env.env-1.apiKey")
+        );
+    }
+
+    #[test]
+    fn extract_env_secrets_clears_ref_when_no_longer_marked_secret() {
+        let env_json = serde_json::json!({
+            "id": "env-1",
+            "name": "Dev",
+            "variables": [
+                { "key": "wasSecret", "value": "x", "enabled": true, "secretRef": "env.env-1.wasSecret" },
+            ],
+        });
+        let mut environments: Vec<Environment> = vec![serde_json::from_value(env_json).unwrap()];
+        let secrets = extract_env_secrets(&mut environments);
+        assert!(secrets.is_empty());
+        assert!(environments[0].variables[0].secret_ref.is_none());
+    }
+}

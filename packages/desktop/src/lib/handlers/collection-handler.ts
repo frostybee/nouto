@@ -10,10 +10,10 @@ export function handleCollectionMessage(message: OutgoingMessage, notify: Notify
       try {
         const raw = localStorage.getItem(COLLECTIONS_KEY);
         const collections = raw ? JSON.parse(raw) : [];
-        notify({ type: 'collections', data: collections } as any);
+        notify({ type: 'collections', data: collections });
       } catch (error) {
         logger.error('[TauriMessageBus] Failed to load collections:', error);
-        notify({ type: 'collections', data: [] } as any);
+        notify({ type: 'collections', data: [] });
       }
       break;
     }

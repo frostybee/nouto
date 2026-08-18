@@ -2,7 +2,7 @@ import { mount } from 'svelte';
 import SettingsPage from '@nouto/ui/components/shared/SettingsPage.svelte';
 import './app.css';
 import { initTheme, setOnAppearanceChanged, currentTheme } from '@nouto/ui/stores/theme.svelte';
-import { loadSettings } from '@nouto/ui/stores/settings.svelte';
+import { loadSettings, type UserSettings } from '@nouto/ui/stores/settings.svelte';
 import { listen, emitTo } from '@tauri-apps/api/event';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { getMessageBus } from './lib/tauri';
@@ -22,7 +22,7 @@ initMessageBus(messageBus);
 initTheme();
 void syncNativeTheme(currentTheme());
 watchSystemTheme(currentTheme);
-initBrowserKeySuppression(getPlatform(), { reload: !(import.meta as any).env?.DEV });
+initBrowserKeySuppression(getPlatform(), { reload: !import.meta.env?.DEV });
 
 setOnAppearanceChanged((data) => {
   void syncNativeTheme(data.theme);
@@ -31,7 +31,9 @@ setOnAppearanceChanged((data) => {
   });
 });
 
-listen<any>('loadSettings', (event) => {
+listen<{
+  data?: Partial<UserSettings> & { hasWorkspace?: boolean; appVersion?: string; iconUrl?: string };
+}>('loadSettings', (event) => {
   if (event.payload?.data) loadSettings(event.payload.data);
 });
 
@@ -39,7 +41,7 @@ listen<string>('focusSection', (event) => {
   window.dispatchEvent(new CustomEvent('nouto:focusSection', { detail: event.payload }));
 });
 
-messageBus.send({ type: 'getSettings' } as any);
+messageBus.send({ type: 'getSettings' });
 
 window.addEventListener('storage', (e) => {
   if (e.key === 'nouto_appearance') {

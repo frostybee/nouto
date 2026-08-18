@@ -7,12 +7,10 @@ export function handleCookieMessage(
   notify: NotifyFn,
   cookieJarService: TauriCookieJarService,
 ): void {
-  const data = 'data' in message ? (message as any).data : undefined;
-
   switch (message.type) {
     case 'getCookieJar': {
       const cookies = cookieJarService.getAllByDomain();
-      notify({ type: 'cookieJarData', data: cookies } as any);
+      notify({ type: 'cookieJarData', data: cookies });
       break;
     }
     case 'getCookieJars': {
@@ -20,34 +18,34 @@ export function handleCookieMessage(
       break;
     }
     case 'createCookieJar': {
-      cookieJarService.createJar(data.name);
+      cookieJarService.createJar(message.data.name);
       emitCookieJarsList(notify, cookieJarService);
       break;
     }
     case 'renameCookieJar': {
-      cookieJarService.renameJar(data.id, data.name);
+      cookieJarService.renameJar(message.data.id, message.data.name);
       emitCookieJarsList(notify, cookieJarService);
       break;
     }
     case 'deleteCookieJar': {
-      cookieJarService.deleteJar(data.id);
+      cookieJarService.deleteJar(message.data.id);
       emitCookieJarsList(notify, cookieJarService);
       emitCookieJarData(notify, cookieJarService);
       break;
     }
     case 'setActiveCookieJar': {
-      cookieJarService.setActiveJar(data.id);
+      cookieJarService.setActiveJar(message.data.id);
       emitCookieJarsList(notify, cookieJarService);
       emitCookieJarData(notify, cookieJarService);
       break;
     }
     case 'deleteCookie': {
-      cookieJarService.deleteCookie(data.name, data.domain, data.path);
+      cookieJarService.deleteCookie(message.data.name, message.data.domain, message.data.path);
       emitCookieJarData(notify, cookieJarService);
       break;
     }
     case 'deleteCookieDomain': {
-      cookieJarService.deleteDomain(data.domain);
+      cookieJarService.deleteDomain(message.data.domain);
       emitCookieJarData(notify, cookieJarService);
       break;
     }
@@ -57,14 +55,15 @@ export function handleCookieMessage(
       break;
     }
     case 'addCookie': {
-      cookieJarService.addCookie({ ...data, createdAt: Date.now() });
-      emitCookieJarData(notify, cookieJarService);
+      cookieJarService.addCookie({ ...message.data, createdAt: Date.now() });
       emitCookieJarsList(notify, cookieJarService);
+      emitCookieJarData(notify, cookieJarService);
       break;
     }
     case 'updateCookie': {
-      cookieJarService.updateCookie(data.oldName, data.oldDomain, data.oldPath, {
-        ...data.cookie,
+      const { oldName, oldDomain, oldPath, cookie } = message.data;
+      cookieJarService.updateCookie(oldName, oldDomain, oldPath, {
+        ...cookie,
         createdAt: Date.now(),
       });
       emitCookieJarData(notify, cookieJarService);
@@ -80,10 +79,10 @@ export function emitCookieJarsList(
 ): void {
   const jars = cookieJarService.listJars();
   const activeJarId = cookieJarService.getActiveJarId();
-  notify({ type: 'cookieJarsList', data: { jars, activeJarId } } as any);
+  notify({ type: 'cookieJarsList', data: { jars, activeJarId } });
 }
 
 export function emitCookieJarData(notify: NotifyFn, cookieJarService: TauriCookieJarService): void {
   const cookies = cookieJarService.getAllByDomain();
-  notify({ type: 'cookieJarData', data: cookies } as any);
+  notify({ type: 'cookieJarData', data: cookies });
 }

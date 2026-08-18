@@ -790,3 +790,64 @@ fn generate_code_challenge(verifier: &str) -> String {
     use base64::Engine;
     base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(hash)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn generate_code_verifier_length_and_charset() {
+        let verifier = generate_code_verifier();
+        assert_eq!(verifier.len(), 43);
+        assert!(verifier
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-'));
+    }
+
+    #[test]
+    fn generate_code_challenge_matches_rfc7636_vector() {
+        let verifier = "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk";
+        let challenge = generate_code_challenge(verifier);
+        assert_eq!(challenge, "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM");
+    }
+
+    #[test]
+    fn generate_code_challenge_differs_for_different_verifiers() {
+        let a = generate_code_challenge(&generate_code_verifier());
+        let b = generate_code_challenge(&generate_code_verifier());
+        assert_ne!(a, b);
+    }
+
+    #[test]
+    fn parse_token_response_full_fields() {
+        let json = json!({
+            "access_token": "at-1",
+            "refresh_token": "rt-1",
+            "token_type": "Bearer",
+            "expires_in": 3600,
+            "scope": "read write",
+        });
+        let token = parse_token_response(&json).unwrap();
+        assert_eq!(token.access_token, "at-1");
+        assert_eq!(token.refresh_token.as_deref(), Some("rt-1"));
+        assert_eq!(token.token_type, "Bearer");
+        assert_eq!(token.scope.as_deref(), Some("read write"));
+        let expected = Utc::now().timestamp_millis() + 3600 * 1000;
+        let actual = token.expires_at.unwrap();
+        assert!((actual - expected).abs() < 5000);
+    }
+
+    #[test]
+    fn parse_token_response_missing_access_token_errors() {
+        let json = json!({ "token_type": "Bearer" });
+        assert!(parse_token_response(&json).is_err());
+    }
+
+    #[test]
+    fn parse_token_response_defaults_token_type_to_bearer() {
+        let json = json!({ "access_token": "at-1" });
+        let token = parse_token_response(&json).unwrap();
+        assert_eq!(token.token_type, "Bearer");
+        assert!(token.expires_at.is_none());
+    }
+}

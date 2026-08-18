@@ -111,39 +111,39 @@ describe('buildDisplayUrl', () => {
 
   it('should return base URL when all params are disabled', () => {
     const params = [
-      { key: 'page', value: '1', enabled: false },
+      { id: 'page', key: 'page', value: '1', enabled: false },
     ];
     expect(buildDisplayUrl('https://api.com', params)).toBe('https://api.com');
   });
 
   it('should append enabled params with ?', () => {
     const params = [
-      { key: 'page', value: '2', enabled: true },
-      { key: 'size', value: '10', enabled: true },
+      { id: 'page', key: 'page', value: '2', enabled: true },
+      { id: 'size', key: 'size', value: '10', enabled: true },
     ];
     expect(buildDisplayUrl('https://api.com', params)).toBe('https://api.com?page=2&size=10');
   });
 
   it('should skip disabled params', () => {
     const params = [
-      { key: 'page', value: '2', enabled: true },
-      { key: 'secret', value: 'hidden', enabled: false },
-      { key: 'size', value: '10', enabled: true },
+      { id: 'page', key: 'page', value: '2', enabled: true },
+      { id: 'secret', key: 'secret', value: 'hidden', enabled: false },
+      { id: 'size', key: 'size', value: '10', enabled: true },
     ];
     expect(buildDisplayUrl('https://api.com', params)).toBe('https://api.com?page=2&size=10');
   });
 
   it('should skip params with empty key', () => {
     const params = [
-      { key: '', value: 'orphan', enabled: true },
-      { key: 'page', value: '1', enabled: true },
+      { id: 'orphan', key: '', value: 'orphan', enabled: true },
+      { id: 'page', key: 'page', value: '1', enabled: true },
     ];
     expect(buildDisplayUrl('https://api.com', params)).toBe('https://api.com?page=1');
   });
 
   it('should show just key when value is empty', () => {
     const params = [
-      { key: 'verbose', value: '', enabled: true },
+      { id: 'verbose', key: 'verbose', value: '', enabled: true },
     ];
     expect(buildDisplayUrl('https://api.com', params)).toBe('https://api.com?verbose');
   });

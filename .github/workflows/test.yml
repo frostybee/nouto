@@ -2,18 +2,30 @@ name: CI
 
 on:
   push:
-    branches: [main-disabled]
+    branches: [main]
+    paths:
+      - 'packages/**'
+      - 'pnpm-lock.yaml'
+      - '.github/workflows/test.yml'
   pull_request:
-    branches: [main-disabled]
+    branches: [main]
+    paths:
+      - 'packages/**'
+      - 'pnpm-lock.yaml'
+      - '.github/workflows/test.yml'
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   test:
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        # pnpm 11 requires Node 22 or newer.
-        node-version: [22, 24]
+        node-version: [22]
 
     steps:
       - name: Checkout code
@@ -30,7 +42,7 @@ jobs:
           cache: 'pnpm'
 
       - name: Install dependencies
-        run: pnpm install
+        run: pnpm install --frozen-lockfile
 
       - name: Build core
         run: pnpm run build:core

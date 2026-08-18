@@ -13,6 +13,8 @@ const makeSavedRequest = (overrides?: Partial<SavedRequest>): SavedRequest => ({
   auth: { type: 'none' },
   body: { type: 'none', content: '' },
   ...overrides,
+  createdAt: overrides?.createdAt ?? '2024-01-01T00:00:00.000Z',
+  updatedAt: overrides?.updatedAt ?? '2024-01-01T00:00:00.000Z',
 });
 
 describe('conflict store', () => {

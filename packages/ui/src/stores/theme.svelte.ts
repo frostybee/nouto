@@ -96,6 +96,7 @@ export function initTheme(): void {
 
 // ── Internal helpers ──
 
+// Keep in sync with the inline paint-hint scripts in packages/desktop/{index,settings}.html.
 function applyTheme(themeId: string): void {
   const resolved = themeId === 'system'
     ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')

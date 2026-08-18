@@ -1,4 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
+import type { Update, DownloadEvent } from '@tauri-apps/plugin-updater';
 import { logger } from './logger';
 import { notifyIfUnfocused } from './os-notify';
 
@@ -11,7 +12,7 @@ let _dismissed = $state(false);
 let _installType = $state('');
 let _updateSupported = $state(true);
 let _preDownloaded = $state(false);
-let _updateHandle: any = null;
+let _updateHandle: Update | null = null;
 
 export function updateAvailable() {
   return _updateAvailable;
@@ -44,13 +45,13 @@ export function preDownloaded() {
 function makeProgressHandler() {
   let bytesReceived = 0;
   let totalBytes = 0;
-  return (progress: any) => {
+  return (progress: DownloadEvent) => {
     if (progress.event === 'Started') {
-      totalBytes = progress.data?.contentLength ?? 0;
+      totalBytes = progress.data.contentLength ?? 0;
       bytesReceived = 0;
       _downloadProgress = 0;
     } else if (progress.event === 'Progress') {
-      bytesReceived += progress.data?.chunkLength ?? 0;
+      bytesReceived += progress.data.chunkLength ?? 0;
       _downloadProgress =
         totalBytes > 0
           ? Math.min(100, Math.round((bytesReceived / totalBytes) * 100))

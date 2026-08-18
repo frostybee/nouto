@@ -58,7 +58,7 @@ describe('lint fixture coverage', () => {
     });
 
     it('docs quote the current rule and quick-fix counts', () => {
-      const features = readFileSync(join(DOCS, '..', 'features', 'openapi.md'), 'utf8');
+      const features = readFileSync(join(DOCS, 'index.md'), 'utf8');
       const groups = new Set(LINT_RULES_CATALOG.map((entry) => entry.group)).size;
       const words = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve'];
       expect(linting).toContain(`ships ${ALL_LINT_RULES.length} lint rules organized into ${words[groups]} groups`);

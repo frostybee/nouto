@@ -86,8 +86,8 @@ describe('generateCurl', () => {
     it('should include enabled headers', () => {
       const curl = generateCurl(createOptions({
         headers: [
-          { key: 'Accept', value: 'application/json', enabled: true },
-          { key: 'X-Disabled', value: 'skip', enabled: false },
+          { id: 'Accept', key: 'Accept', value: 'application/json', enabled: true },
+          { id: 'X-Disabled', key: 'X-Disabled', value: 'skip', enabled: false },
         ],
       }));
 
@@ -97,7 +97,7 @@ describe('generateCurl', () => {
 
     it('should include query params in URL', () => {
       const curl = generateCurl(createOptions({
-        params: [{ key: 'page', value: '1', enabled: true }],
+        params: [{ id: 'page', key: 'page', value: '1', enabled: true }],
       }));
 
       expect(curl).toContain('page=1');

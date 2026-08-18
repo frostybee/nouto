@@ -1,11 +1,11 @@
 ---
 title: Linting
-description: 60 configurable lint rules across eleven groups that check for security, correctness, completeness, and design issues in OpenAPI specs.
+description: 65 configurable lint rules across eleven groups that check for security, correctness, completeness, and design issues in OpenAPI specs.
 sidebar:
   order: 2
 ---
 
-The OpenAPI editor ships 60 lint rules organized into eleven groups (Security, Servers, Responses, Paths, Schemas, Components, OWASP, OpenAPI 3.2, Metadata, Policy, Opt-in). Each rule has a configurable severity: **Off**, **Warning**, or **Error**. Rules run automatically as you type and produce inline diagnostics. Most rules have a one-click [quick fix](/openapi/diagnostics#lint-rule-quick-fixes); the "Fix" column says which.
+The OpenAPI editor ships 65 lint rules organized into eleven groups (Security, Servers, Responses, Paths, Schemas, Components, OWASP, OpenAPI 3.2, Metadata, Policy, Opt-in). Each rule has a configurable severity: **Off**, **Warning**, or **Error**. Rules run automatically as you type and produce inline diagnostics. Most rules have a one-click [quick fix](/openapi/diagnostics#lint-rule-quick-fixes); the "Fix" column says which.
 
 ## Security
 

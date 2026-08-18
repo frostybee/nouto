@@ -545,6 +545,11 @@ impl ScriptEngine {
                 }).map_err(|e| e.to_string())?;
                 nt_obj.set("sendRequest", send_fn).map_err(|e| e.to_string())?;
 
+                // The wrapper below references the global `nt` binding, so it must
+                // already be bound; the final globals.set("nt", nt_obj) at the end of
+                // this function re-binds the same object (harmless, keeps one source of truth).
+                globals.set("nt", nt_obj.clone()).map_err(|e| e.to_string())?;
+
                 // Inject a JS wrapper that parses the JSON result and adds helper methods
                 let _: () = ctx.eval(r#"
                     var __nt_sendRequest_raw = nt.sendRequest;
@@ -731,6 +736,14 @@ impl ScriptEngine {
         });
 
         let error = exec_result.err();
+
+        // Function::new closures (console.log, nt.setVar, nt.test, ...) hold their own
+        // Arc clones of logs/test_results/variables/next_request/cookie_mutations and stay
+        // referenced by the JS context's global object until the context is freed. Drop
+        // ctx/rt now so those clones are released before the try_unwrap calls below, or
+        // every field they touch would silently come back empty via unwrap_or_default().
+        drop(ctx);
+        drop(rt);
 
         ScriptResult {
             logs: Arc::try_unwrap(logs)
@@ -990,3 +1003,95 @@ var assert = {
     typeOf: function(v, type, msg) { if (typeof v !== type) throw new Error(msg || 'Expected typeof ' + type + ' but got ' + typeof v); },
 };
 "#;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn empty_context() -> ScriptContext {
+        ScriptContext {
+            request: serde_json::json!({ "url": "https://api.example.com", "headers": {} }),
+            response: None,
+            environment: serde_json::json!({ "variables": [] }),
+            global_variables: serde_json::json!([]),
+            info: None,
+            cookies: Vec::new(),
+        }
+    }
+
+    #[tokio::test]
+    async fn execute_pre_request_empty_script_returns_default() {
+        let result = ScriptEngine::execute_pre_request("", &empty_context()).await;
+        assert!(result.logs.is_empty());
+        assert!(result.error.is_none());
+        assert!(result.modified_request.is_none());
+    }
+
+    #[tokio::test]
+    async fn execute_pre_request_set_header_is_reflected_in_modified_request() {
+        let result = ScriptEngine::execute_pre_request(
+            "nt.request.setHeader('X-Test', '1');",
+            &empty_context(),
+        )
+        .await;
+        assert!(result.error.is_none(), "script error: {:?}", result.error);
+        let modified = result
+            .modified_request
+            .expect("modified_request should be set");
+        assert_eq!(modified["headers"]["X-Test"], "1");
+    }
+
+    #[tokio::test]
+    async fn execute_post_response_nt_test_records_pass_and_fail() {
+        let mut ctx = empty_context();
+        ctx.response = Some(serde_json::json!({ "status": 200, "body": "{}", "headers": {} }));
+        let script = "nt.test('status is 200', () => { if (nt.response.status !== 200) throw new Error('bad'); });";
+        let result = ScriptEngine::execute_post_response(script, &ctx).await;
+        assert_eq!(result.test_results.len(), 1);
+        assert!(result.test_results[0].passed);
+
+        let mut ctx_fail = empty_context();
+        ctx_fail.response = Some(serde_json::json!({ "status": 500, "body": "{}", "headers": {} }));
+        let result_fail = ScriptEngine::execute_post_response(script, &ctx_fail).await;
+        assert_eq!(result_fail.test_results.len(), 1);
+        assert!(!result_fail.test_results[0].passed);
+    }
+
+    #[tokio::test]
+    async fn execute_script_console_log_is_captured() {
+        let result =
+            ScriptEngine::execute_pre_request("console.log('hello', 'world');", &empty_context())
+                .await;
+        assert_eq!(result.logs.len(), 1);
+        assert_eq!(result.logs[0].level, "log");
+        assert_eq!(result.logs[0].message, "hello world");
+    }
+
+    #[tokio::test]
+    async fn execute_script_set_var_produces_variable_to_set() {
+        let result =
+            ScriptEngine::execute_pre_request("nt.setVar('token', 'abc123');", &empty_context())
+                .await;
+        assert_eq!(result.variables_to_set.len(), 1);
+        assert_eq!(result.variables_to_set[0].key, "token");
+        assert_eq!(result.variables_to_set[0].value, "abc123");
+        assert_eq!(result.variables_to_set[0].scope, "environment");
+    }
+
+    #[tokio::test]
+    async fn execute_script_get_var_reads_environment_variable() {
+        let mut ctx = empty_context();
+        ctx.environment = serde_json::json!({
+            "variables": [{ "key": "base", "value": "http://x", "enabled": true }]
+        });
+        let script =
+            "nt.test('reads env var', () => { if (nt.getVar('base') !== 'http://x') throw new Error('mismatch'); });";
+        let result = ScriptEngine::execute_pre_request(script, &ctx).await;
+        assert_eq!(result.test_results.len(), 1);
+        assert!(
+            result.test_results[0].passed,
+            "{:?}",
+            result.test_results[0].error
+        );
+    }
+}

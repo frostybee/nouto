@@ -62,8 +62,8 @@ describe('request store', () => {
   describe('setParams', () => {
     it('should update query parameters', () => {
       const params: KeyValue[] = [
-        { key: 'page', value: '1', enabled: true },
-        { key: 'limit', value: '10', enabled: true },
+        { id: 'page', key: 'page', value: '1', enabled: true },
+        { id: 'limit', key: 'limit', value: '10', enabled: true },
       ];
       setParams(params);
       expect(request.params).toEqual(
@@ -72,7 +72,7 @@ describe('request store', () => {
     });
 
     it('should handle empty params', () => {
-      setParams([{ key: 'test', value: 'value', enabled: true }]);
+      setParams([{ id: 'test', key: 'test', value: 'value', enabled: true }]);
       setParams([]);
       expect(request.params).toEqual([]);
     });
@@ -81,8 +81,8 @@ describe('request store', () => {
   describe('setHeaders', () => {
     it('should update headers', () => {
       const headers: KeyValue[] = [
-        { key: 'Content-Type', value: 'application/json', enabled: true },
-        { key: 'Authorization', value: 'Bearer token', enabled: true },
+        { id: 'Content-Type', key: 'Content-Type', value: 'application/json', enabled: true },
+        { id: 'Authorization', key: 'Authorization', value: 'Bearer token', enabled: true },
       ];
       setHeaders(headers);
       expect(request.headers).toEqual(
@@ -92,7 +92,7 @@ describe('request store', () => {
 
     it('should handle disabled headers', () => {
       const headers: KeyValue[] = [
-        { key: 'X-Debug', value: 'true', enabled: false },
+        { id: 'X-Debug', key: 'X-Debug', value: 'true', enabled: false },
       ];
       setHeaders(headers);
       expect(request.headers[0].enabled).toBe(false);
@@ -185,8 +185,8 @@ describe('request store', () => {
       // Set various values
       setMethod('POST');
       setUrl('https://api.example.com');
-      setParams([{ key: 'test', value: '1', enabled: true }]);
-      setHeaders([{ key: 'X-Test', value: 'true', enabled: true }]);
+      setParams([{ id: 'test', key: 'test', value: '1', enabled: true }]);
+      setHeaders([{ id: 'X-Test', key: 'X-Test', value: 'true', enabled: true }]);
       setAuth({ type: 'bearer', token: 'token' });
       setBody({ type: 'json', content: '{}' });
 
@@ -206,11 +206,11 @@ describe('request store', () => {
 
   describe('state immutability', () => {
     it('should deep clone input so mutating the original does not affect the store', () => {
-      const params: KeyValue[] = [{ key: 'test', value: 'value', enabled: true }];
+      const params: KeyValue[] = [{ id: 'test', key: 'test', value: 'value', enabled: true }];
       setParams(params);
 
       // Mutating the original input array should not affect the store
-      params.push({ key: 'new', value: 'param', enabled: true });
+      params.push({ id: 'new', key: 'new', value: 'param', enabled: true });
       expect(request.params).toHaveLength(1);
 
       // Mutating individual items in the original should not affect the store

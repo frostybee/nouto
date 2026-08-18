@@ -14,7 +14,7 @@ const CONSOLE_METHOD: Record<LogLevel, 'debug' | 'info' | 'warn' | 'error'> = {
   error: 'error',
 };
 
-const IS_DEV = Boolean((import.meta as any).env?.DEV);
+const IS_DEV = Boolean(import.meta.env?.DEV);
 
 function formatArg(arg: unknown): string {
   if (arg instanceof Error) return arg.stack || `${arg.name}: ${arg.message}`;

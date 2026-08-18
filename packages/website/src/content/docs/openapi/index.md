@@ -40,8 +40,10 @@ IntelliSense completions filter by version, so you only see properties valid for
 
 ## What's Next
 
+The editor includes 65 lint rules across eleven groups, and 41 of the lint rules have a one-click quick fix.
+
 - [IntelliSense](/openapi/intellisense): completions, hover, go-to-definition
-- [Linting](/openapi/linting): 15 configurable rules across 7 groups
+- [Linting](/openapi/linting): configurable rules across security, correctness, completeness, and design groups
 - [Diagnostics & Quick Fixes](/openapi/diagnostics): validation and one-click fixes
 - [Preview](/openapi/preview): rendered API documentation
 - [Outline Navigator](/openapi/outline): sidebar tree navigation

@@ -11,7 +11,7 @@ export async function handleRunnerMessage(
   message: OutgoingMessage,
   notify: NotifyFn,
 ): Promise<void> {
-  const data = 'data' in message ? (message as any).data : undefined;
+  const data = 'data' in message ? message.data : undefined;
 
   switch (message.type) {
     case 'retryFailedRequests': {
@@ -29,7 +29,7 @@ export async function handleRunnerMessage(
         notify({
           type: 'showNotification',
           data: { level: 'error', message: `Retry failed: ${error}` },
-        } as any);
+        });
       });
       break;
     }
@@ -55,14 +55,14 @@ export async function handleRunnerMessage(
           notify({
             type: 'showNotification',
             data: { level: 'info', message: 'Results exported successfully.' },
-          } as any);
+          });
         }
       } catch (error) {
         logger.error('[TauriMessageBus] Export failed:', error);
         notify({
           type: 'showNotification',
           data: { level: 'error', message: `Failed to export results: ${error}` },
-        } as any);
+        });
       }
       break;
     }

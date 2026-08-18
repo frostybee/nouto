@@ -224,7 +224,8 @@ describe('collections store', () => {
     it('should create and add a new collection', () => {
       const newCol = addCollection('New Collection');
 
-      expect(newCol.name).toBe('New Collection');
+      expect(newCol).not.toBeNull();
+      expect(newCol!.name).toBe('New Collection');
       expect(collections()).toHaveLength(1);
     });
 

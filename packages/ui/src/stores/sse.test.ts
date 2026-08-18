@@ -122,14 +122,14 @@ describe('sse store', () => {
     it('should preserve event properties', () => {
       const event = makeSSEEvent({
         id: 'evt-42',
-        event: 'update',
+        eventType: 'update',
         data: '{"count":42}'
       });
       addSSEEvent(event);
       flushEvents();
       const stored = sseEvents()[0];
       expect(stored.id).toBe('evt-42');
-      expect(stored.event).toBe('update');
+      expect(stored.eventType).toBe('update');
       expect(stored.data).toBe('{"count":42}');
     });
 

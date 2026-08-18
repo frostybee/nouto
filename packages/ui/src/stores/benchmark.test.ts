@@ -124,7 +124,7 @@ describe('benchmark store', () => {
     });
 
     it('should clear iterations', () => {
-      addIteration({ index: 0, status: 200, duration: 100 });
+      addIteration({ iteration: 0, status: 200, statusText: 'OK', duration: 100, size: 0, success: true, timestamp: Date.now() });
       setRunning();
       expect(benchmarkIterations()).toEqual([]);
     });
@@ -145,15 +145,17 @@ describe('benchmark store', () => {
 
   describe('addIteration', () => {
     it('should append an iteration', () => {
-      addIteration({ index: 0, status: 200, duration: 100 });
+      const iter = { iteration: 0, status: 200, statusText: 'OK', duration: 100, size: 0, success: true, timestamp: Date.now() };
+      addIteration(iter);
       expect(benchmarkIterations()).toHaveLength(1);
-      expect(benchmarkIterations()[0]).toEqual({ index: 0, status: 200, duration: 100 });
+      expect(benchmarkIterations()[0]).toEqual(iter);
     });
 
     it('should append multiple iterations', () => {
-      addIteration({ index: 0, status: 200, duration: 100 });
-      addIteration({ index: 1, status: 200, duration: 150 });
-      addIteration({ index: 2, status: 500, duration: 50, error: 'Server error' });
+      const now = Date.now();
+      addIteration({ iteration: 0, status: 200, statusText: 'OK', duration: 100, size: 0, success: true, timestamp: now });
+      addIteration({ iteration: 1, status: 200, statusText: 'OK', duration: 150, size: 0, success: true, timestamp: now });
+      addIteration({ iteration: 2, status: 500, statusText: 'Internal Server Error', duration: 50, size: 0, success: false, timestamp: now, error: 'Server error' });
 
       expect(benchmarkIterations()).toHaveLength(3);
       expect(benchmarkIterations()[2].error).toBe('Server error');
@@ -162,26 +164,37 @@ describe('benchmark store', () => {
 
   describe('setCompleted', () => {
     it('should set status to completed', () => {
+      const now = new Date().toISOString();
       const result = {
+        requestName: 'Test Request',
+        url: 'https://api.example.com',
+        method: 'GET' as const,
+        config: { iterations: 10, concurrency: 1, delayBetweenMs: 0 },
+        startedAt: now,
+        completedAt: now,
         statistics: {
-          mean: 100,
-          median: 95,
+          totalIterations: 10,
+          successCount: 9,
+          failCount: 1,
           min: 50,
           max: 200,
+          mean: 100,
+          median: 95,
+          p50: 95,
+          p75: 150,
+          p90: 175,
           p95: 180,
           p99: 195,
-          stdDev: 30,
           totalDuration: 1000,
-          successCount: 9,
-          errorCount: 1,
+          requestsPerSecond: 10,
         },
         distribution: [
           { bucket: '0-100ms', count: 5 },
           { bucket: '100-200ms', count: 5 },
         ],
         iterations: [
-          { index: 0, status: 200, duration: 100 },
-          { index: 1, status: 200, duration: 150 },
+          { iteration: 0, status: 200, statusText: 'OK', duration: 100, size: 0, success: true, timestamp: Date.now() },
+          { iteration: 1, status: 200, statusText: 'OK', duration: 150, size: 0, success: true, timestamp: Date.now() },
         ],
       };
 
@@ -227,7 +240,7 @@ describe('benchmark store', () => {
     });
 
     it('should clear iterations, statistics, distribution, and progress', () => {
-      addIteration({ index: 0, status: 200, duration: 100 });
+      addIteration({ iteration: 0, status: 200, statusText: 'OK', duration: 100, size: 0, success: true, timestamp: Date.now() });
       updateProgress(5, 10);
       resetBenchmark();
 

@@ -20,7 +20,7 @@ const createMockRequest = (overrides: Partial<SavedRequest>): SavedRequest => ({
   params: [],
   headers: [],
   auth: { type: 'none' },
-  body: { type: 'none' },
+  body: { type: 'none', content: '' },
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
   ...overrides,
@@ -30,6 +30,7 @@ const createMockCollection = (id: string, items: any[]): Collection => ({
   id,
   name: `Collection ${id}`,
   items,
+  expanded: false,
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
 });
@@ -190,8 +191,8 @@ describe('Deep Search - Query Parameters', () => {
           name: 'Search Users',
           url: 'https://api.example.com/users',
           params: [
-            { key: 'userId', value: '123', enabled: true },
-            { key: 'role', value: 'admin', enabled: true },
+            { id: 'userId', key: 'userId', value: '123', enabled: true },
+            { id: 'role', key: 'role', value: 'admin', enabled: true },
           ],
         }),
         createMockRequest({
@@ -231,7 +232,7 @@ describe('Deep Search - Headers', () => {
           name: 'Authenticated Request',
           url: 'https://api.example.com/users',
           headers: [
-            { key: 'Authorization', value: 'Bearer token123', enabled: true },
+            { id: 'Authorization', key: 'Authorization', value: 'Bearer token123', enabled: true },
           ],
         }),
         createMockRequest({
@@ -279,7 +280,7 @@ describe('Deep Search - Request Body', () => {
           id: 'req-2',
           name: 'GET Request',
           url: 'https://api.example.com/data',
-          body: { type: 'none' },
+          body: { type: 'none', content: '' },
         }),
       ]),
     ];

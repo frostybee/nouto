@@ -13,7 +13,7 @@ import type { WebSocketMessage } from '../types';
 function makeMessage(overrides: Partial<WebSocketMessage> = {}): WebSocketMessage {
   return {
     id: crypto.randomUUID?.() ?? Math.random().toString(36),
-    direction: 'incoming',
+    direction: 'received',
     data: '{"test":true}',
     timestamp: Date.now(),
     type: 'text',
@@ -123,7 +123,7 @@ describe('websocket store', () => {
     it('should preserve message properties', () => {
       const msg = makeMessage({
         id: 'test-id',
-        direction: 'outgoing',
+        direction: 'sent',
         data: 'hello server',
         type: 'text'
       });
@@ -131,7 +131,7 @@ describe('websocket store', () => {
       flushMessages();
       const stored = wsMessages()[0];
       expect(stored.id).toBe('test-id');
-      expect(stored.direction).toBe('outgoing');
+      expect(stored.direction).toBe('sent');
       expect(stored.data).toBe('hello server');
       expect(stored.type).toBe('text');
     });

@@ -6,13 +6,38 @@ import {
 } from '@nouto/ui/stores/tabs.svelte';
 import { request as requestStore } from '@nouto/ui/stores';
 import { ui } from '@nouto/ui/stores/ui.svelte';
+import type { ConnectionMode } from '@nouto/core';
 import { logger } from './logger';
 
 const DRAFTS_STORAGE_KEY = 'nouto_drafts';
 let draftSaveTimer: ReturnType<typeof setTimeout> | null = null;
 
+interface DraftSnapshot {
+  name?: string;
+  url?: string;
+  method?: string;
+  params?: unknown[];
+  pathParams?: unknown[];
+  headers?: unknown[];
+  auth?: unknown;
+  body?: unknown;
+  assertions?: unknown[];
+  authInheritance?: unknown;
+  scriptInheritance?: unknown;
+  scripts?: unknown;
+  description?: string;
+  ssl?: unknown;
+  proxy?: unknown;
+  timeout?: number;
+  followRedirects?: boolean;
+  maxRedirects?: number;
+  grpc?: unknown;
+  connectionMode?: ConnectionMode;
+  _connectionMode?: ConnectionMode;
+}
+
 let _showDraftRecovery = $state(false);
-let _pendingDrafts: Record<string, any> = $state({});
+let _pendingDrafts: Record<string, DraftSnapshot> = $state({});
 
 export function showDraftRecovery() {
   return _showDraftRecovery;
@@ -61,7 +86,7 @@ export function clearDraftForTab(tabId: string) {
   }
 }
 
-export function loadDrafts(): Record<string, any> {
+export function loadDrafts(): Record<string, DraftSnapshot> {
   try {
     const raw = localStorage.getItem(DRAFTS_STORAGE_KEY);
     return raw ? JSON.parse(raw) : {};
@@ -75,8 +100,7 @@ export function clearAllDraftsFromStorage() {
 }
 
 export function recoverDrafts() {
-  for (const [_tabId, snapshot] of Object.entries(_pendingDrafts)) {
-    const s = snapshot as any;
+  for (const [_tabId, s] of Object.entries(_pendingDrafts)) {
     const tab = createRequestTab(s.name || s.url || 'Recovered', null, null, null);
     tab.icon = s.method || 'GET';
     tab.dirty = true;

@@ -696,3 +696,181 @@ fn grpc_status_name(code: i32) -> String {
     }
     .to_string()
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::models::types::{GrpcConnection, GrpcEvent};
+    use tempfile::TempDir;
+
+    fn entry(key: &str, value: &str, enabled: Option<bool>) -> MetadataEntry {
+        MetadataEntry {
+            key: key.to_string(),
+            value: value.to_string(),
+            enabled,
+        }
+    }
+
+    #[test]
+    fn build_metadata_map_excludes_disabled_and_empty_key_entries() {
+        let metadata = vec![
+            entry("X-Enabled", "1", Some(true)),
+            entry("X-Disabled", "2", Some(false)),
+            entry("", "3", Some(true)),
+        ];
+        let map = build_metadata_map(Some(metadata), None);
+        assert_eq!(map.get("X-Enabled").map(String::as_str), Some("1"));
+        assert!(!map.contains_key("X-Disabled"));
+        assert_eq!(map.len(), 1);
+    }
+
+    #[test]
+    fn build_metadata_map_bearer_auth_sets_authorization_header() {
+        let auth = AuthState {
+            auth_type: "bearer".to_string(),
+            token: Some("abc123".to_string()),
+            username: None,
+            password: None,
+            api_key_name: None,
+            api_key_value: None,
+            api_key_in: None,
+            oauth_token: None,
+        };
+        let map = build_metadata_map(None, Some(&auth));
+        assert_eq!(
+            map.get("Authorization").map(String::as_str),
+            Some("Bearer abc123")
+        );
+    }
+
+    #[test]
+    fn build_metadata_map_apikey_in_query_is_not_added_as_metadata() {
+        let auth = AuthState {
+            auth_type: "apikey".to_string(),
+            token: None,
+            username: None,
+            password: None,
+            api_key_name: Some("api_key".to_string()),
+            api_key_value: Some("secret".to_string()),
+            api_key_in: Some("query".to_string()),
+            oauth_token: None,
+        };
+        let map = build_metadata_map(None, Some(&auth));
+        assert!(map.is_empty());
+    }
+
+    #[test]
+    fn grpc_status_name_known_and_unknown_codes() {
+        assert_eq!(grpc_status_name(0), "OK");
+        assert_eq!(grpc_status_name(5), "NOT_FOUND");
+        assert_eq!(grpc_status_name(16), "UNAUTHENTICATED");
+        assert_eq!(grpc_status_name(999), "UNKNOWN");
+    }
+
+    #[test]
+    fn collect_proto_files_recurses_nested_dirs() {
+        let tmp = TempDir::new().unwrap();
+        std::fs::write(tmp.path().join("a.proto"), "").unwrap();
+        let sub = tmp.path().join("sub");
+        std::fs::create_dir_all(&sub).unwrap();
+        std::fs::write(sub.join("b.proto"), "").unwrap();
+        std::fs::write(sub.join("c.txt"), "").unwrap();
+
+        let mut found = Vec::new();
+        collect_proto_files(tmp.path(), &mut found);
+
+        assert_eq!(found.len(), 2);
+        assert!(found.iter().any(|p| p.ends_with("a.proto")));
+        assert!(found.iter().any(|p| p.ends_with("b.proto")));
+    }
+
+    fn test_connection() -> GrpcConnection {
+        GrpcConnection {
+            id: "conn-1".to_string(),
+            request_id: "req-1".to_string(),
+            url: "localhost:50051".to_string(),
+            service: "Svc".to_string(),
+            method: "Method".to_string(),
+            status: 0,
+            status_message: None,
+            state: "completed".to_string(),
+            trailers: HashMap::new(),
+            initial_metadata: None,
+            elapsed: 12.5,
+            error: None,
+            created_at: "2026-01-01T00:00:00Z".to_string(),
+        }
+    }
+
+    fn test_event(content: &str) -> GrpcEvent {
+        GrpcEvent {
+            id: "evt-1".to_string(),
+            connection_id: "conn-1".to_string(),
+            event_type: "server_message".to_string(),
+            content: content.to_string(),
+            metadata: None,
+            status: None,
+            error: None,
+            size: None,
+            created_at: "2026-01-01T00:00:00Z".to_string(),
+        }
+    }
+
+    #[test]
+    fn evaluate_grpc_assertions_status_target_pass_and_fail() {
+        let connection = test_connection();
+        let events = vec![test_event("{}")];
+        let assertions = vec![serde_json::json!({
+            "id": "a1",
+            "enabled": true,
+            "target": "status",
+            "operator": "equals",
+            "expected": "0",
+        })];
+        let result = evaluate_grpc_assertions(&assertions, &connection, &events);
+        assert_eq!(result.results.len(), 1);
+        assert_eq!(result.results[0]["passed"], serde_json::json!(true));
+
+        let failing = vec![serde_json::json!({
+            "id": "a2",
+            "enabled": true,
+            "target": "status",
+            "operator": "equals",
+            "expected": "5",
+        })];
+        let result = evaluate_grpc_assertions(&failing, &connection, &events);
+        assert_eq!(result.results[0]["passed"], serde_json::json!(false));
+    }
+
+    #[test]
+    fn evaluate_grpc_assertions_set_variable_extracts_value() {
+        let connection = test_connection();
+        let events = vec![test_event(r#"{"token":"xyz"}"#)];
+        let assertions = vec![serde_json::json!({
+            "id": "a1",
+            "enabled": true,
+            "target": "setVariable",
+            "variableName": "myToken",
+            "property": "token",
+        })];
+        let result = evaluate_grpc_assertions(&assertions, &connection, &events);
+        assert_eq!(result.variables_to_set.len(), 1);
+        assert_eq!(result.variables_to_set[0].key, "myToken");
+        assert_eq!(result.variables_to_set[0].value, "xyz");
+    }
+
+    #[test]
+    fn evaluate_grpc_assertions_skips_disabled() {
+        let connection = test_connection();
+        let events: Vec<GrpcEvent> = Vec::new();
+        let assertions = vec![serde_json::json!({
+            "id": "a1",
+            "enabled": false,
+            "target": "status",
+            "operator": "equals",
+            "expected": "0",
+        })];
+        let result = evaluate_grpc_assertions(&assertions, &connection, &events);
+        assert!(result.results.is_empty());
+    }
+}

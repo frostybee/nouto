@@ -1348,3 +1348,160 @@ async fn execute_request_from_json(
         .await
         .map_err(AppError::Other)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tempfile::NamedTempFile;
+
+    #[test]
+    fn substitute_data_variables_replaces_column_placeholders() {
+        let request = serde_json::json!({ "url": "{{host}}/api" });
+        let mut row = HashMap::new();
+        row.insert("host".to_string(), "example.com".to_string());
+        let result = substitute_data_variables(&request, &row);
+        assert_eq!(result["url"], "example.com/api");
+    }
+
+    #[test]
+    fn build_env_variable_map_environment_overrides_global_and_excludes_disabled() {
+        let environments = serde_json::json!({
+            "globalVariables": [
+                { "key": "foo", "value": "global", "enabled": true },
+                { "key": "disabled", "value": "x", "enabled": false },
+            ],
+            "environments": [
+                {
+                    "id": "env-1",
+                    "variables": [{ "key": "foo", "value": "env-specific", "enabled": true }],
+                },
+            ],
+        });
+        let vars = build_env_variable_map(&environments, Some("env-1"));
+        assert_eq!(vars.get("foo").map(String::as_str), Some("env-specific"));
+        assert!(!vars.contains_key("disabled"));
+    }
+
+    #[test]
+    fn build_env_variable_map_without_environment_id_uses_only_globals() {
+        let environments = serde_json::json!({
+            "globalVariables": [{ "key": "foo", "value": "global", "enabled": true }],
+            "environments": [],
+        });
+        let vars = build_env_variable_map(&environments, None);
+        assert_eq!(vars.get("foo").map(String::as_str), Some("global"));
+    }
+
+    #[test]
+    fn substitute_env_variables_escapes_special_chars() {
+        let request = serde_json::json!({ "body": "{{val}}" });
+        let mut vars = HashMap::new();
+        vars.insert("val".to_string(), "line1\nwith \"quotes\"".to_string());
+        let result = substitute_env_variables(&request, &vars);
+        assert_eq!(result["body"], "line1\nwith \"quotes\"");
+    }
+
+    #[test]
+    fn substitute_env_variables_noop_when_empty() {
+        let request = serde_json::json!({ "url": "{{host}}" });
+        let vars = HashMap::new();
+        let result = substitute_env_variables(&request, &vars);
+        assert_eq!(result, request);
+    }
+
+    #[test]
+    fn collect_scoped_variables_does_not_override_existing_env_var() {
+        let collection = serde_json::json!({
+            "variables": [{ "key": "shared", "value": "collection-val", "enabled": true }],
+        });
+        let mut vars = HashMap::new();
+        vars.insert("shared".to_string(), "env-val".to_string());
+        collect_scoped_variables(&collection, None, &mut vars);
+        assert_eq!(vars.get("shared").map(String::as_str), Some("env-val"));
+    }
+
+    #[test]
+    fn collect_scoped_variables_adds_folder_variables() {
+        let collection = serde_json::json!({
+            "items": [
+                {
+                    "type": "folder",
+                    "id": "f1",
+                    "children": [],
+                    "variables": [{ "key": "folderVar", "value": "f-val", "enabled": true }],
+                }
+            ],
+        });
+        let mut vars = HashMap::new();
+        collect_scoped_variables(&collection, Some("f1"), &mut vars);
+        assert_eq!(vars.get("folderVar").map(String::as_str), Some("f-val"));
+    }
+
+    fn nested_collection() -> Value {
+        serde_json::json!({
+            "name": "Collection",
+            "items": [
+                {
+                    "type": "folder",
+                    "id": "folderA",
+                    "name": "Folder A",
+                    "children": [
+                        {
+                            "type": "folder",
+                            "id": "folderB",
+                            "name": "Folder B",
+                            "children": [
+                                { "type": "request", "id": "req-1", "name": "Req" }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        })
+    }
+
+    #[test]
+    fn find_path_to_request_returns_ancestor_folders_in_order() {
+        let collection = nested_collection();
+        let items = collection.get("items").and_then(|v| v.as_array()).unwrap();
+        let mut path = Vec::new();
+        let found = find_path_to_request(items, "req-1", &mut path);
+        assert!(found);
+        assert_eq!(path.len(), 2);
+        assert_eq!(path[0]["id"], "folderA");
+        assert_eq!(path[1]["id"], "folderB");
+    }
+
+    #[test]
+    fn find_path_to_request_returns_false_when_not_found() {
+        let collection = nested_collection();
+        let items = collection.get("items").and_then(|v| v.as_array()).unwrap();
+        let mut path = Vec::new();
+        assert!(!find_path_to_request(items, "missing", &mut path));
+        assert!(path.is_empty());
+    }
+
+    #[test]
+    fn collect_requests_flattens_nested_folders() {
+        let collection = nested_collection();
+        let items = collection.get("items").and_then(|v| v.as_array()).unwrap();
+        let requests = collect_requests(items);
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0]["id"], "req-1");
+    }
+
+    #[tokio::test]
+    async fn parse_csv_file_roundtrip() {
+        let mut file = NamedTempFile::new().unwrap();
+        use std::io::Write;
+        writeln!(file, "name,value").unwrap();
+        writeln!(file, "foo,1").unwrap();
+        writeln!(file, "bar,2").unwrap();
+
+        let (rows, headers) = parse_csv_file(file.path()).await.unwrap();
+        assert_eq!(headers, vec!["name".to_string(), "value".to_string()]);
+        assert_eq!(rows.len(), 2);
+        assert_eq!(rows[0].get("name").map(String::as_str), Some("foo"));
+        assert_eq!(rows[1].get("value").map(String::as_str), Some("2"));
+    }
+}
