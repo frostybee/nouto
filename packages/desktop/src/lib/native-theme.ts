@@ -3,7 +3,7 @@
 // calls `syncNativeTheme` after applying its appearance.
 
 import { getCurrentWindow } from '@tauri-apps/api/window';
-import { THEMES } from '@nouto/ui/stores/theme.svelte';
+import { themeDefinition } from '@nouto/ui/stores/theme.svelte';
 import { logger } from './logger';
 
 export type NativeTheme = 'light' | 'dark';
@@ -12,7 +12,7 @@ const DARK_QUERY = '(prefers-color-scheme: dark)';
 
 /** Resolve a theme id (including `system`) to the light/dark family it belongs to. */
 export function resolveNativeTheme(themeId: string): NativeTheme {
-  const category = THEMES.find((t) => t.id === themeId)?.category ?? 'auto';
+  const category = themeDefinition(themeId)?.category ?? 'auto';
   if (category === 'light') return 'light';
   if (category === 'dark') return 'dark';
   return window.matchMedia(DARK_QUERY).matches ? 'dark' : 'light';

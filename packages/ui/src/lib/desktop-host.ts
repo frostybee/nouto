@@ -30,4 +30,10 @@ export interface DesktopHost {
   listCrashReports(): Promise<string[]>;
   /** Delete all crash reports. Returns the number cleared. */
   clearCrashReports(): Promise<DesktopClearCrashResult>;
+  /**
+   * Open a native picker for a VS Code / Shiki theme JSON file and return its
+   * text; null when the user cancels. Parsing and conversion happen in
+   * @nouto/ui (lib/theme/vscode-import.ts).
+   */
+  readThemeFile(): Promise<{ fileName: string; content: string } | null>;
 }

@@ -86,7 +86,11 @@ fn os_version() -> String {
                 content
                     .lines()
                     .find(|l| l.starts_with("PRETTY_NAME="))
-                    .map(|l| l.trim_start_matches("PRETTY_NAME=").trim_matches('"').to_string())
+                    .map(|l| {
+                        l.trim_start_matches("PRETTY_NAME=")
+                            .trim_matches('"')
+                            .to_string()
+                    })
             })
             .unwrap_or_else(|| "Linux (unknown distro)".to_string())
     }
@@ -100,8 +104,7 @@ fn memory_usage_bytes() -> Option<u32> {
 
         let mut counters: PROCESS_MEMORY_COUNTERS = unsafe { std::mem::zeroed() };
         counters.cb = std::mem::size_of::<PROCESS_MEMORY_COUNTERS>() as u32;
-        let ok =
-            unsafe { GetProcessMemoryInfo(GetCurrentProcess(), &mut counters, counters.cb) };
+        let ok = unsafe { GetProcessMemoryInfo(GetCurrentProcess(), &mut counters, counters.cb) };
         if ok != 0 {
             Some(counters.WorkingSetSize as u32)
         } else {
@@ -213,7 +216,11 @@ mod tests {
     #[test]
     fn memory_usage_returns_some_on_supported() {
         let mem = memory_usage_bytes();
-        if cfg!(any(target_os = "windows", target_os = "linux", target_os = "macos")) {
+        if cfg!(any(
+            target_os = "windows",
+            target_os = "linux",
+            target_os = "macos"
+        )) {
             assert!(mem.is_some(), "Expected Some on this platform");
         }
     }

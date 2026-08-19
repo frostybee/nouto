@@ -8,9 +8,14 @@
   import { syncGlobalShortcut } from './lib/global-shortcut';
   import { notifyIfUnfocused } from './lib/os-notify';
   import { initBrowserKeySuppression } from './lib/browser-keys';
-  import { saveEmergencyData, describeError, captureGlobalError } from './lib/recovery';
+  import {
+    saveEmergencyData,
+    describeError,
+    captureGlobalError,
+    logFrontendError,
+    checkForRecentCrash,
+  } from './lib/recovery';
   import { syncNativeTheme, watchSystemTheme } from './lib/native-theme';
-  import { invoke } from '@tauri-apps/api/core';
   import { listen as tauriListen } from '@tauri-apps/api/event';
   import { getVersion } from '@tauri-apps/api/app';
   import { getMessageBus } from './lib/tauri';
@@ -392,11 +397,7 @@
   function handleRenderError(error: unknown): void {
     logger.error('Uncaught render error', error);
     void saveEmergencyData(`crash-${Date.now()}`, error);
-    void invoke('log_frontend_error', {
-      message: describeError(error),
-      stack: error instanceof Error ? (error.stack ?? null) : null,
-      componentStack: null,
-    }).catch(() => {});
+    logFrontendError(error);
   }
 
   async function copyDetails(error: unknown): Promise<void> {
@@ -408,17 +409,15 @@
     }
   }
 
-  async function checkForRecentCrash(): Promise<void> {
-    try {
-      const result = await invoke<{ filename: string; timestampSecs: number; secondsAgo: number } | null>('has_recent_crash');
-      if (!result) return;
-      const report = await invoke<string>('get_crash_report', { name: result.filename });
-      showNotificationWithActions('warning', 'The app recovered from a crash.', [
-        { label: 'Copy Report', onclick: () => void navigator.clipboard.writeText(report) },
-      ], 10000);
-    } catch {
-      // Silent — crash detection is best-effort
-    }
+  async function notifyRecentCrash(): Promise<void> {
+    const crash = await checkForRecentCrash();
+    if (!crash) return;
+    showNotificationWithActions(
+      'warning',
+      'The app recovered from a crash.',
+      [{ label: 'Copy Report', onclick: () => void navigator.clipboard.writeText(crash.report) }],
+      10000,
+    );
   }
 
   // Svelte ignores a cleanup function returned from an async onMount (it only
@@ -437,7 +436,7 @@
       .catch(() => {});
     setIconUrl(noutoIconUrl);
 
-    void checkForRecentCrash();
+    void notifyRecentCrash();
 
     // Initialize undo/redo systems
     initRequestUndo();

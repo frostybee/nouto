@@ -23,8 +23,13 @@
     currentTheme, setTheme, THEMES, FONT_SIZES,
     interfaceFont, interfaceFontSize, editorFont, editorFontSize,
     setInterfaceFont, setInterfaceFontSize, setEditorFont, setEditorFontSize,
+    customThemeDefinitions, isCustomTheme, forkTheme, addCustomTheme,
     type ThemeDefinition,
   } from '../../stores/theme.svelte';
+  import { parseJsonc } from '../../lib/theme/jsonc';
+  import { convertVsCodeTheme } from '../../lib/theme/vscode-import';
+  import BrowseThemesDialog from './theme/BrowseThemesDialog.svelte';
+  import CustomizeThemePanel from './theme/CustomizeThemePanel.svelte';
 
   interface Props {
     onclose?: () => void;
@@ -355,6 +360,41 @@
   const autoThemes = $derived(THEMES.filter(t => t.category === 'auto'));
   const darkThemes = $derived(THEMES.filter(t => t.category === 'dark'));
   const lightThemes = $derived(THEMES.filter(t => t.category === 'light'));
+  const customThemeList = $derived(customThemeDefinitions());
+
+  // Engine-backed themes: catalog browser, file import, and the inline editor.
+  let browseThemesOpen = $state(false);
+  let customizingThemeId = $state<string | null>(null);
+  let themeImportStatus = $state<{ kind: 'ok' | 'error'; text: string } | null>(null);
+
+  function customizeTheme(id: string) {
+    // Built-ins are forked into an editable copy first; custom ones edit in place.
+    const target = isCustomTheme(id) ? id : forkTheme(id);
+    if (target) customizingThemeId = target;
+  }
+
+  async function importThemeFile() {
+    if (!desktopHost) return;
+    themeImportStatus = null;
+    const file = await desktopHost.readThemeFile();
+    if (!file) return;
+    let parsed: unknown;
+    try {
+      parsed = parseJsonc(file.content);
+    } catch {
+      themeImportStatus = { kind: 'error', text: `${file.fileName} is not valid JSON.` };
+      return;
+    }
+    const result = convertVsCodeTheme(parsed, { fileName: file.fileName });
+    if (result.error !== undefined) {
+      themeImportStatus = { kind: 'error', text: result.error };
+      return;
+    }
+    const added = addCustomTheme(result.preset);
+    setTheme(added.id);
+    const notes = result.warnings.length ? ` ${result.warnings.join(' ')}` : '';
+    themeImportStatus = { kind: 'ok', text: `Imported ${added.name}.${notes}` };
+  }
 
   // All fonts available for the interface dropdown (UI + monospace, since some prefer monospace everywhere)
   const allInterfaceFonts = $derived([...uiFonts, ...editorFonts].sort());
@@ -461,37 +501,84 @@
       {#if activeSection === 'appearance'}
         <h3 class="page-title">Appearance</h3>
 
-        {#snippet themeGroup(label: string, themes: ThemeDefinition[])}
+        {#snippet themeGroup(label: string, themes: ThemeDefinition[], editable = false)}
           <div class="theme-group">
             <h4 class="theme-group-label">{label}</h4>
             <div class="theme-grid">
-              {#each themes as theme}
-                <button
-                  class="theme-card"
-                  class:active={activeThemeId === theme.id}
-                  onclick={() => setTheme(theme.id)}
-                  aria-label="Select {theme.name} theme"
-                >
-                  <div class="theme-swatches">
-                    <span class="swatch" style:background={theme.colors.background}></span>
-                    <span class="swatch" style:background={theme.colors.sidebar}></span>
-                    <span class="swatch" style:background={theme.colors.foreground}></span>
-                    <span class="swatch" style:background={theme.colors.accent}></span>
-                    <span class="swatch" style:background={theme.colors.button}></span>
-                  </div>
-                  <span class="theme-name">{theme.name}</span>
-                  {#if activeThemeId === theme.id}
-                    <i class="codicon codicon-check theme-check"></i>
+              {#each themes as theme (theme.id)}
+                <div class="theme-card-wrap">
+                  <button
+                    class="theme-card"
+                    class:active={activeThemeId === theme.id}
+                    onclick={() => setTheme(theme.id)}
+                    aria-label="Select {theme.name} theme"
+                  >
+                    <div class="theme-swatches">
+                      <span class="swatch" style:background={theme.colors.background}></span>
+                      <span class="swatch" style:background={theme.colors.sidebar}></span>
+                      <span class="swatch" style:background={theme.colors.foreground}></span>
+                      <span class="swatch" style:background={theme.colors.accent}></span>
+                      <span class="swatch" style:background={theme.colors.button}></span>
+                    </div>
+                    <span class="theme-name">{theme.name}</span>
+                    {#if activeThemeId === theme.id}
+                      <i class="codicon codicon-check theme-check"></i>
+                    {/if}
+                  </button>
+                  {#if editable}
+                    <Tooltip text="Edit colours" position="top">
+                      <button
+                        class="theme-card-action"
+                        class:open={customizingThemeId === theme.id}
+                        onclick={() => (customizingThemeId = customizingThemeId === theme.id ? null : theme.id)}
+                        aria-label="Edit {theme.name}"
+                      >
+                        <i class="codicon codicon-edit"></i>
+                      </button>
+                    </Tooltip>
                   {/if}
-                </button>
+                </div>
               {/each}
             </div>
           </div>
         {/snippet}
 
+        <div class="theme-actions">
+          <button class="link-btn" onclick={() => (browseThemesOpen = true)}>
+            <i class="codicon codicon-library"></i>
+            Browse VS Code themes
+          </button>
+          {#if desktopHost}
+            <button class="link-btn" onclick={importThemeFile}>
+              <i class="codicon codicon-folder-opened"></i>
+              Import theme file…
+            </button>
+          {/if}
+          <button
+            class="link-btn"
+            onclick={() => customizeTheme(activeThemeId)}
+            title={isCustomTheme(activeThemeId) ? 'Edit this theme' : 'Make an editable copy of this theme'}
+          >
+            <i class="codicon codicon-color-mode"></i>
+            {isCustomTheme(activeThemeId) ? 'Edit current theme' : 'Customize current theme'}
+          </button>
+          {#if themeImportStatus}
+            <span class="theme-status" class:error={themeImportStatus.kind === 'error'}>{themeImportStatus.text}</span>
+          {/if}
+        </div>
+
+        {#if customizingThemeId}
+          <CustomizeThemePanel themeId={customizingThemeId} onclose={() => (customizingThemeId = null)} />
+        {/if}
+
+        {#if customThemeList.length > 0}
+          {@render themeGroup('Custom Themes', customThemeList, true)}
+        {/if}
         {@render themeGroup('Auto', autoThemes)}
         {@render themeGroup('Dark Themes', darkThemes)}
         {@render themeGroup('Light Themes', lightThemes)}
+
+        <BrowseThemesDialog open={browseThemesOpen} onclose={() => (browseThemesOpen = false)} />
 
       {:else if activeSection === 'interface'}
         <h3 class="page-title">Interface</h3>
@@ -2213,6 +2300,68 @@
     right: 0.615rem;
     font-size: 1.077rem;
     color: var(--hf-focusBorder);
+  }
+
+  .theme-card-wrap {
+    position: relative;
+    display: flex;
+  }
+
+  .theme-card-wrap .theme-card {
+    flex: 1;
+  }
+
+  .theme-card-action {
+    position: absolute;
+    right: 0.538rem;
+    bottom: 0.538rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.692rem;
+    height: 1.692rem;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 0.308rem;
+    color: var(--hf-descriptionForeground);
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.15s, background 0.15s;
+  }
+
+  .theme-card-wrap:hover .theme-card-action,
+  .theme-card-action.open,
+  .theme-card-action:focus-visible {
+    opacity: 1;
+  }
+
+  .theme-card-action:hover,
+  .theme-card-action.open {
+    background: var(--hf-toolbar-hoverBackground);
+    color: var(--hf-foreground);
+  }
+
+  .theme-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.615rem;
+    margin-bottom: 1.231rem;
+  }
+
+  .theme-actions .link-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.385rem;
+  }
+
+  .theme-status {
+    font-size: 0.846rem;
+    color: var(--hf-descriptionForeground);
+  }
+
+  .theme-status.error {
+    color: var(--hf-errorForeground);
   }
 
   /* ---- Font settings ---- */

@@ -124,7 +124,8 @@ pub async fn log_frontend_error(
     fs::create_dir_all(&dir)?;
 
     let ts = iso8601_now();
-    let mut report = format!("=== Frontend Error Report ===\nTimestamp: {ts}\nMessage: {message}\n");
+    let mut report =
+        format!("=== Frontend Error Report ===\nTimestamp: {ts}\nMessage: {message}\n");
     if let Some(s) = &stack {
         report.push_str(&format!("\n--- Stack ---\n{s}\n"));
     }
@@ -308,11 +309,7 @@ mod tests {
         let logs: Vec<_> = fs::read_dir(&dir)
             .unwrap()
             .flatten()
-            .filter(|e| {
-                e.file_name()
-                    .to_string_lossy()
-                    .ends_with(".log")
-            })
+            .filter(|e| e.file_name().to_string_lossy().ends_with(".log"))
             .collect();
         assert_eq!(logs.len(), 2);
 
@@ -325,10 +322,7 @@ mod tests {
         }
         assert_eq!(cleared, 2);
 
-        let remaining: Vec<_> = fs::read_dir(&dir)
-            .unwrap()
-            .flatten()
-            .collect();
+        let remaining: Vec<_> = fs::read_dir(&dir).unwrap().flatten().collect();
         assert_eq!(remaining.len(), 1);
     }
 

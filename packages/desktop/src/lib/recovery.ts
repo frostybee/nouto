@@ -18,6 +18,15 @@ export async function saveEmergencyData(filename: string, error: unknown): Promi
   }
 }
 
+/** Write a frontend error report to the crash-reports directory. Never throws. */
+export function logFrontendError(error: unknown): void {
+  void invoke('log_frontend_error', {
+    message: describeError(error),
+    stack: error instanceof Error ? (error.stack ?? null) : null,
+    componentStack: null,
+  }).catch(() => {});
+}
+
 let lastGlobalCapture = 0;
 
 export function captureGlobalError(error: unknown, source: string): void {
@@ -26,9 +35,29 @@ export function captureGlobalError(error: unknown, source: string): void {
   lastGlobalCapture = now;
   logger.error(`Uncaught ${source}`, error);
   void saveEmergencyData(`crash-${source}-${now}`, error);
-  void invoke('log_frontend_error', {
-    message: describeError(error),
-    stack: error instanceof Error ? (error.stack ?? null) : null,
-    componentStack: null,
-  }).catch(() => {});
+  logFrontendError(error);
+}
+
+export interface CrashReportSummary {
+  filename: string;
+  timestampSecs: number;
+  secondsAgo: number;
+}
+
+/**
+ * The most recent crash report if it is less than a few minutes old, with its
+ * text; null otherwise. Best-effort: any failure reads as "no recent crash".
+ */
+export async function checkForRecentCrash(): Promise<{
+  summary: CrashReportSummary;
+  report: string;
+} | null> {
+  try {
+    const summary = await invoke<CrashReportSummary | null>('has_recent_crash');
+    if (!summary) return null;
+    const report = await invoke<string>('get_crash_report', { name: summary.filename });
+    return { summary, report };
+  } catch {
+    return null;
+  }
 }

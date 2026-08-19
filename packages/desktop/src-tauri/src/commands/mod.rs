@@ -20,6 +20,7 @@ pub mod recovery;
 pub mod runner;
 pub mod secrets;
 pub mod sse;
+pub mod theme;
 pub mod updater;
 pub mod websocket;
 

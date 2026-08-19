@@ -18,6 +18,7 @@ const defaultAppearance: AppearanceSettings = {
   interfaceFontSize: 13,
   editorFont: 'JetBrains Mono',
   editorFontSize: 13,
+  customThemes: [],
 };
 
 function storedAppearance(): AppearanceSettings {
@@ -95,11 +96,16 @@ describe('theme store', () => {
       interfaceFontSize: 14,
       editorFont: 'Fira Code',
       editorFontSize: 18,
+      customThemes: [],
     });
     expect(document.documentElement.getAttribute('data-theme')).toBe('dark');
-    expect(document.documentElement.style.getPropertyValue('--hf-editor-font-family')).toContain("'Fira Code'");
+    expect(document.documentElement.style.getPropertyValue('--hf-editor-font-family')).toContain(
+      "'Fira Code'",
+    );
     expect(document.documentElement.style.getPropertyValue('--hf-editor-font-size')).toBe('18px');
-    expect(dispatchEventMock).toHaveBeenCalledWith(expect.objectContaining({ type: 'nouto-font-change' }));
+    expect(dispatchEventMock).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'nouto-font-change' }),
+    );
   });
 
   it('removes the custom editor font variable when editor font is null', () => {
@@ -107,7 +113,9 @@ describe('theme store', () => {
       ...defaultAppearance,
       editorFont: 'Fira Code',
     });
-    expect(document.documentElement.style.getPropertyValue('--hf-editor-font-family')).toContain("'Fira Code'");
+    expect(document.documentElement.style.getPropertyValue('--hf-editor-font-family')).toContain(
+      "'Fira Code'",
+    );
 
     applyAppearance({
       ...defaultAppearance,

@@ -245,6 +245,7 @@ pub fn run() {
             commands::crash_reporter::get_crash_report,
             commands::crash_reporter::clear_crash_reports,
             commands::diagnostics::collect_diagnostics,
+            commands::theme::read_theme_file,
             commands::global_shortcut::register_global_shortcut,
             commands::global_shortcut::unregister_global_shortcut,
             commands::save_collections,

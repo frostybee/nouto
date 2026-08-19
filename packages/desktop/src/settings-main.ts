@@ -76,6 +76,9 @@ const desktopHost: DesktopHost = {
       return [];
     }
   },
+  async readThemeFile() {
+    return (await invoke<{ fileName: string; content: string } | null>('read_theme_file')) ?? null;
+  },
   async clearCrashReports() {
     try {
       const cleared = await invoke<number>('clear_crash_reports');

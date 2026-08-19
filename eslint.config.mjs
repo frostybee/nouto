@@ -17,6 +17,8 @@ const RAW_INVOKE_ALLOWLIST = [
   'packages/desktop/src/lib/updater.svelte.ts',
   'packages/desktop/src/lib/global-shortcut.ts',
   'packages/desktop/src/lib/recovery.ts',
+  'packages/desktop/src/lib/stores/dirty.svelte.ts',
+  'packages/desktop/src/settings-main.ts',
   'packages/desktop/src/lib/handlers/environment-handler.ts',
   'packages/desktop/src/lib/handlers/runner-handler.ts',
   'packages/desktop/src/lib/handlers/ws-session-handler.ts',

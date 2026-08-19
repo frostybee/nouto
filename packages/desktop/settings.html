@@ -14,10 +14,20 @@
         try {
           var raw = localStorage.getItem('nouto_appearance');
           var theme = raw ? JSON.parse(raw).theme || 'system' : 'system';
+          var root = document.documentElement;
+          // Custom (engine) theme: the store cached its derived --hf-* map.
+          var hintRaw = localStorage.getItem('nouto_paint_hint');
+          var hint = hintRaw ? JSON.parse(hintRaw) : null;
+          if (hint && hint.id === theme && hint.vars) {
+            for (var name in hint.vars) root.style.setProperty(name, hint.vars[name]);
+            root.setAttribute('data-theme', 'custom');
+            root.setAttribute('data-theme-mode', hint.mode === 'light' ? 'light' : 'dark');
+            return;
+          }
           if (theme === 'system') {
             theme = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
           }
-          document.documentElement.setAttribute('data-theme', theme);
+          root.setAttribute('data-theme', theme);
         } catch (e) {}
       })();
     </script>
