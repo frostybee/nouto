@@ -15,7 +15,7 @@
   import { defaultKeymap, indentWithTab, history, historyKeymap } from '@codemirror/commands';
   import { graphql as cmGraphql, updateSchema as cmUpdateSchema } from 'cm6-graphql';
   import { parse, print, buildClientSchema } from 'graphql';
-  import { getThemeExtensions, isVscodeDark } from '../../lib/codemirror-theme';
+  import { getThemeExtensions, isVscodeDark, observeThemeChanges } from '../../lib/codemirror-theme';
   import rainbowBrackets from 'rainbowbrackets';
 
   interface Props {
@@ -101,7 +101,7 @@
   // --- CodeMirror query editor ---
   let queryContainer = $state<HTMLDivElement>(undefined!);
   let queryView: EditorView | undefined;
-  let themeObserver: MutationObserver | undefined;
+  let unobserveTheme: (() => void) | undefined;
   const themeCompartment = new Compartment();
   let currentIsDark = true;
   let updatingFromProp = false;
@@ -144,7 +144,7 @@
 
     queryView = new EditorView({ state, parent: queryContainer });
 
-    themeObserver = new MutationObserver(() => {
+    unobserveTheme = observeThemeChanges(() => {
       const isDark = isVscodeDark();
       if (isDark !== currentIsDark && queryView) {
         currentIsDark = isDark;
@@ -152,10 +152,6 @@
           effects: themeCompartment.reconfigure(getThemeExtensions()),
         });
       }
-    });
-    themeObserver.observe(document.body, {
-      attributes: true,
-      attributeFilter: ['data-vscode-theme-kind', 'class'],
     });
   });
 
@@ -166,7 +162,7 @@
 
   onDestroy(() => {
     window.removeEventListener('nouto-font-change', handleFontChange);
-    themeObserver?.disconnect();
+    unobserveTheme?.();
     queryView?.destroy();
   });
 

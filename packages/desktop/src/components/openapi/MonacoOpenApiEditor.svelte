@@ -57,10 +57,41 @@
   let currentSessionId: string | null = null;
 
   /** Reads a CSS custom property, keeping only hex colors (Monaco themes reject rgba()/var()). */
+  /** A computed --hf-* colour as Monaco hex (#rrggbb / #rrggbbaa); undefined if unusable. */
   function readColor(styles: CSSStyleDeclaration, name: string): string | undefined {
     const value = styles.getPropertyValue(name).trim();
-    return /^#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(value) ? value : undefined;
+    if (/^#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(value)) return value;
+    if (/^#[0-9a-fA-F]{3}$/.test(value)) {
+      return '#' + [...value.slice(1)].map((c) => c + c).join('');
+    }
+    // Engine-backed (custom) themes emit rgba() washes; Monaco wants hex8.
+    const m = /^rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*(?:,\s*([\d.]+)\s*)?\)$/.exec(value);
+    if (!m) return undefined;
+    const hex = (n: number) =>
+      Math.max(0, Math.min(255, Math.round(n)))
+        .toString(16)
+        .padStart(2, '0');
+    const alpha = m[4] === undefined ? 1 : Number(m[4]);
+    return '#' + hex(+m[1]) + hex(+m[2]) + hex(+m[3]) + (alpha < 1 ? hex(alpha * 255) : '');
   }
+
+  /**
+   * Syntax token colours, from the same --hf-* variables the CodeMirror
+   * editors use (packages/ui/src/lib/codemirror-theme.ts), so the OpenAPI
+   * editor follows the active theme — built-in or custom. Monaco needs
+   * literal hex, so these are re-read on every theme change.
+   */
+  const TOKEN_VARS: [tokens: string[], cssVar: string][] = [
+    // YAML keys tokenize as `type`; JSON keys as `string.key.json`.
+    [['type', 'string.key.json'], '--hf-symbolIcon-propertyForeground'],
+    [['string', 'string.value.json', 'string.yaml'], '--hf-debugTokenExpression-string'],
+    [['number', 'number.date', 'number.float', 'number.hex'], '--hf-debugTokenExpression-number'],
+    [['keyword', 'constant'], '--hf-debugTokenExpression-boolean'],
+    [['comment'], '--hf-terminal-ansiGreen'],
+    [['tag'], '--hf-terminal-ansiBlue'],
+    [['delimiter', 'operators', 'operator'], '--hf-editor-foreground'],
+    [['invalid'], '--hf-errorForeground'],
+  ];
 
   function applyTheme(): void {
     const dark = isVscodeDark();
@@ -76,23 +107,54 @@
       'editor.lineHighlightBackground': '--hf-editor-lineHighlightBackground',
       'editorWidget.background': '--hf-editorWidget-background',
       'editorWidget.border': '--hf-editorWidget-border',
+      'editorWidget.foreground': '--hf-editorWidget-foreground',
+      'editorSuggestWidget.background': '--hf-editorSuggestWidget-background',
+      'editorSuggestWidget.border': '--hf-editorSuggestWidget-border',
+      'editorSuggestWidget.foreground': '--hf-editorSuggestWidget-foreground',
+      'editorSuggestWidget.selectedBackground': '--hf-editorSuggestWidget-selectedBackground',
+      'editorHoverWidget.background': '--hf-editorHoverWidget-background',
+      'editorHoverWidget.border': '--hf-editorHoverWidget-border',
+      'editorBracketMatch.background': '--hf-editorBracketMatch-background',
+      'editorBracketMatch.border': '--hf-editorBracketMatch-border',
+      'editor.findMatchBackground': '--hf-editor-findMatchBackground',
+      'editor.findMatchHighlightBackground': '--hf-editor-findMatchHighlightBackground',
+      'scrollbarSlider.background': '--hf-scrollbarSlider-background',
+      'scrollbarSlider.hoverBackground': '--hf-scrollbarSlider-hoverBackground',
+      'scrollbarSlider.activeBackground': '--hf-scrollbarSlider-activeBackground',
+      'input.background': '--hf-input-background',
+      'input.foreground': '--hf-input-foreground',
+      'input.border': '--hf-input-border',
+      focusBorder: '--hf-focusBorder',
     };
     for (const [monacoKey, cssVar] of Object.entries(mapping)) {
       const value = readColor(styles, cssVar);
       if (value) colors[monacoKey] = value;
     }
+    const rules: { token: string; foreground: string }[] = [];
+    for (const [tokens, cssVar] of TOKEN_VARS) {
+      const value = readColor(styles, cssVar);
+      if (!value) continue;
+      const foreground = value.slice(1, 7); // Monaco rules take rrggbb without '#'
+      for (const token of tokens) rules.push({ token, foreground });
+    }
     monaco.editor.defineTheme('nouto-openapi', {
       base: dark ? 'vs-dark' : 'vs',
       inherit: true,
-      rules: [],
+      rules,
       colors,
     });
     monaco.editor.setTheme('nouto-openapi');
   }
 
-  /** Font size in px derived from the rem root, so the editor follows the app's interface scale. */
+  /**
+   * Editor font size in px from the same --hf-editor-font-size the CodeMirror
+   * editors use (set by the theme store's applyFonts), falling back to the
+   * root font size so the editor still scales with the interface when unset.
+   */
   function editorFontPx(): number {
-    return parseFloat(getComputedStyle(document.documentElement).fontSize);
+    const root = getComputedStyle(document.documentElement);
+    const editorSize = parseFloat(root.getPropertyValue('--hf-editor-font-size'));
+    return Number.isFinite(editorSize) && editorSize > 0 ? editorSize : parseFloat(root.fontSize);
   }
 
   function editorFontFamily(): string | undefined {
@@ -206,9 +268,11 @@
     // Desktop toggles data-theme on <html>; watch it (not body's VS Code
     // webview attributes) and re-derive the Monaco theme from computed styles.
     themeObserver = new MutationObserver(() => applyTheme());
+    // `style` covers engine-backed themes, which repaint as inline --hf-* vars
+    // without changing data-theme.
     themeObserver.observe(document.documentElement, {
       attributes: true,
-      attributeFilter: ['data-theme', 'class'],
+      attributeFilter: ['data-theme', 'data-theme-mode', 'class', 'style'],
     });
     window.addEventListener('nouto-font-change', handleFontChange);
   });

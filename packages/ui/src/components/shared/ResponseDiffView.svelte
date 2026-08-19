@@ -3,7 +3,11 @@
   import { MergeView } from '@codemirror/merge';
   import { EditorState } from '@codemirror/state';
   import { EditorView } from '@codemirror/view';
-  import { getThemeExtensions, isVscodeDark } from '../../lib/codemirror-theme';
+  import {
+    getThemeExtensions,
+    isVscodeDark,
+    observeThemeChanges,
+  } from '../../lib/codemirror-theme';
   import { getLanguageExtension, type LanguageId } from '../../lib/codemirror/language-support';
 
   interface Props {
@@ -15,7 +19,7 @@
 
   let container: HTMLDivElement;
   let mergeView: MergeView | undefined;
-  let themeObserver: MutationObserver | undefined;
+  let unobserveTheme: (() => void) | undefined;
   let currentIsDark = true;
 
   function buildSharedExtensions() {
@@ -54,21 +58,17 @@
   onMount(() => {
     createView();
 
-    themeObserver = new MutationObserver(() => {
+    unobserveTheme = observeThemeChanges(() => {
       const isDark = isVscodeDark();
       if (isDark !== currentIsDark) {
         currentIsDark = isDark;
         createView();
       }
     });
-    themeObserver.observe(document.body, {
-      attributes: true,
-      attributeFilter: ['data-vscode-theme-kind', 'class'],
-    });
   });
 
   onDestroy(() => {
-    themeObserver?.disconnect();
+    unobserveTheme?.();
     mergeView?.destroy();
   });
 

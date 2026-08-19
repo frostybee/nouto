@@ -4,7 +4,7 @@
   import { EditorView, keymap, lineNumbers, highlightActiveLineGutter } from '@codemirror/view';
   import { foldGutter, codeFolding, bracketMatching, syntaxTree, foldAll, unfoldAll, ensureSyntaxTree, foldable, foldEffect, unfoldEffect, foldState } from '@codemirror/language';
   import { search, searchKeymap, openSearchPanel } from '@codemirror/search';
-  import { getThemeExtensions, isVscodeDark } from '../../lib/codemirror-theme';
+  import { getThemeExtensions, isVscodeDark, observeThemeChanges } from '../../lib/codemirror-theme';
   import { foldToDepth } from '../../lib/codemirror/fold-depth';
   import { rootFoldService } from '../../lib/codemirror/root-fold-service';
   import { findChildFoldableRanges } from '../../lib/codemirror/single-level-unfold';
@@ -51,7 +51,7 @@
   let container: HTMLDivElement;
   let view: EditorView | undefined;
   let observer: IntersectionObserver | undefined;
-  let themeObserver: MutationObserver | undefined;
+  let unobserveTheme: (() => void) | undefined;
   const themeCompartment = new Compartment();
   const wrapCompartment = new Compartment();
   const minimapCompartment = new Compartment();
@@ -323,7 +323,7 @@
     createEditor();
 
     // React to VS Code theme changes by swapping highlight style
-    themeObserver = new MutationObserver(() => {
+    unobserveTheme = observeThemeChanges(() => {
       const isDark = isVscodeDark();
       if (isDark !== currentIsDark && view) {
         currentIsDark = isDark;
@@ -331,10 +331,6 @@
           effects: themeCompartment.reconfigure(getThemeExtensions()),
         });
       }
-    });
-    themeObserver.observe(document.body, {
-      attributes: true,
-      attributeFilter: ['data-vscode-theme-kind', 'class'],
     });
 
     // Handle tab switching: CodeMirror needs requestMeasure when becoming visible
@@ -355,7 +351,7 @@
 
   onDestroy(() => {
     window.removeEventListener('nouto-font-change', handleFontChange);
-    themeObserver?.disconnect();
+    unobserveTheme?.();
     observer?.disconnect();
     view?.destroy();
   });

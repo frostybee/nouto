@@ -2274,6 +2274,18 @@
 
   .theme-card.active {
     border-color: var(--hf-focusBorder);
+    background: var(--hf-list-activeSelectionBackground, var(--hf-editor-selectionBackground));
+    box-shadow: 0 0 0 3px var(--hf-inputOption-activeBackground, rgba(0, 127, 212, 0.4));
+  }
+
+  .theme-card.active .theme-name {
+    font-weight: 700;
+    color: var(--hf-list-activeSelectionForeground, var(--hf-foreground));
+  }
+
+  .theme-card.active .theme-swatches {
+    outline: 1px solid var(--hf-focusBorder);
+    outline-offset: 2px;
   }
 
   .theme-swatches {
@@ -2296,10 +2308,18 @@
 
   .theme-check {
     position: absolute;
-    top: 0.615rem;
-    right: 0.615rem;
-    font-size: 1.077rem;
-    color: var(--hf-focusBorder);
+    top: -0.538rem;
+    right: -0.538rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.385rem;
+    height: 1.385rem;
+    font-size: 0.846rem;
+    border-radius: 50%;
+    background: var(--hf-button-background);
+    color: var(--hf-button-foreground);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
   }
 
   .theme-card-wrap {

@@ -8,6 +8,7 @@
   import { syncGlobalShortcut } from './lib/global-shortcut';
   import { notifyIfUnfocused } from './lib/os-notify';
   import { initBrowserKeySuppression } from './lib/browser-keys';
+  import { initEditorWheelZoom } from './lib/editor-zoom';
   import {
     saveEmergencyData,
     describeError,
@@ -469,6 +470,8 @@
     const cleanupBrowserKeys = initBrowserKeySuppression(getPlatform(), {
       reload: !import.meta.env?.DEV,
     });
+    // Ctrl/⌘ + wheel over a code editor steps the editor font size.
+    const cleanupEditorZoom = initEditorWheelZoom(getPlatform() === 'macos');
 
     // Capture uncaught errors and unhandled rejections for crash diagnostics
     window.addEventListener('error', (e) =>
@@ -667,6 +670,7 @@
     unmountCleanup = () => {
       document.removeEventListener('contextmenu', preventContextMenu);
       cleanupBrowserKeys();
+      cleanupEditorZoom();
       unwatchSystemTheme();
       unsubscribe();
       unlistenDeepLink();

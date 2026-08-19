@@ -6,7 +6,7 @@
   import { closeBrackets, closeBracketsKeymap } from '@codemirror/autocomplete';
   import { defaultKeymap, indentWithTab, history, historyKeymap } from '@codemirror/commands';
   import { forEachDiagnostic, setDiagnosticsEffect } from '@codemirror/lint';
-  import { getThemeExtensions, isVscodeDark } from '../../lib/codemirror-theme';
+  import { getThemeExtensions, isVscodeDark, observeThemeChanges } from '../../lib/codemirror-theme';
   import { getLanguageExtension, type LanguageId } from '../../lib/codemirror/language-support';
   import {
     buildJsonSchemaExtensions,
@@ -57,7 +57,7 @@
 
   let container: HTMLDivElement;
   let view: EditorView | undefined;
-  let themeObserver: MutationObserver | undefined;
+  let unobserveTheme: (() => void) | undefined;
   // Every compartment is ALWAYS part of the initial extension set —
   // reconfiguring a compartment that was absent from the initial state is a
   // silent no-op.
@@ -187,7 +187,7 @@
     createEditor();
 
     // React to VS Code theme changes
-    themeObserver = new MutationObserver(() => {
+    unobserveTheme = observeThemeChanges(() => {
       const isDark = isVscodeDark();
       if (isDark !== currentIsDark && view) {
         currentIsDark = isDark;
@@ -195,10 +195,6 @@
           effects: themeCompartment.reconfigure(getThemeExtensions()),
         });
       }
-    });
-    themeObserver.observe(document.body, {
-      attributes: true,
-      attributeFilter: ['data-vscode-theme-kind', 'class'],
     });
   });
 
@@ -209,7 +205,7 @@
 
   onDestroy(() => {
     window.removeEventListener('nouto-font-change', handleFontChange);
-    themeObserver?.disconnect();
+    unobserveTheme?.();
     view?.destroy();
   });
 

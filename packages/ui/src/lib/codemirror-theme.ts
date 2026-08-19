@@ -356,137 +356,118 @@ export function createVscodeTheme(isDark: boolean) {
   }, { dark: isDark });
 }
 
-// Dark+ highlight style
-const darkHighlightStyle = HighlightStyle.define([
+// Syntax colours come from the same --hf-* variables the rest of the UI uses,
+// so one highlight style follows every theme: the 27 built-in CSS themes, any
+// installed/imported VS Code theme (via hf-mapping.ts), and, inside the VS
+// Code extension, the user's real VS Code theme (--vscode-symbolIcon-*,
+// --vscode-debugTokenExpression-*, --vscode-terminal-ansi*). Fallbacks are
+// the Dark+ palette. A var() in a HighlightStyle is plain CSS, so colours
+// update live with no reconfigure.
+const v = (name: string, fallback: string): string => `var(--hf-${name}, ${fallback})`;
+
+const PROPERTY = v('symbolIcon-propertyForeground', '#9cdcfe');
+const VARIABLE = v('symbolIcon-variableForeground', '#9cdcfe');
+const STRING = v('debugTokenExpression-string', '#ce9178');
+const NUMBER = v('debugTokenExpression-number', '#b5cea8');
+const KEYWORD = v('debugTokenExpression-boolean', '#569cd6');
+const CONTROL = v('symbolIcon-functionForeground', '#c586c0');
+const FUNCTION = v('symbolIcon-functionForeground', '#dcdcaa');
+const TYPE = v('symbolIcon-classForeground', '#4ec9b0');
+const COMMENT = v('terminal-ansiGreen', '#6a9955');
+const TEXT = v('editor-foreground', '#d4d4d4');
+const MUTED = v('descriptionForeground', '#808080');
+const LINK = v('textLink-foreground', '#3794ff');
+const ERROR = v('errorForeground', '#d16969');
+const ESCAPE = v('textPreformat-foreground', '#d7ba7d');
+const HTML_TAG = v('terminal-ansiBlue', '#569cd6');
+const HTML_ATTR = v('symbolIcon-propertyForeground', '#9cdcfe');
+
+const themeHighlightStyle = HighlightStyle.define([
   // JSON / general tokens
-  { tag: tags.propertyName, color: '#9cdcfe' },
-  { tag: tags.string, color: '#ce9178' },
-  { tag: tags.number, color: '#b5cea8' },
-  { tag: tags.bool, color: '#569cd6' },
-  { tag: tags.null, color: '#569cd6' },
-  { tag: tags.punctuation, color: '#d4d4d4' },
+  { tag: tags.propertyName, color: PROPERTY },
+  { tag: tags.string, color: STRING },
+  { tag: tags.number, color: NUMBER },
+  { tag: tags.bool, color: KEYWORD },
+  { tag: tags.null, color: KEYWORD },
+  { tag: tags.punctuation, color: TEXT },
 
   // Keywords
-  { tag: tags.keyword, color: '#569cd6' },
-  { tag: tags.controlKeyword, color: '#c586c0' },
-  { tag: tags.operatorKeyword, color: '#569cd6' },
-  { tag: tags.definitionKeyword, color: '#569cd6' },
-  { tag: tags.moduleKeyword, color: '#c586c0' },
+  { tag: tags.keyword, color: KEYWORD },
+  { tag: tags.controlKeyword, color: CONTROL },
+  { tag: tags.operatorKeyword, color: KEYWORD },
+  { tag: tags.definitionKeyword, color: KEYWORD },
+  { tag: tags.moduleKeyword, color: CONTROL },
 
   // HTML/XML
-  { tag: tags.tagName, color: '#569cd6' },
-  { tag: tags.attributeName, color: '#9cdcfe' },
-  { tag: tags.attributeValue, color: '#ce9178' },
-  { tag: tags.angleBracket, color: '#808080' },
-  { tag: tags.documentMeta, color: '#569cd6' },
+  { tag: tags.tagName, color: HTML_TAG },
+  { tag: tags.attributeName, color: HTML_ATTR },
+  { tag: tags.attributeValue, color: STRING },
+  { tag: tags.angleBracket, color: MUTED },
+  { tag: tags.documentMeta, color: HTML_TAG },
 
   // Comments
-  { tag: tags.comment, color: '#6a9955' },
-  { tag: tags.lineComment, color: '#6a9955' },
-  { tag: tags.blockComment, color: '#6a9955' },
+  { tag: tags.comment, color: COMMENT },
+  { tag: tags.lineComment, color: COMMENT },
+  { tag: tags.blockComment, color: COMMENT },
 
   // Operators
-  { tag: tags.operator, color: '#d4d4d4' },
-  { tag: tags.compareOperator, color: '#d4d4d4' },
-  { tag: tags.logicOperator, color: '#d4d4d4' },
+  { tag: tags.operator, color: TEXT },
+  { tag: tags.compareOperator, color: TEXT },
+  { tag: tags.logicOperator, color: TEXT },
 
   // Functions and variables
-  { tag: tags.function(tags.variableName), color: '#dcdcaa' },
-  { tag: tags.variableName, color: '#9cdcfe' },
-  { tag: tags.definition(tags.variableName), color: '#9cdcfe' },
-  { tag: tags.typeName, color: '#4ec9b0' },
-  { tag: tags.className, color: '#4ec9b0' },
-  { tag: tags.namespace, color: '#4ec9b0' },
+  { tag: tags.function(tags.variableName), color: FUNCTION },
+  { tag: tags.variableName, color: VARIABLE },
+  { tag: tags.definition(tags.variableName), color: VARIABLE },
+  { tag: tags.typeName, color: TYPE },
+  { tag: tags.className, color: TYPE },
+  { tag: tags.namespace, color: TYPE },
 
   // CSS-specific
-  { tag: tags.atom, color: '#569cd6' },
-  { tag: tags.unit, color: '#b5cea8' },
-  { tag: tags.color, color: '#ce9178' },
+  { tag: tags.atom, color: KEYWORD },
+  { tag: tags.unit, color: NUMBER },
+  { tag: tags.color, color: STRING },
 
   // Markdown-specific
-  { tag: tags.heading, color: '#569cd6', fontWeight: 'bold' },
+  { tag: tags.heading, color: KEYWORD, fontWeight: 'bold' },
   { tag: tags.emphasis, fontStyle: 'italic' },
   { tag: tags.strong, fontWeight: 'bold' },
-  { tag: tags.link, color: '#3794ff', textDecoration: 'underline' },
-  { tag: tags.url, color: '#3794ff' },
+  { tag: tags.link, color: LINK, textDecoration: 'underline' },
+  { tag: tags.url, color: LINK },
 
   // Special
-  { tag: tags.regexp, color: '#d16969' },
-  { tag: tags.escape, color: '#d7ba7d' },
-  { tag: tags.special(tags.string), color: '#d7ba7d' },
-  { tag: tags.meta, color: '#569cd6' },
-  { tag: tags.processingInstruction, color: '#808080' },
-]);
-
-// Light+ highlight style
-const lightHighlightStyle = HighlightStyle.define([
-  // JSON / general tokens
-  { tag: tags.propertyName, color: '#1307ed' },
-  { tag: tags.string, color: '#a31515' },
-  { tag: tags.number, color: '#098658' },
-  { tag: tags.bool, color: '#0000ff' },
-  { tag: tags.null, color: '#0000ff' },
-  { tag: tags.punctuation, color: '#000000' },
-
-  // Keywords
-  { tag: tags.keyword, color: '#0000ff' },
-  { tag: tags.controlKeyword, color: '#af00db' },
-  { tag: tags.operatorKeyword, color: '#0000ff' },
-  { tag: tags.definitionKeyword, color: '#0000ff' },
-  { tag: tags.moduleKeyword, color: '#af00db' },
-
-  // HTML/XML
-  { tag: tags.tagName, color: '#800000' },
-  { tag: tags.attributeName, color: '#e50000' },
-  { tag: tags.attributeValue, color: '#0000ff' },
-  { tag: tags.angleBracket, color: '#800000' },
-  { tag: tags.documentMeta, color: '#800000' },
-
-  // Comments
-  { tag: tags.comment, color: '#008000' },
-  { tag: tags.lineComment, color: '#008000' },
-  { tag: tags.blockComment, color: '#008000' },
-
-  // Operators
-  { tag: tags.operator, color: '#000000' },
-  { tag: tags.compareOperator, color: '#000000' },
-  { tag: tags.logicOperator, color: '#000000' },
-
-  // Functions and variables
-  { tag: tags.function(tags.variableName), color: '#795e26' },
-  { tag: tags.variableName, color: '#001080' },
-  { tag: tags.definition(tags.variableName), color: '#001080' },
-  { tag: tags.typeName, color: '#267f99' },
-  { tag: tags.className, color: '#267f99' },
-  { tag: tags.namespace, color: '#267f99' },
-
-  // CSS-specific
-  { tag: tags.atom, color: '#0000ff' },
-  { tag: tags.unit, color: '#098658' },
-  { tag: tags.color, color: '#a31515' },
-
-  // Markdown-specific
-  { tag: tags.heading, color: '#0000ff', fontWeight: 'bold' },
-  { tag: tags.emphasis, fontStyle: 'italic' },
-  { tag: tags.strong, fontWeight: 'bold' },
-  { tag: tags.link, color: '#0070c1', textDecoration: 'underline' },
-  { tag: tags.url, color: '#0070c1' },
-
-  // Special
-  { tag: tags.regexp, color: '#811f3f' },
-  { tag: tags.escape, color: '#ee0000' },
-  { tag: tags.special(tags.string), color: '#ee0000' },
-  { tag: tags.meta, color: '#0000ff' },
-  { tag: tags.processingInstruction, color: '#808080' },
+  { tag: tags.regexp, color: ERROR },
+  { tag: tags.escape, color: ESCAPE },
+  { tag: tags.special(tags.string), color: ESCAPE },
+  { tag: tags.meta, color: KEYWORD },
+  { tag: tags.processingInstruction, color: MUTED },
+  { tag: tags.invalid, color: ERROR },
 ]);
 
 /**
- * Returns theme + syntax highlighting extensions matching the current VS Code theme.
+ * Watch for theme changes from every host: VS Code flips attributes on
+ * <body>; the desktop app flips `data-theme` / `data-theme-mode` (and, for
+ * engine themes, inline --hf-* styles) on <html>. Returns a teardown.
+ */
+export function observeThemeChanges(onChange: () => void): () => void {
+  if (typeof document === 'undefined' || typeof MutationObserver === 'undefined') return () => {};
+  const observer = new MutationObserver(onChange);
+  observer.observe(document.body, {
+    attributes: true,
+    attributeFilter: ['data-vscode-theme-kind', 'class'],
+  });
+  observer.observe(document.documentElement, {
+    attributes: true,
+    attributeFilter: ['data-theme', 'data-theme-mode', 'style'],
+  });
+  return () => observer.disconnect();
+}
+
+/**
+ * Returns theme + syntax highlighting extensions matching the current theme.
  */
 export function getThemeExtensions(): Extension[] {
-  const isDark = isVscodeDark();
-  return [
-    createVscodeTheme(isDark),
-    syntaxHighlighting(isDark ? darkHighlightStyle : lightHighlightStyle),
-  ];
+  // Only the chrome's `dark` flag depends on the resolved mode now; syntax
+  // colours are CSS variables and follow the theme on their own.
+  return [createVscodeTheme(isVscodeDark()), syntaxHighlighting(themeHighlightStyle)];
 }
