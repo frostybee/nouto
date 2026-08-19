@@ -97,19 +97,6 @@ export default ts.config(
     languageOptions: { globals: { ...globals.node } },
     rules: { 'no-console': 'off' },
   },
-  // Files with heavy `any` usage that need transport-layer typing work.
-  // Shrink this list as each file is typed.
-  {
-    files: [
-      'packages/desktop/src/lib/import-export.svelte.ts',
-      'packages/desktop/src/App.svelte',
-      'packages/desktop/src/lib/handlers/environment-handler.ts',
-      'packages/desktop/src/lib/collection-crud.svelte.ts',
-      'packages/desktop/src/lib/handlers/ws-session-handler.ts',
-      'packages/desktop/src/lib/tauri.ts',
-    ],
-    rules: { '@typescript-eslint/no-explicit-any': 'off' },
-  },
   {
     files: ['**/*.test.ts'],
     rules: { '@typescript-eslint/no-explicit-any': 'warn' },

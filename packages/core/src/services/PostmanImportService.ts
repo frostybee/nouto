@@ -6,7 +6,7 @@ import { generateId } from '../types';
 
 // --- Postman types ---
 
-interface PostmanCollection {
+export interface PostmanCollection {
   info: { name: string; _postman_id?: string; description?: string; schema: string };
   item: PostmanItem[];
   variable?: PostmanVariable[];
@@ -14,7 +14,7 @@ interface PostmanCollection {
   header?: PostmanHeader[];
 }
 
-interface PostmanItem {
+export interface PostmanItem {
   name: string;
   id?: string;
   item?: PostmanItem[];
@@ -23,7 +23,7 @@ interface PostmanItem {
   auth?: PostmanAuth;
 }
 
-interface PostmanRequest {
+export interface PostmanRequest {
   method: string;
   header?: PostmanHeader[];
   url: PostmanUrl | string;
@@ -32,7 +32,7 @@ interface PostmanRequest {
   description?: string;
 }
 
-interface PostmanUrl {
+export interface PostmanUrl {
   raw?: string;
   protocol?: string;
   host?: string[];
@@ -41,29 +41,30 @@ interface PostmanUrl {
   query?: PostmanQueryParam[];
 }
 
-interface PostmanHeader {
+export interface PostmanHeader {
   key: string;
   value: string;
   disabled?: boolean;
   description?: string;
 }
 
-interface PostmanQueryParam {
+export interface PostmanQueryParam {
   key: string;
   value: string;
   disabled?: boolean;
   description?: string;
 }
 
-interface PostmanBody {
+export interface PostmanBody {
   mode: 'raw' | 'urlencoded' | 'formdata' | 'file' | 'graphql' | 'none';
   raw?: string;
   urlencoded?: PostmanFormParam[];
   formdata?: PostmanFormParam[];
+  graphql?: { query?: string; variables?: string };
   options?: { raw?: { language?: 'json' | 'text' | 'xml' | 'html' | 'javascript' } };
 }
 
-interface PostmanFormParam {
+export interface PostmanFormParam {
   key: string;
   value: string;
   disabled?: boolean;
@@ -71,21 +72,36 @@ interface PostmanFormParam {
   description?: string;
 }
 
-interface PostmanAuth {
+export interface PostmanAuth {
   type: 'noauth' | 'basic' | 'bearer' | 'apikey' | 'oauth2' | 'digest' | 'hawk' | 'aws' | 'ntlm';
   basic?: { key: string; value: string }[];
   bearer?: { key: string; value: string }[];
   apikey?: { key: string; value: string }[];
 }
 
-interface PostmanVariable {
+export interface PostmanVariable {
   key: string;
   value: string;
   type?: string;
   disabled?: boolean;
 }
 
-interface PostmanResponse {
+/** Postman environment / globals export file (`*.postman_environment.json`). */
+export interface PostmanEnvironmentFile {
+  id?: string;
+  name?: string;
+  values: PostmanEnvironmentValue[];
+  _postman_variable_scope?: 'environment' | 'globals' | string;
+}
+
+export interface PostmanEnvironmentValue {
+  key: string;
+  value: string;
+  enabled?: boolean;
+  type?: 'default' | 'secret' | string;
+}
+
+export interface PostmanResponse {
   name?: string;
   originalRequest?: PostmanRequest;
   status?: string;

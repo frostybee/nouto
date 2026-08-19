@@ -2,7 +2,7 @@ import * as yaml from 'js-yaml';
 import type { Collection, SavedRequest, Folder, KeyValue, AuthState, BodyState, HttpMethod } from '../types';
 import { generateId } from '../types';
 
-interface InsomniaResource {
+export interface InsomniaResource {
   _id: string;
   _type: string;
   parentId: string;
@@ -34,7 +34,7 @@ interface InsomniaResource {
   };
 }
 
-interface InsomniaExport {
+export interface InsomniaExport {
   _type?: string;
   __export_format?: number;
   resources: InsomniaResource[];

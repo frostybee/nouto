@@ -30,8 +30,24 @@ import type {
   WsRecordingState,
   WsSession,
   WsSessionSummary,
+  BenchmarkConfig,
+  BenchmarkIteration,
+  BenchmarkResult,
+  BodyState,
+  CollectionRunRequestResult,
+  CollectionRunResult,
+  MockRequestLog,
+  MockServerStatus,
 } from '@nouto/core';
-import type { HistorySearchParams, HistoryIndexEntry, HistoryEntry, HistoryStats, OpenApiFormat, OpenApiVersion } from '@nouto/core/services';
+import type {
+  HistorySearchParams,
+  HistoryIndexEntry,
+  HistoryEntry,
+  HistoryStats,
+  OpenApiFormat,
+  OpenApiVersion,
+  Cookie,
+} from '@nouto/core/services';
 
 // ============================================
 // Outgoing Messages (Webview -> Extension)
@@ -75,6 +91,7 @@ export interface SendRequestMessage {
       certPath?: string;
       keyPath?: string;
       passphrase?: string;
+      caCertPath?: string;
     };
     proxy?: {
       enabled: boolean;
@@ -102,6 +119,8 @@ export interface SendRequestMessage {
       activeEnvironment?: any;
       globalVariables?: any[];
     };
+    /** Injected by the desktop message bus from the local cookie jar. */
+    cookies?: Cookie[];
   };
 }
 
@@ -184,6 +203,7 @@ export interface DeleteSecretMessage {
 
 export interface OpenExternalMessage {
   type: 'openExternal';
+  /** @deprecated use data.url */
   url?: string;
   data?: { url: string };
 }
@@ -654,26 +674,147 @@ export interface DeleteWorkspaceMetaMessage {
   type: 'deleteWorkspaceMeta';
 }
 
+// --- Desktop-only commands with typed payloads ---
+
+export interface SaveTrashMessage {
+  type: 'saveTrash';
+  data: TrashItem[];
+}
+
+export interface CreateSettingsWindowMessage {
+  type: 'createSettingsWindow';
+  data?: { section?: string | null };
+}
+
+export interface CreateEnvironmentMessage {
+  type: 'createEnvironment';
+  data?: { name?: string };
+}
+
+export interface RenameEnvironmentMessage {
+  type: 'renameEnvironment';
+  data: { id: string; name: string };
+}
+
+export interface DeleteEnvironmentMessage {
+  type: 'deleteEnvironment';
+  data: { id: string };
+}
+
+export interface DuplicateEnvironmentMessage {
+  type: 'duplicateEnvironment';
+  data: { id: string };
+}
+
+export interface SetActiveEnvironmentMessage {
+  type: 'setActiveEnvironment';
+  data: { id: string | null };
+}
+
+export interface ImportEnvironmentsMessage {
+  type: 'importEnvironments';
+}
+
+export interface ExportEnvironmentMessage {
+  type: 'exportEnvironment';
+  data: { id: string };
+}
+
+export interface ExportAllEnvironmentsMessage {
+  type: 'exportAllEnvironments';
+}
+
+export interface ExportGlobalVariablesMessage {
+  type: 'exportGlobalVariables';
+}
+
+export interface ImportGlobalVariablesMessage {
+  type: 'importGlobalVariables';
+}
+
+/** Union of the environment commands handled by the desktop environment handler. */
+export type EnvironmentCommandMessage =
+  | CreateEnvironmentMessage
+  | RenameEnvironmentMessage
+  | DeleteEnvironmentMessage
+  | DuplicateEnvironmentMessage
+  | SetActiveEnvironmentMessage
+  | ImportEnvironmentsMessage
+  | ExportEnvironmentMessage
+  | ExportAllEnvironmentsMessage
+  | ExportGlobalVariablesMessage
+  | ImportGlobalVariablesMessage;
+
+export interface ScanProtoDirMessage {
+  type: 'scanProtoDir';
+  data: { dirPath: string };
+}
+
+export interface StartBenchmarkMessage {
+  type: 'startBenchmark';
+  data: {
+    config: BenchmarkConfig;
+    method: string;
+    url: string;
+    headers: KeyValue[];
+    params: KeyValue[];
+    body?: BodyState;
+    auth?: AuthState;
+    requestName: string;
+  };
+}
+
+export interface OpenProjectDirMessage {
+  type: 'openProjectDir';
+}
+
+export interface CloseProjectMessage {
+  type: 'closeProject';
+}
+
+export interface GetRecentProjectsMessage {
+  type: 'getRecentProjects';
+}
+
+export interface RemoveRecentProjectMessage {
+  type: 'removeRecentProject';
+  data: { path: string };
+}
+
+export interface ClearRecentProjectsCmdMessage {
+  type: 'clearRecentProjectsCmd';
+}
+
+export interface OpenRecentProjectMessage {
+  type: 'openRecentProject';
+  data: { path: string };
+}
+
+export interface CreateProjectMessage {
+  type: 'createProject';
+}
+
+export interface ExportBackupMessage {
+  type: 'exportBackup';
+  /** `cookies` is the raw persisted cookie-jar blob (or null when absent). */
+  data: { cookies: unknown };
+}
+
+export interface ImportBackupMessage {
+  type: 'importBackup';
+}
+
+/**
+ * Desktop-only commands whose payloads are not yet modeled. Shrink this list
+ * by adding a dedicated interface above and moving the literal out.
+ */
 export interface DesktopCommandMessage {
   type:
-    | 'saveTrash'
-    | 'createSettingsWindow'
     | 'getSettings'
-    | 'createEnvironment'
-    | 'renameEnvironment'
-    | 'deleteEnvironment'
-    | 'duplicateEnvironment'
-    | 'setActiveEnvironment'
-    | 'importEnvironments'
-    | 'exportEnvironment'
-    | 'exportAllEnvironments'
-    | 'exportGlobalVariables'
-    | 'importGlobalVariables'
     | 'retryFailedRequests'
     | 'exportRunResults'
     | 'grpcSendMessage'
     | 'grpcEndStream'
-    | 'scanProtoDir'
     | 'wsConnect'
     | 'wsSend'
     | 'wsDisconnect'
@@ -690,21 +831,11 @@ export interface DesktopCommandMessage {
     | 'stopMockServer'
     | 'updateMockRoutes'
     | 'clearMockLogs'
-    | 'startBenchmark'
     | 'cancelBenchmark'
     | 'gqlSubSubscribe'
     | 'gqlSubUnsubscribe'
     | 'linkEnvFile'
-    | 'unlinkEnvFile'
-    | 'openProjectDir'
-    | 'closeProject'
-    | 'getRecentProjects'
-    | 'removeRecentProject'
-    | 'clearRecentProjectsCmd'
-    | 'openRecentProject'
-    | 'createProject'
-    | 'exportBackup'
-    | 'importBackup';
+    | 'unlinkEnvFile';
   data?: any;
 }
 
@@ -928,6 +1059,20 @@ export type OutgoingMessage =
   | OpenApiPreviewReadyMessage
   | OpenApiProxyRequestMessage
   | OpenApiProxyCancelMessage
+  | SaveTrashMessage
+  | CreateSettingsWindowMessage
+  | EnvironmentCommandMessage
+  | ScanProtoDirMessage
+  | StartBenchmarkMessage
+  | OpenProjectDirMessage
+  | CloseProjectMessage
+  | GetRecentProjectsMessage
+  | RemoveRecentProjectMessage
+  | ClearRecentProjectsCmdMessage
+  | OpenRecentProjectMessage
+  | CreateProjectMessage
+  | ExportBackupMessage
+  | ImportBackupMessage
   | DesktopCommandMessage;
 
 // ============================================
@@ -1359,33 +1504,154 @@ export interface ActionPanelClosedMessage {
   data: { panel: string };
 }
 
+// --- Desktop-only events with typed payloads ---
+
+export interface SecretStoredMessage {
+  type: 'secretStored';
+  data: { key: string; success: boolean };
+}
+
+export interface SecretDeletedMessage {
+  type: 'secretDeleted';
+  data: { key: string; success: boolean };
+}
+
+export interface ProjectOpenedMessage {
+  type: 'projectOpened';
+  data: { path: string };
+}
+
+export interface ProjectClosedMessage {
+  type: 'projectClosed';
+  data?: Record<string, never>;
+}
+
+/** Wire shape of the Rust `RecentProject` struct (snake_case, no serde rename). */
+export interface RecentProjectEntry {
+  path: string;
+  name: string;
+  last_opened: string;
+}
+
+export interface RecentProjectsLoadedMessage {
+  type: 'recentProjectsLoaded';
+  data: RecentProjectEntry[];
+}
+
+export interface CollectionRunProgressMessage {
+  type: 'collectionRunProgress';
+  data: { current: number; total: number; requestName: string };
+}
+
+export interface CollectionRunRequestResultMessage {
+  type: 'collectionRunRequestResult';
+  data: CollectionRunRequestResult;
+}
+
+export interface CollectionRunCompleteMessage {
+  type: 'collectionRunComplete';
+  data: CollectionRunResult;
+}
+
+/** Runner history list rows: a stored run without its per-request results. */
+export type RunnerHistorySummary = Omit<CollectionRunResult, 'results'> & {
+  id: string;
+  folderId?: string;
+};
+
+export interface RunnerHistoryListMessage {
+  type: 'runnerHistoryList';
+  data: RunnerHistorySummary[];
+}
+
+export interface RunnerHistoryDetailMessage {
+  type: 'runnerHistoryDetail';
+  data: (CollectionRunResult & { id: string }) | null;
+}
+
+export interface DataFileLoadedMessage {
+  type: 'dataFileLoaded';
+  data: { rows: Record<string, string>[]; columns: string[]; fileName: string };
+}
+
+export interface MockStatusChangedMessage {
+  type: 'mockStatusChanged';
+  data: { status: MockServerStatus; error?: string };
+}
+
+export interface MockLogAddedMessage {
+  type: 'mockLogAdded';
+  data: MockRequestLog;
+}
+
+export interface BenchmarkProgressMessage {
+  type: 'benchmarkProgress';
+  data: { current: number; total: number };
+}
+
+export interface BenchmarkIterationCompleteMessage {
+  type: 'benchmarkIterationComplete';
+  data: BenchmarkIteration;
+}
+
+export interface BenchmarkCompleteMessage {
+  type: 'benchmarkComplete';
+  data: BenchmarkResult;
+}
+
+/** Opaque persisted cookie-jar blob restored from a backup. */
+export interface RestoreCookiesMessage {
+  type: 'restoreCookies';
+  data: unknown;
+}
+
+/** Wire shape of a script cookie emitted by the Rust script engine (snake_case). */
+export interface ScriptCookieWire {
+  name: string;
+  value: string;
+  domain: string;
+  path: string;
+  expires?: number | null;
+  http_only?: boolean | null;
+  secure?: boolean | null;
+  same_site?: string | null;
+}
+
+export type CookieMutationWire =
+  | { type: 'set'; cookie: ScriptCookieWire }
+  | { type: 'delete'; domain: string; name: string }
+  | { type: 'clear' };
+
+export interface CookieMutationsMessage {
+  type: 'cookieMutations';
+  data: CookieMutationWire[];
+}
+
+export interface SecretsResolvedMessage {
+  type: 'secretsResolved';
+  data: { collections: Collection[]; environments: EnvironmentsData; generation: number };
+}
+
+export interface BackupExportDoneMessage {
+  type: 'backupExportDone';
+  data?: Record<string, never>;
+}
+
+export interface BackupImportDoneMessage {
+  type: 'backupImportDone';
+  data?: Record<string, never>;
+}
+
+/**
+ * Desktop-only events whose payloads are not yet modeled. Shrink this list
+ * by adding a dedicated interface above and moving the literal out.
+ */
 export interface DesktopIncomingMessage {
   type:
-    | 'secretStored'
-    | 'secretDeleted'
-    | 'projectOpened'
-    | 'projectClosed'
     | 'projectFileChanged'
-    | 'recentProjectsLoaded'
-    | 'collectionRunProgress'
-    | 'collectionRunRequestResult'
-    | 'collectionRunComplete'
     | 'collectionRunCancelled'
     | 'collectionRunWarning'
-    | 'runnerHistoryList'
-    | 'runnerHistoryDetail'
-    | 'dataFileLoaded'
-    | 'mockStatusChanged'
-    | 'mockLogAdded'
-    | 'benchmarkProgress'
-    | 'benchmarkIterationComplete'
-    | 'benchmarkComplete'
     | 'benchmarkCancelled'
-    | 'restoreCookies'
-    | 'cookieMutations'
-    | 'secretsResolved'
-    | 'backupExportDone'
-    | 'backupImportDone'
     | 'historySaveToCollection'
     | 'saveToCollectionWithLink'
     | 'saveToNewCollectionWithLink'
@@ -1579,4 +1845,25 @@ export type IncomingMessage =
   | OpenApiActionFailedMessage
   | OpenApiPreviewDataMessage
   | OpenApiProxyResponseMessage
+  | SecretStoredMessage
+  | SecretDeletedMessage
+  | ProjectOpenedMessage
+  | ProjectClosedMessage
+  | RecentProjectsLoadedMessage
+  | CollectionRunProgressMessage
+  | CollectionRunRequestResultMessage
+  | CollectionRunCompleteMessage
+  | RunnerHistoryListMessage
+  | RunnerHistoryDetailMessage
+  | DataFileLoadedMessage
+  | MockStatusChangedMessage
+  | MockLogAddedMessage
+  | BenchmarkProgressMessage
+  | BenchmarkIterationCompleteMessage
+  | BenchmarkCompleteMessage
+  | RestoreCookiesMessage
+  | CookieMutationsMessage
+  | SecretsResolvedMessage
+  | BackupExportDoneMessage
+  | BackupImportDoneMessage
   | DesktopIncomingMessage;

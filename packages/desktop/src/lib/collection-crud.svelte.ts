@@ -27,6 +27,7 @@ import { showNotification } from '@nouto/ui/stores/notifications.svelte';
 import {
   notifySettingsSaved,
   type SettingsInitData,
+  type CollectionSettingsSaveData,
 } from '@nouto/ui/stores/collectionSettings.svelte';
 import {
   getDefaultsForRequestKind,
@@ -38,6 +39,7 @@ import {
   type Collection,
   type Folder,
   type CollectionItem,
+  type ConnectionMode,
 } from '@nouto/core';
 import { showLocalQuickPick, showLocalInputBox, showLocalConfirm } from './modal-store.svelte';
 import type { IMessageBus } from '@nouto/transport';
@@ -89,7 +91,7 @@ function syncCollections() {
 }
 
 function persistCollections() {
-  bus.send({ type: 'saveCollections', data: $state.snapshot(collectionsStore()) } as any);
+  bus.send({ type: 'saveCollections', data: $state.snapshot(collectionsStore()) as Collection[] });
 }
 
 export function countAllItems(items: (SavedRequest | Folder)[]): number {
@@ -481,26 +483,27 @@ export function handleOpenCollectionRequest(data: { requestId: string; collectio
 
   const tab = createRequestTab(item.name, data.requestId, data.collectionId, col.name);
   tab.icon = item.method || 'GET';
-  const connMode = (item as any)._connectionMode || (item as any).connectionMode || 'http';
+  const legacyItem = item as SavedRequest & { _connectionMode?: ConnectionMode };
+  const connMode = legacyItem._connectionMode || item.connectionMode || 'http';
   tab.connectionMode = connMode;
   tab.method = item.method || 'GET';
   tab.url = item.url || '';
   tab.params = Array.isArray(item.params) ? item.params : [];
-  tab.pathParams = Array.isArray((item as any).pathParams) ? (item as any).pathParams : [];
+  tab.pathParams = Array.isArray(item.pathParams) ? item.pathParams : [];
   tab.headers = Array.isArray(item.headers) ? item.headers : [];
   tab.auth = item.auth || { type: 'none' };
   tab.body = item.body || { type: 'none', content: '' };
-  tab.assertions = (item as any).assertions || [];
-  tab.authInheritance = (item as any).authInheritance;
-  tab.scriptInheritance = (item as any).scriptInheritance;
-  tab.scripts = (item as any).scripts || { preRequest: '', postResponse: '' };
-  tab.description = (item as any).description || '';
-  tab.ssl = (item as any).ssl;
-  tab.proxy = (item as any).proxy;
-  tab.timeout = (item as any).timeout;
-  tab.followRedirects = (item as any).followRedirects;
-  tab.maxRedirects = (item as any).maxRedirects;
-  tab.grpc = (item as any).grpc;
+  tab.assertions = item.assertions || [];
+  tab.authInheritance = item.authInheritance;
+  tab.scriptInheritance = item.scriptInheritance;
+  tab.scripts = item.scripts || { preRequest: '', postResponse: '' };
+  tab.description = item.description || '';
+  tab.ssl = item.ssl;
+  tab.proxy = item.proxy;
+  tab.timeout = item.timeout;
+  tab.followRedirects = item.followRedirects;
+  tab.maxRedirects = item.maxRedirects;
+  tab.grpc = item.grpc;
   tab.context = {
     panelId: getPanelId() || 'desktop-main',
     requestId: data.requestId,
@@ -640,7 +643,7 @@ export function handleOpenFolderSettings(colId: string, folderId: string) {
   );
 }
 
-export function handleSaveCollectionSettings(data: any) {
+export function handleSaveCollectionSettings(data: CollectionSettingsSaveData) {
   const cols = collectionsStore();
   const col = cols.find((c) => c.id === data.collectionId);
   if (!col) return;
@@ -648,19 +651,19 @@ export function handleSaveCollectionSettings(data: any) {
   if (data.folderId) {
     const folder = findItemRecursive(col.items, data.folderId);
     if (folder && isFolder(folder)) {
-      if (data.auth !== undefined) (folder as any).auth = data.auth;
-      if (data.headers !== undefined) (folder as any).headers = data.headers;
-      if (data.variables !== undefined) (folder as any).variables = data.variables;
-      if (data.scripts !== undefined) (folder as any).scripts = data.scripts;
-      if (data.assertions !== undefined) (folder as any).assertions = data.assertions;
-      if (data.notes !== undefined) (folder as any).description = data.notes;
+      if (data.auth !== undefined) folder.auth = data.auth;
+      if (data.headers !== undefined) folder.headers = data.headers;
+      if (data.variables !== undefined) folder.variables = data.variables;
+      if (data.scripts !== undefined) folder.scripts = data.scripts;
+      if (data.assertions !== undefined) folder.assertions = data.assertions;
+      if (data.notes !== undefined) folder.description = data.notes;
     }
   } else {
     if (data.auth !== undefined) col.auth = data.auth;
     if (data.headers !== undefined) col.headers = data.headers;
     if (data.variables !== undefined) col.variables = data.variables;
-    if (data.scripts !== undefined) (col as any).scripts = data.scripts;
-    if (data.assertions !== undefined) (col as any).assertions = data.assertions;
+    if (data.scripts !== undefined) col.scripts = data.scripts;
+    if (data.assertions !== undefined) col.assertions = data.assertions;
     if (data.notes !== undefined) col.description = data.notes;
   }
 

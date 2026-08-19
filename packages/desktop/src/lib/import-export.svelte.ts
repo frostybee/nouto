@@ -23,7 +23,6 @@ import {
 } from '@nouto/ui/stores/mockServer.svelte';
 import {
   isFolder,
-  isRequest,
   generateId,
   deriveNameFromUrl,
   parseCurl,
@@ -32,6 +31,9 @@ import {
   type CollectionItem,
   type SavedRequest,
   type Folder,
+  type AuthState,
+  type BodyState,
+  type BenchmarkIteration,
 } from '@nouto/core';
 import { InsomniaImportService } from '@nouto/core/services/InsomniaImportService';
 import { HoppscotchImportService } from '@nouto/core/services/HoppscotchImportService';
@@ -39,15 +41,65 @@ import { HarImportService } from '@nouto/core/services/HarImportService';
 import { ThunderClientImportService } from '@nouto/core/services/ThunderClientImportService';
 import { BrunoImportService } from '@nouto/core/services/BrunoImportService';
 import { PostmanImportService } from '@nouto/core/services/PostmanImportService';
+import type {
+  PostmanCollection,
+  PostmanItem,
+  PostmanAuth,
+  PostmanBody,
+  PostmanEnvironmentFile,
+} from '@nouto/core/services/PostmanImportService';
 import { OpenApiImportService } from '@nouto/core/services/openapi/OpenApiImportService';
 import { OpenApiExportService } from '@nouto/core/services/openapi/OpenApiExportService';
 import * as yaml from 'js-yaml';
 import { HarExportService } from '@nouto/core/services/HarExportService';
+import type {
+  NoutoExportFile,
+  NoutoBulkExportFile,
+} from '@nouto/core/services/NativeExportService';
+import type { HistoryIndexEntry, HistoryEntry } from '@nouto/core/services/HistoryTypes';
 import { showLocalQuickPick, showLocalInputBox } from './modal-store.svelte';
 import { getSession as getOpenApiSession } from './openapi/session.svelte';
 import { bundleSpecForRender } from './openapi/bundleForRender';
+import { getAllRequests } from './collection-utils';
+import { errorMessage } from './errors';
 import type { IMessageBus } from '@nouto/transport';
 import type { IncomingMessage } from '@nouto/transport';
+
+/** A record of unknown shape, for sniffing a freshly-parsed import file. */
+type UnknownRecord = Record<string, unknown>;
+
+function isRecord(value: unknown): value is UnknownRecord {
+  return typeof value === 'object' && value !== null;
+}
+
+/** Fields inspected while detecting an import file's format. Only the
+ * fields actually read during detection are declared; the rest of the file
+ * is handled by each format's own `importFromString`. */
+interface SniffedImportFile extends UnknownRecord {
+  _format?: string;
+  _type?: string;
+  _id?: string;
+  info?: { schema?: string };
+  openapi?: string;
+  paths?: unknown;
+  resources?: unknown;
+  v?: unknown;
+  folders?: unknown;
+  requests?: unknown;
+  log?: { entries?: unknown; version?: unknown };
+  client?: string;
+  colName?: string;
+  values?: unknown;
+  item?: unknown;
+  collection?: Collection;
+  collections?: Collection[];
+}
+
+/** Shape of a `nouto-history` export file written by handleExportHistory. */
+interface NoutoHistoryExportFile {
+  _format?: string;
+  entries: HistoryIndexEntry[];
+}
 
 const insomniaImportService = new InsomniaImportService();
 const hoppscotchImportService = new HoppscotchImportService();
@@ -75,7 +127,7 @@ export function initImportExport(deps: {
 function persistCollections(
   data: Collection[] = $state.snapshot(collectionsStore()) as Collection[],
 ) {
-  bus.send({ type: 'saveCollections', data: $state.snapshot(data) } as any);
+  bus.send({ type: 'saveCollections', data: $state.snapshot(data) });
 }
 
 function cloneCollection(collection: Collection): Collection {
@@ -111,7 +163,7 @@ function uniquifyCollectionIds(collection: Collection, usedIds: Set<string>): Co
   };
 
   const normalizeItems = (items: CollectionItem[] | undefined): CollectionItem[] => {
-    return (items || []).map((item: any) => {
+    return (items || []).map((item) => {
       if (isFolder(item)) {
         return {
           ...item,
@@ -140,7 +192,7 @@ function appendImportedCollections(importedCollections: Collection[]): Collectio
 
   const collectIds = (items: CollectionItem[] | undefined) => {
     for (const item of items || []) {
-      if ((item as any).id) usedIds.add((item as any).id);
+      if (item.id) usedIds.add(item.id);
       if (isFolder(item)) collectIds(item.children);
     }
   };
@@ -218,23 +270,24 @@ export async function generateCollectionFromOpenApi(
       );
     }
     return { ok: true, message };
-  } catch (e: any) {
-    const message = `Generate Collection failed: ${e?.message || e}`;
+  } catch (e: unknown) {
+    const message = `Generate Collection failed: ${errorMessage(e)}`;
     showNotification('error', message);
     return { ok: false, message };
   }
 }
 
-function regenerateIds(collection: any): Collection {
+function regenItems(items: CollectionItem[]): CollectionItem[] {
+  return items.map((item) => {
+    if (isFolder(item)) {
+      return { ...item, id: generateId(), children: regenItems(item.children) };
+    }
+    return { ...item, id: generateId() };
+  });
+}
+
+function regenerateIds(collection: Collection): Collection {
   const now = new Date().toISOString();
-  function regenItems(items: any[]): any[] {
-    return items.map((item) => {
-      if (item.type === 'folder' && item.children) {
-        return { ...item, id: generateId(), children: regenItems(item.children) };
-      }
-      return { ...item, id: generateId() };
-    });
-  }
   return {
     ...collection,
     id: generateId(),
@@ -253,8 +306,8 @@ function csvEscape(value: string): string {
 
 // --- Postman conversion ---
 
-function convertToPostmanCollection(col: Collection): any {
-  const result: any = {
+function convertToPostmanCollection(col: Collection): PostmanCollection {
+  const result: PostmanCollection = {
     info: {
       name: col.name,
       _postman_id: col.id,
@@ -266,14 +319,14 @@ function convertToPostmanCollection(col: Collection): any {
     result.auth = convertAuthToPostman(col.auth);
   }
   if (col.headers?.length) {
-    result.header = (col.headers as any[]).map((h: any) => ({
+    result.header = col.headers.map((h) => ({
       key: h.key,
       value: h.value,
       disabled: !h.enabled,
     }));
   }
   if (col.variables?.length) {
-    result.variable = (col.variables as any[]).map((v: any) => ({
+    result.variable = col.variables.map((v) => ({
       key: v.key,
       value: v.value,
       disabled: !v.enabled,
@@ -282,10 +335,10 @@ function convertToPostmanCollection(col: Collection): any {
   return result;
 }
 
-function convertItemsToPostman(items: CollectionItem[]): any[] {
+function convertItemsToPostman(items: CollectionItem[]): PostmanItem[] {
   return items.map((item) => {
     if (isFolder(item)) {
-      const folder: any = {
+      const folder: PostmanItem = {
         name: item.name,
         id: item.id,
         item: convertItemsToPostman(item.children),
@@ -294,12 +347,12 @@ function convertItemsToPostman(items: CollectionItem[]): any[] {
       return folder;
     }
     const req = item as SavedRequest;
-    const enabledParams = (req.params || []).filter((p: any) => p.enabled);
+    const enabledParams = (req.params || []).filter((p) => p.enabled);
     const qs =
       enabledParams.length > 0
         ? '?' +
           enabledParams
-            .map((p: any) => `${encodeURIComponent(p.key)}=${encodeURIComponent(p.value)}`)
+            .map((p) => `${encodeURIComponent(p.key)}=${encodeURIComponent(p.value)}`)
             .join('&')
         : '';
     return {
@@ -309,13 +362,13 @@ function convertItemsToPostman(items: CollectionItem[]): any[] {
         method: req.method,
         url: {
           raw: req.url + qs,
-          query: (req.params || []).map((p: any) => ({
+          query: (req.params || []).map((p) => ({
             key: p.key,
             value: p.value,
             disabled: !p.enabled,
           })),
         },
-        header: (req.headers || []).map((h: any) => ({
+        header: (req.headers || []).map((h) => ({
           key: h.key,
           value: h.value,
           disabled: !h.enabled,
@@ -328,7 +381,7 @@ function convertItemsToPostman(items: CollectionItem[]): any[] {
   });
 }
 
-function convertAuthToPostman(auth: any): any {
+function convertAuthToPostman(auth: AuthState | undefined): PostmanAuth {
   if (!auth) return { type: 'noauth' };
   switch (auth.type) {
     case 'basic':
@@ -355,7 +408,7 @@ function convertAuthToPostman(auth: any): any {
   }
 }
 
-function convertBodyToPostman(body: any): any {
+function convertBodyToPostman(body: BodyState | undefined): PostmanBody {
   if (!body) return { mode: 'none' };
   switch (body.type) {
     case 'json':
@@ -365,24 +418,11 @@ function convertBodyToPostman(body: any): any {
     case 'xml':
       return { mode: 'raw', raw: body.content, options: { raw: { language: 'xml' } } };
     case 'x-www-form-urlencoded':
-      return {
-        mode: 'urlencoded',
-        urlencoded: (body.formItems || []).map((p: any) => ({
-          key: p.key,
-          value: p.value,
-          disabled: !p.enabled,
-        })),
-      };
+      // BodyState has no form-item list of its own (form bodies are encoded
+      // into `content`), so there is nothing to enumerate here today.
+      return { mode: 'urlencoded', urlencoded: [] };
     case 'form-data':
-      return {
-        mode: 'formdata',
-        formdata: (body.formItems || []).map((p: any) => ({
-          key: p.key,
-          value: p.value,
-          disabled: !p.enabled,
-          type: p.type || 'text',
-        })),
-      };
+      return { mode: 'formdata', formdata: [] };
     case 'graphql':
       return {
         mode: 'graphql',
@@ -397,7 +437,7 @@ function convertBodyToPostman(body: any): any {
 
 export async function handleExportNative(itemId?: string) {
   const cols = $state.snapshot(collectionsStore()) as Collection[];
-  let exportData: any;
+  let exportData: NoutoExportFile | NoutoBulkExportFile;
   let defaultName: string;
 
   if (itemId) {
@@ -445,8 +485,8 @@ export async function handleExportNative(itemId?: string) {
     if (!filePath) return;
     await writeTextFile(filePath, JSON.stringify(exportData, null, 2));
     showNotification('info', 'Collection exported successfully.');
-  } catch (e: any) {
-    showNotification('error', `Export failed: ${e.message || e}`);
+  } catch (e: unknown) {
+    showNotification('error', `Export failed: ${errorMessage(e)}`);
   }
 }
 
@@ -472,8 +512,8 @@ export async function handleExportAllNative() {
     if (!filePath) return;
     await writeTextFile(filePath, JSON.stringify(exportData, null, 2));
     showNotification('info', `Exported ${cols.length} collection(s) successfully.`);
-  } catch (e: any) {
-    showNotification('error', `Export failed: ${e.message || e}`);
+  } catch (e: unknown) {
+    showNotification('error', `Export failed: ${errorMessage(e)}`);
   }
 }
 
@@ -522,8 +562,8 @@ export async function handleExportFolder(folderId: string, collectionId: string)
     if (!filePath) return;
     await writeTextFile(filePath, JSON.stringify(exportData, null, 2));
     showNotification('info', 'Folder exported successfully.');
-  } catch (e: any) {
-    showNotification('error', `Export failed: ${e.message || e}`);
+  } catch (e: unknown) {
+    showNotification('error', `Export failed: ${errorMessage(e)}`);
   }
 }
 
@@ -548,8 +588,8 @@ export async function handleExportPostman(collectionIds?: string[]) {
       await writeTextFile(filePath, JSON.stringify(postman, null, 2));
     }
     showNotification('info', `Exported ${toExport.length} collection(s) in Postman v2.1 format.`);
-  } catch (e: any) {
-    showNotification('error', `Export failed: ${e.message || e}`);
+  } catch (e: unknown) {
+    showNotification('error', `Export failed: ${errorMessage(e)}`);
   }
 }
 
@@ -585,8 +625,8 @@ export async function handleExportHar(collectionId?: string) {
     if (!filePath) return;
     await writeTextFile(filePath, harContent);
     showNotification('info', `Exported "${collection.name}" as HAR.`);
-  } catch (e: any) {
-    showNotification('error', `HAR export failed: ${e.message || e}`);
+  } catch (e: unknown) {
+    showNotification('error', `HAR export failed: ${errorMessage(e)}`);
   }
 }
 
@@ -629,19 +669,19 @@ export async function handleGenerateOpenApi(collectionId?: string) {
     } else {
       showNotification('info', `Generated OpenAPI specification from "${collection.name}".`);
     }
-  } catch (e: any) {
-    showNotification('error', `OpenAPI generation failed: ${e.message || e}`);
+  } catch (e: unknown) {
+    showNotification('error', `OpenAPI generation failed: ${errorMessage(e)}`);
   }
 }
 
 export function handleExportBackup() {
   const cookieRaw = localStorage.getItem('nouto_cookie_jars');
   const cookies = cookieRaw ? JSON.parse(cookieRaw) : null;
-  bus.send({ type: 'exportBackup', data: { cookies } } as any);
+  bus.send({ type: 'exportBackup', data: { cookies } });
 }
 
 export function handleImportBackup() {
-  bus.send({ type: 'importBackup' } as any);
+  bus.send({ type: 'importBackup' });
 }
 
 // --- Import handlers ---
@@ -667,13 +707,13 @@ export async function handleImportAuto() {
         const imported = appendImportedCollections([result.collection]);
         showNotification('info', `Imported Bruno collection: ${imported[0].name}`);
         return;
-      } catch (e: any) {
-        showNotification('error', `Failed to parse Bruno file: ${e.message || e}`);
+      } catch (e: unknown) {
+        showNotification('error', `Failed to parse Bruno file: ${errorMessage(e)}`);
         return;
       }
     }
 
-    let parsed: any;
+    let parsed: unknown;
     try {
       parsed = JSON.parse(content);
     } catch {
@@ -715,18 +755,21 @@ export async function handleImportAuto() {
     let importedCollections: Collection[] = [];
     let formatName = 'Unknown';
 
-    if (parsed._format === 'nouto') {
-      if (Array.isArray(parsed.collections)) {
-        importedCollections = parsed.collections.map((c: any) => regenerateIds(c));
-      } else if (parsed.collection) {
-        importedCollections = [regenerateIds(parsed.collection)];
+    const record = isRecord(parsed) ? (parsed as SniffedImportFile) : undefined;
+    const arr = Array.isArray(parsed) ? (parsed as SniffedImportFile[]) : undefined;
+
+    if (record?._format === 'nouto') {
+      if (Array.isArray(record.collections)) {
+        importedCollections = record.collections.map((c) => regenerateIds(c));
+      } else if (record.collection) {
+        importedCollections = [regenerateIds(record.collection)];
       }
       formatName = 'Nouto';
-    } else if (parsed.info?.schema?.includes('getpostman.com')) {
+    } else if (record?.info?.schema?.includes('getpostman.com')) {
       const result = postmanImportService.importFromString(content);
       importedCollections = [result.collection];
       formatName = 'Postman';
-    } else if (parsed.openapi && parsed.paths) {
+    } else if (record?.openapi && record.paths) {
       const result = openApiImportService.importFromString(content, false);
       importedCollections = [result.collection];
       formatName = 'OpenAPI';
@@ -736,31 +779,31 @@ export async function handleImportAuto() {
           `Found ${result.variables.variables.length} server/path variables.`,
         );
       }
-    } else if (parsed._type === 'export' && parsed.resources) {
+    } else if (record?._type === 'export' && record.resources) {
       const result = insomniaImportService.importFromString(content);
       importedCollections = result.collections;
       formatName = 'Insomnia';
     } else if (
-      (parsed.v !== undefined && (parsed.folders || parsed.requests)) ||
-      (Array.isArray(parsed) && parsed[0]?.folders !== undefined)
+      (record?.v !== undefined && (record.folders || record.requests)) ||
+      arr?.[0]?.folders !== undefined
     ) {
       const result = hoppscotchImportService.importFromString(content);
       importedCollections = result.collections;
       formatName = 'Hoppscotch';
-    } else if (parsed.log && (parsed.log.entries || parsed.log.version)) {
+    } else if (record?.log && (record.log.entries || record.log.version)) {
       const result = harImportService.importFromString(content);
       importedCollections = [result.collection];
       formatName = 'HAR';
     } else if (
-      parsed.client === 'Thunder Client' ||
-      parsed.colName ||
-      parsed._id ||
-      (Array.isArray(parsed) && parsed[0]?.colName)
+      record?.client === 'Thunder Client' ||
+      record?.colName ||
+      record?._id ||
+      arr?.[0]?.colName
     ) {
       const result = thunderClientImportService.importFromString(content);
       importedCollections = result.collections;
       formatName = 'Thunder Client';
-    } else if (parsed.values && Array.isArray(parsed.values) && !parsed.item) {
+    } else if (record?.values && Array.isArray(record.values) && !record.item) {
       showNotification('info', 'This looks like a Postman Environment file, not a collection.');
       return;
     } else {
@@ -780,8 +823,8 @@ export async function handleImportAuto() {
 
     const names = imported.map((c) => c.name).join(', ');
     showNotification('info', `Imported ${imported.length} ${formatName} collection(s): ${names}`);
-  } catch (e: any) {
-    showNotification('error', `Import failed: ${e.message || e}`);
+  } catch (e: unknown) {
+    showNotification('error', `Import failed: ${errorMessage(e)}`);
   }
 }
 
@@ -824,8 +867,8 @@ export async function handleImportThunderClientFolder() {
     const imported = appendImportedCollections(result.collections);
     const names = imported.map((c) => c.name).join(', ');
     showNotification('info', `Imported ${imported.length} Thunder Client collection(s): ${names}`);
-  } catch (e: any) {
-    showNotification('error', `Thunder Client folder import failed: ${e.message || e}`);
+  } catch (e: unknown) {
+    showNotification('error', `Thunder Client folder import failed: ${errorMessage(e)}`);
   }
 }
 
@@ -839,15 +882,15 @@ export async function handleImportCurl() {
       return;
     }
     const parsed = parseCurl(curlStr);
-    setMethod(parsed.method as any);
+    setMethod(parsed.method);
     setUrl(parsed.url);
     if (parsed.headers?.length) setHeaders(parsed.headers);
     if (parsed.params?.length) setParams(parsed.params);
     if (parsed.body) setBody(parsed.body);
     if (parsed.auth) setAuth(parsed.auth);
     showNotification('info', 'cURL command imported successfully.');
-  } catch (e: any) {
-    showNotification('error', `Failed to parse cURL: ${e.message || e}`);
+  } catch (e: unknown) {
+    showNotification('error', `Failed to parse cURL: ${errorMessage(e)}`);
   }
 }
 
@@ -861,45 +904,48 @@ export async function handleImportFromUrl() {
 
   const responseHandler = (msg: IncomingMessage) => {
     if (msg.type === 'requestResponse') {
-      const resp = (msg as any).data;
-      if (resp?.requestId !== importRequestId) return;
+      const resp = msg.data;
+      if ((resp as { requestId?: string })?.requestId !== importRequestId) return;
       unsub();
       clearTimeout(timeoutId);
       if (resp && resp.data) {
         const bodyStr = typeof resp.data === 'string' ? resp.data : JSON.stringify(resp.data);
         try {
-          const parsed = JSON.parse(bodyStr);
+          const parsed: unknown = JSON.parse(bodyStr);
           let importedCollections: Collection[] = [];
 
-          if (parsed._format === 'nouto') {
-            if (Array.isArray(parsed.collections)) {
-              importedCollections = parsed.collections.map((c: any) => regenerateIds(c));
-            } else if (parsed.collection) {
-              importedCollections = [regenerateIds(parsed.collection)];
+          const record = isRecord(parsed) ? (parsed as SniffedImportFile) : undefined;
+          const arr = Array.isArray(parsed) ? (parsed as SniffedImportFile[]) : undefined;
+
+          if (record?._format === 'nouto') {
+            if (Array.isArray(record.collections)) {
+              importedCollections = record.collections.map((c) => regenerateIds(c));
+            } else if (record.collection) {
+              importedCollections = [regenerateIds(record.collection)];
             }
-          } else if (parsed.info?.schema?.includes('getpostman.com')) {
+          } else if (record?.info?.schema?.includes('getpostman.com')) {
             const result = postmanImportService.importFromString(bodyStr);
             importedCollections = [result.collection];
-          } else if (parsed.openapi && parsed.paths) {
+          } else if (record?.openapi && record.paths) {
             const result = openApiImportService.importFromString(bodyStr, false);
             importedCollections = [result.collection];
-          } else if (parsed._type === 'export' && parsed.resources) {
+          } else if (record?._type === 'export' && record.resources) {
             const result = insomniaImportService.importFromString(bodyStr);
             importedCollections = result.collections;
           } else if (
-            (parsed.v !== undefined && (parsed.folders || parsed.requests)) ||
-            (Array.isArray(parsed) && parsed[0]?.folders !== undefined)
+            (record?.v !== undefined && (record.folders || record.requests)) ||
+            arr?.[0]?.folders !== undefined
           ) {
             const result = hoppscotchImportService.importFromString(bodyStr);
             importedCollections = result.collections;
-          } else if (parsed.log && (parsed.log.entries || parsed.log.version)) {
+          } else if (record?.log && (record.log.entries || record.log.version)) {
             const result = harImportService.importFromString(bodyStr);
             importedCollections = [result.collection];
           } else if (
-            parsed.client === 'Thunder Client' ||
-            parsed.colName ||
-            parsed._id ||
-            (Array.isArray(parsed) && parsed[0]?.colName)
+            record?.client === 'Thunder Client' ||
+            record?.colName ||
+            record?._id ||
+            arr?.[0]?.colName
           ) {
             const result = thunderClientImportService.importFromString(bodyStr);
             importedCollections = result.collections;
@@ -929,7 +975,7 @@ export async function handleImportFromUrl() {
       body: { type: 'none', content: '' },
       timeout: 30000,
     },
-  } as any);
+  });
 
   const timeoutId = setTimeout(() => {
     unsub();
@@ -945,15 +991,14 @@ export async function handleExportHistory() {
     ]);
     if (!format) return;
 
-    const entries = await new Promise<any[]>((resolve) => {
+    const entries = await new Promise<HistoryIndexEntry[]>((resolve) => {
       const unsub = bus.onMessage((msg: IncomingMessage) => {
         if (msg.type === 'historyLoaded') {
           unsub();
-          const payload = (msg as any).data || {};
-          resolve(Array.isArray(payload.entries) ? payload.entries : []);
+          resolve(msg.data.entries ?? []);
         }
       });
-      bus.send({ type: 'getHistory' } as any);
+      bus.send({ type: 'getHistory' });
       setTimeout(() => {
         unsub();
         resolve([]);
@@ -971,7 +1016,7 @@ export async function handleExportHistory() {
 
     if (format === 'csv') {
       const header = 'timestamp,method,url,status,duration,size,requestName';
-      const rows = entries.map((e: any) => {
+      const rows = entries.map((e) => {
         const fields = [
           e.timestamp || '',
           e.method || '',
@@ -999,8 +1044,8 @@ export async function handleExportHistory() {
     if (!filePath) return;
     await writeTextFile(filePath, content);
     showNotification('info', `Exported ${entries.length} history entries as ${filterName}.`);
-  } catch (e: any) {
-    showNotification('error', `History export failed: ${e.message || e}`);
+  } catch (e: unknown) {
+    showNotification('error', `History export failed: ${errorMessage(e)}`);
   }
 }
 
@@ -1014,7 +1059,7 @@ export async function handleImportHistory() {
     if (!selected) return;
 
     const content = await readTextFile(selected as string);
-    let data: any;
+    let data: NoutoHistoryExportFile;
     try {
       data = JSON.parse(content);
     } catch {
@@ -1032,12 +1077,11 @@ export async function handleImportHistory() {
       return;
     }
 
-    const existingEntries = await new Promise<any[]>((resolve) => {
+    const existingEntries = await new Promise<HistoryIndexEntry[]>((resolve) => {
       const unsub = bus.onMessage((msg: IncomingMessage) => {
         if (msg.type === 'historyLoaded') {
           unsub();
-          const payload = (msg as any).data || {};
-          resolve(payload.entries || []);
+          resolve(msg.data.entries ?? []);
         }
       });
       bus.send({ type: 'getHistory' });
@@ -1047,9 +1091,9 @@ export async function handleImportHistory() {
       }, 5000);
     });
 
-    const existingIds = new Set(existingEntries.map((e: any) => e.id));
+    const existingIds = new Set(existingEntries.map((e) => e.id));
     const newEntries = data.entries.filter(
-      (e: any) => e.id && e.timestamp && e.method && e.url && !existingIds.has(e.id),
+      (e) => e.id && e.timestamp && e.method && e.url && !existingIds.has(e.id),
     );
 
     if (newEntries.length === 0) {
@@ -1057,14 +1101,18 @@ export async function handleImportHistory() {
       return;
     }
 
-    bus.send({ type: 'importHistory', data: { entries: newEntries } });
+    // The exported file stores HistoryIndexEntry rows (no per-entry headers);
+    // importHistory's HistoryEntry shape is looser than the wire type demands
+    // for these desktop-authored files, so this narrow cast documents the gap
+    // rather than widening the shared message type.
+    bus.send({ type: 'importHistory', data: { entries: newEntries as unknown as HistoryEntry[] } });
     bus.send({ type: 'getHistory' });
     showNotification(
       'info',
       `Imported ${newEntries.length} history entries (${data.entries.length - newEntries.length} duplicates skipped).`,
     );
-  } catch (e: any) {
-    showNotification('error', `History import failed: ${e.message || e}`);
+  } catch (e: unknown) {
+    showNotification('error', `History import failed: ${errorMessage(e)}`);
   }
 }
 
@@ -1082,7 +1130,7 @@ export async function handleImportPostmanEnvironment() {
 
     for (const filePath of files) {
       const content = await readTextFile(filePath as string);
-      let parsed: any;
+      let parsed: PostmanEnvironmentFile;
       try {
         parsed = JSON.parse(content);
       } catch {
@@ -1103,7 +1151,7 @@ export async function handleImportPostmanEnvironment() {
         .replace('.postman_globals', '');
 
       const envName = parsed.name || fallbackName;
-      const variables = parsed.values.map((v: any) => ({
+      const variables = parsed.values.map((v) => ({
         key: v.key || '',
         value: v.value || '',
         enabled: v.enabled !== false,
@@ -1117,12 +1165,12 @@ export async function handleImportPostmanEnvironment() {
     if (importedCount > 0) {
       showNotification('info', `Imported ${importedCount} environment(s) successfully.`);
     }
-  } catch (e: any) {
-    showNotification('error', `Environment import failed: ${e.message || e}`);
+  } catch (e: unknown) {
+    showNotification('error', `Environment import failed: ${errorMessage(e)}`);
   }
 }
 
-export async function handleExportBenchmarkResults(data: any) {
+export async function handleExportBenchmarkResults(data: { format: 'json' | 'csv' }) {
   const { format } = data;
   const iterations = benchmarkState.iterations;
   const statistics = benchmarkState.statistics;
@@ -1137,7 +1185,7 @@ export async function handleExportBenchmarkResults(data: any) {
   if (format === 'csv') {
     const header = '#,Status,StatusText,Duration(ms),Size,Success,Error';
     const rows = iterations.map(
-      (r: any, i: number) =>
+      (r: BenchmarkIteration, i: number) =>
         `${i + 1},${r.status},${r.statusText || ''},${r.duration},${r.size},${r.success ? 'Yes' : 'No'},"${(r.error || '').replace(/"/g, '""')}"`,
     );
     content = [header, ...rows].join('\n');
@@ -1186,17 +1234,8 @@ export async function handleImportCollectionAsMocks() {
   const col = collections.find((c) => c.id === picked);
   if (!col) return;
 
-  function getAllRequests(items: any[]): any[] {
-    const requests: any[] = [];
-    for (const item of items) {
-      if (isRequest(item)) requests.push(item);
-      else if (isFolder(item)) requests.push(...getAllRequests(item.children));
-    }
-    return requests;
-  }
-
   const requests = getAllRequests(col.items);
-  const routes = requests.map((r: any) => {
+  const routes = requests.map((r) => {
     let path: string;
     try {
       const url = new URL(r.url.startsWith('http') ? r.url : `http://localhost${r.url}`);

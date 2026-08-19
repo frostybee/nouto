@@ -1,17 +1,25 @@
 <script lang="ts">
-  import type { SettingsInitData } from '../../stores/collectionSettings.svelte';
+  import type {
+    SettingsInitData,
+    CollectionSettingsSaveData,
+  } from '../../stores/collectionSettings.svelte';
   import CollectionSettingsPanel from './CollectionSettingsPanel.svelte';
 
   interface Props {
     initialData: SettingsInitData;
-    onsave: (data: any) => void;
+    onsave: (data: CollectionSettingsSaveData) => void;
     onclose: () => void;
   }
 
   let { initialData, onsave, onclose }: Props = $props();
 
-  function interceptMessage(msg: any) {
-    if (msg.type === 'saveCollectionSettings' || msg.type === 'saveFolderSettings') {
+  interface SettingsPanelMessage {
+    type: 'saveCollectionSettings' | 'saveFolderSettings' | 'closeSettingsPanel';
+    data?: CollectionSettingsSaveData;
+  }
+
+  function interceptMessage(msg: SettingsPanelMessage) {
+    if ((msg.type === 'saveCollectionSettings' || msg.type === 'saveFolderSettings') && msg.data) {
       onsave(msg.data);
     } else if (msg.type === 'closeSettingsPanel') {
       onclose();

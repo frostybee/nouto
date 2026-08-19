@@ -13,6 +13,7 @@
   import { listen as tauriListen } from '@tauri-apps/api/event';
   import { getVersion } from '@tauri-apps/api/app';
   import { getMessageBus } from './lib/tauri';
+  import { getAllRequests } from './lib/collection-utils';
   import { initMessageBus } from '@nouto/ui/lib/vscode';
 
   // Import UI components from @nouto/ui
@@ -172,7 +173,10 @@
   import TabSwitcher from '@nouto/ui/components/shared/TabSwitcher.svelte';
   import EnvironmentsPanel from '@nouto/ui/components/environments/EnvironmentsPanel.svelte';
   import CollectionSettingsDialog from '@nouto/ui/components/settings/CollectionSettingsDialog.svelte';
-  import { type SettingsInitData } from '@nouto/ui/stores/collectionSettings.svelte';
+  import {
+    type SettingsInitData,
+    type CollectionSettingsSaveData,
+  } from '@nouto/ui/stores/collectionSettings.svelte';
   import {
     tabs as tabsList,
     activeTabId as activeTabIdFn,
@@ -232,9 +236,14 @@
     type KeyValue,
     type Collection,
     type ConnectionMode,
+    type BenchmarkConfig,
+    type ResponseExample,
+    type AssertionOperator,
+    type EnvironmentsData,
   } from '@nouto/core';
   import { DraftsCollectionService } from '@nouto/core/services/RecentCollectionService';
-  import type { IncomingMessage } from '@nouto/transport';
+  import type { HistoryEntry } from '@nouto/core/services';
+  import type { IncomingMessage, OutgoingMessage } from '@nouto/transport';
 
   import {
     initTheme,
@@ -341,7 +350,7 @@
   // Command palette state
   let showPalette = $state(false);
   let workspaceSettingsOpen = $state(false);
-  let pendingHistorySave = $state<any>(null);
+  let pendingHistorySave = $state<HistoryEntry | null>(null);
 
   // Conflict banner state
   let showConflictBanner = $state(false);
@@ -437,7 +446,7 @@
     // Swallow browser-chrome shortcuts (find bar, print, reload in production).
     // Capture phase and preventDefault only, so app shortcuts still dispatch.
     const cleanupBrowserKeys = initBrowserKeySuppression(getPlatform(), {
-      reload: !(import.meta as any).env?.DEV,
+      reload: !import.meta.env?.DEV,
     });
 
     // Capture uncaught errors and unhandled rejections for crash diagnostics
@@ -628,7 +637,7 @@
     // Request initial data from Rust backend
     messageBus.send({ type: 'ready' });
     messageBus.send({ type: 'loadData' });
-    messageBus.send({ type: 'getRecentProjects' } as any);
+    messageBus.send({ type: 'getRecentProjects' });
 
     // Check for updates after a short delay (non-blocking)
     setTimeout(() => checkForUpdates(), 5000);
@@ -654,12 +663,15 @@
           collections = DraftsCollectionService.ensureDraftsCollection(rawCollections);
 
           // Auto-load sample collection on first run (no user collections exist yet)
-          const userCollections = collections.filter((c: any) => c.builtin !== 'drafts');
+          const userCollections = collections.filter((c) => c.builtin !== 'drafts');
           if (userCollections.length === 0 && !isSampleLoaded()) {
             const sampleCollection = createSampleCollection();
             collections = [...collections, sampleCollection];
             markSampleLoaded();
-            messageBus.send({ type: 'saveCollections', data: $state.snapshot(collections) } as any);
+            messageBus.send({
+              type: 'saveCollections',
+              data: $state.snapshot(collections) as Collection[],
+            });
             // Add sample environment if none exist
             // (initialData.environments is a plain array, not a nested object)
             if (!message.data?.environments?.length) {
@@ -782,8 +794,8 @@
                 setCollections(updated);
                 messageBus.send({
                   type: 'saveCollections',
-                  data: $state.snapshot(collectionsStore()),
-                } as any);
+                  data: $state.snapshot(collectionsStore()) as Collection[],
+                });
                 syncCollections();
               }
             } else if (collectionId && requestId) {
@@ -1093,7 +1105,7 @@
             ],
           });
           for (const dir of message.data.paths || []) {
-            messageBus.send({ type: 'scanProtoDir', data: { dirPath: dir } } as any);
+            messageBus.send({ type: 'scanProtoDir', data: { dirPath: dir } });
           }
           break;
         case 'grpcConnectionStart': {
@@ -1129,7 +1141,7 @@
           break;
 
         case 'openJsonExplorer':
-          handleOpenJsonExplorer((message as any).data || {});
+          handleOpenJsonExplorer(message.data || {});
           break;
 
         case 'showWarning':
@@ -1204,8 +1216,8 @@
           syncCollections();
           messageBus.send({
             type: 'saveCollections',
-            data: $state.snapshot(collectionsStore()),
-          } as any);
+            data: $state.snapshot(collectionsStore()) as Collection[],
+          });
           showNotification('info', `Saved to "${targetCol.name}".`);
           break;
         }
@@ -1256,8 +1268,8 @@
           syncCollections();
           messageBus.send({
             type: 'saveCollections',
-            data: $state.snapshot(collectionsStore()),
-          } as any);
+            data: $state.snapshot(collectionsStore()) as Collection[],
+          });
           showNotification('info', `Saved to new collection "${newCol.name}".`);
           break;
         }
@@ -1269,7 +1281,7 @@
 
         case 'selectRequest': {
           // From command palette: open the selected request
-          const srData = (message as any).data || message;
+          const srData = message.data || message;
           const srReqId = srData.requestId;
           const srColId = srData.collectionId;
           if (srReqId && srColId) {
@@ -1315,7 +1327,7 @@
         }
       }
     } catch (err) {
-      logger.error('Error handling message:', (message as any)?.type, err);
+      logger.error('Error handling message:', message?.type, err);
     }
   }
 
@@ -1343,7 +1355,9 @@
     setRedirects(data.followRedirects, data.maxRedirects);
     setGrpc(data.grpc);
 
-    const connMode = (data as any)._connectionMode || data.connectionMode;
+    const connMode =
+      (data as SavedRequest & { _connectionMode?: ConnectionMode })._connectionMode ||
+      data.connectionMode;
     if (connMode) {
       setConnectionMode(connMode as ConnectionMode);
     }
@@ -1373,11 +1387,11 @@
 
   // Project actions
   function handleNewProject() {
-    messageBus.send({ type: 'createProject' } as any);
+    messageBus.send({ type: 'createProject' });
   }
 
   function handleOpenFolder() {
-    messageBus.send({ type: 'openProjectDir' } as any);
+    messageBus.send({ type: 'openProjectDir' });
   }
 
   function handleOpenDocs() {
@@ -1385,15 +1399,15 @@
   }
 
   function handleOpenRecentProject(path: string) {
-    messageBus.send({ type: 'openRecentProject', data: { path } } as any);
+    messageBus.send({ type: 'openRecentProject', data: { path } });
   }
 
   function handleRemoveRecentProject(path: string) {
-    messageBus.send({ type: 'removeRecentProject', data: { path } } as any);
+    messageBus.send({ type: 'removeRecentProject', data: { path } });
   }
 
   function handleCloseProject() {
-    messageBus.send({ type: 'closeProject' } as any);
+    messageBus.send({ type: 'closeProject' });
   }
 
   // Onboarding handlers
@@ -1405,7 +1419,10 @@
     // Add the sample collection and persist
     setCollections([...collectionsStore(), sampleCollection]);
     collections = collectionsStore();
-    messageBus.send({ type: 'saveCollections', data: $state.snapshot(collectionsStore()) } as any);
+    messageBus.send({
+      type: 'saveCollections',
+      data: $state.snapshot(collectionsStore()) as Collection[],
+    });
 
     // Add the sample environment and set it as active
     const currentEnvs = environmentsList();
@@ -1517,68 +1534,130 @@
     'openCommandPalette',
   ]);
 
-  function postMessage(message: any) {
+  /**
+   * Messages sent by child @nouto/ui components that `postMessage` intercepts
+   * and handles locally instead of forwarding to the Tauri message bus.
+   */
+  type LocalCrudMessage =
+    | { type: 'deleteCollection'; data: { id: string } }
+    | { type: 'deleteRequest'; data: { requestId: string } }
+    | { type: 'deleteFolder'; data: { folderId: string } }
+    | { type: 'duplicateCollection'; data: { id: string } }
+    | { type: 'duplicateFolder'; data: { folderId: string; collectionId: string } }
+    | { type: 'bulkDelete'; data: { itemIds: string[]; collectionId: string } }
+    | { type: 'bulkMovePickTarget'; data: { itemIds: string[]; sourceCollectionId: string } }
+    | { type: 'createRequest'; data: Parameters<typeof handleCreateRequest>[0] }
+    | { type: 'createFolder'; data: Parameters<typeof handleCreateFolder>[0] }
+    | { type: 'openCollectionRequest'; data: { requestId: string; collectionId: string } }
+    | { type: 'runCollectionRequest'; data: { requestId: string; collectionId: string } }
+    | { type: 'clearDrafts' }
+    | { type: 'renameCollection'; data: { id: string; currentName: string } }
+    | { type: 'renameFolder'; data: { folderId: string; currentName: string } }
+    | { type: 'newRequest'; data?: { requestKind?: string } }
+    | { type: 'duplicateRequest' }
+    | { type: 'openCollectionSettings'; data: { collectionId: string } }
+    | { type: 'openFolderSettings'; data: { collectionId: string; folderId: string } }
+    | { type: 'saveCollectionSettings' | 'saveFolderSettings'; data: CollectionSettingsSaveData }
+    | { type: 'closeSettingsPanel' }
+    | { type: 'exportCollection'; data?: { collectionId?: string } }
+    | { type: 'exportFolder'; data: { folderId: string; collectionId: string } }
+    | { type: 'exportNative'; data?: { collectionId?: string } }
+    | { type: 'generateOpenApiFromCollection'; data?: { collectionId?: string } }
+    | { type: 'exportAllNative' }
+    | { type: 'exportAllPostman'; data?: { collectionIds?: string[] } }
+    | { type: 'importAuto' }
+    | { type: 'importCurl' }
+    | { type: 'importFromUrl' }
+    | { type: 'importThunderClientFolder' }
+    | {
+        type: 'runAllInCollection' | 'runAllInFolder';
+        data: Parameters<typeof handleOpenRunner>[0];
+      }
+    | { type: 'importCollectionAsMocks' }
+    | { type: 'startBenchmark'; data: Parameters<typeof handleStartBenchmark>[0] }
+    | { type: 'exportBenchmarkResults'; data: Parameters<typeof handleExportBenchmarkResults>[0] }
+    | { type: 'saveCollectionRequest'; data: Parameters<typeof handleSaveCollectionRequest>[0] }
+    | { type: 'draftUpdated' }
+    | { type: 'revertRequest'; data: { requestId: string; collectionId: string } }
+    | { type: 'exportHar'; data?: { collectionId?: string } }
+    | { type: 'exportHistory' }
+    | { type: 'importHistory' }
+    | { type: 'importPostmanEnvironment' }
+    | { type: 'exportBackup' }
+    | { type: 'importBackup' }
+    | {
+        type: 'addResponseExample';
+        data: { requestId: string; collectionId: string; example: ResponseExample };
+      }
+    | {
+        type: 'deleteResponseExample';
+        data: { requestId: string; collectionId: string; exampleId: string };
+      }
+    | { type: 'openCommandPalette' };
+
+  function postMessage(message: OutgoingMessage | LocalCrudMessage) {
     if (LOCAL_CRUD_MESSAGES.has(message.type)) {
-      handleLocalMessage(message);
+      handleLocalMessage(message as LocalCrudMessage);
       return;
     }
-    messageBus?.send(message);
+    messageBus?.send(message as OutgoingMessage);
   }
 
-  async function handleLocalMessage(message: any) {
-    const data = message.data;
+  async function handleLocalMessage(message: LocalCrudMessage) {
     switch (message.type) {
       case 'deleteCollection':
-        handleDeleteCollection(data.id);
+        handleDeleteCollection(message.data.id);
         break;
       case 'deleteRequest':
-        handleDeleteRequest(data.requestId);
+        handleDeleteRequest(message.data.requestId);
         break;
       case 'deleteFolder':
-        handleDeleteFolder(data.folderId);
+        handleDeleteFolder(message.data.folderId);
         break;
       case 'duplicateCollection':
-        handleDuplicateCollection(data.id);
+        handleDuplicateCollection(message.data.id);
         break;
       case 'duplicateFolder':
-        handleDuplicateFolder(data.folderId, data.collectionId);
+        handleDuplicateFolder(message.data.folderId, message.data.collectionId);
         break;
       case 'bulkDelete':
-        handleBulkDelete(data.itemIds, data.collectionId);
+        handleBulkDelete(message.data.itemIds, message.data.collectionId);
         break;
       case 'bulkMovePickTarget':
-        await handleBulkMovePickTarget(data.itemIds, data.sourceCollectionId);
+        await handleBulkMovePickTarget(message.data.itemIds, message.data.sourceCollectionId);
         break;
       case 'createRequest':
-        handleCreateRequest(data);
+        handleCreateRequest(message.data);
         break;
       case 'createFolder':
-        await handleCreateFolder(data);
+        await handleCreateFolder(message.data);
         break;
       case 'openCollectionRequest':
-        handleOpenCollectionRequest(data);
+        handleOpenCollectionRequest(message.data);
         break;
       case 'runCollectionRequest':
-        handleRunCollectionRequest(data);
+        handleRunCollectionRequest(message.data);
         break;
       case 'clearDrafts':
         await handleClearDrafts();
         break;
       case 'renameCollection':
-        await handleRenameCollection(data.id, data.currentName);
+        await handleRenameCollection(message.data.id, message.data.currentName);
         break;
       case 'renameFolder':
-        await handleRenameFolder(data.folderId, data.currentName);
+        await handleRenameFolder(message.data.folderId, message.data.currentName);
         break;
       case 'newRequest':
-        await handleNewRequestKind(data?.requestKind || 'http');
+        await handleNewRequestKind(message.data?.requestKind || 'http');
         break;
       case 'duplicateRequest': {
         // Clone the current request, assign new ID, open in a new tab as unsaved draft
-        const currentReq = $state.snapshot(requestStore) as any;
+        const currentReq = $state.snapshot(requestStore);
         if (!currentReq) break;
-        const cloned = structuredClone(currentReq);
-        cloned.id = generateId();
+        const cloned: typeof currentReq & { id: string } = {
+          ...structuredClone(currentReq),
+          id: generateId(),
+        };
         cloned.name = `${currentReq.name || 'Request'} (copy)`;
         // Capture current state and merge into the duplicate tab
         const dupSnap = saveCurrentSnapshot();
@@ -1603,35 +1682,35 @@
         break;
       }
       case 'openCollectionSettings':
-        handleOpenCollectionSettings(data.collectionId);
+        handleOpenCollectionSettings(message.data.collectionId);
         break;
       case 'openFolderSettings':
-        handleOpenFolderSettings(data.collectionId, data.folderId);
+        handleOpenFolderSettings(message.data.collectionId, message.data.folderId);
         break;
       case 'saveCollectionSettings':
       case 'saveFolderSettings':
-        handleSaveCollectionSettings(data);
+        handleSaveCollectionSettings(message.data);
         break;
       case 'closeSettingsPanel':
         collectionSettingsDialogData = null;
         break;
       case 'exportCollection':
-        handleExportPostman(data?.collectionId ? [data.collectionId] : undefined);
+        handleExportPostman(message.data?.collectionId ? [message.data.collectionId] : undefined);
         break;
       case 'exportFolder':
-        await handleExportFolder(data.folderId, data.collectionId);
+        await handleExportFolder(message.data.folderId, message.data.collectionId);
         break;
       case 'exportNative':
-        handleExportNative(data?.collectionId);
+        handleExportNative(message.data?.collectionId);
         break;
       case 'generateOpenApiFromCollection':
-        await handleGenerateOpenApi(data?.collectionId);
+        await handleGenerateOpenApi(message.data?.collectionId);
         break;
       case 'exportAllNative':
         handleExportAllNative();
         break;
       case 'exportAllPostman':
-        handleExportPostman(data?.collectionIds);
+        handleExportPostman(message.data?.collectionIds);
         break;
       case 'importAuto':
         handleImportAuto();
@@ -1647,28 +1726,28 @@
         break;
       case 'runAllInCollection':
       case 'runAllInFolder':
-        handleOpenRunner(data);
+        handleOpenRunner(message.data);
         break;
       case 'importCollectionAsMocks':
         handleImportCollectionAsMocks();
         break;
       case 'startBenchmark':
-        handleStartBenchmark(data);
+        handleStartBenchmark(message.data);
         break;
       case 'exportBenchmarkResults':
-        handleExportBenchmarkResults(data);
+        handleExportBenchmarkResults(message.data);
         break;
       case 'saveCollectionRequest':
-        handleSaveCollectionRequest(data);
+        handleSaveCollectionRequest(message.data);
         break;
       case 'draftUpdated':
         saveDraftDebounced();
         break;
       case 'revertRequest':
-        handleRevertRequest(data, loadRequest);
+        handleRevertRequest(message.data, loadRequest);
         break;
       case 'exportHar':
-        handleExportHar(data?.collectionId);
+        handleExportHar(message.data?.collectionId);
         break;
       case 'exportHistory':
         handleExportHistory();
@@ -1686,7 +1765,7 @@
         handleImportBackup();
         break;
       case 'addResponseExample': {
-        const { requestId: exReqId, collectionId: exColId, example } = data;
+        const { requestId: exReqId, collectionId: exColId, example } = message.data;
         if (!exReqId || !exColId || !example) break;
         const exCol = collections.find((c) => c.id === exColId);
         if (!exCol) break;
@@ -1697,12 +1776,12 @@
         syncCollections();
         messageBus.send({
           type: 'saveCollections',
-          data: $state.snapshot(collectionsStore()),
-        } as any);
+          data: $state.snapshot(collectionsStore()) as Collection[],
+        });
         break;
       }
       case 'deleteResponseExample': {
-        const { requestId: delReqId, collectionId: delColId, exampleId } = data;
+        const { requestId: delReqId, collectionId: delColId, exampleId } = message.data;
         if (!delReqId || !delColId || !exampleId) break;
         const delCol = collections.find((c) => c.id === delColId);
         if (!delCol) break;
@@ -1712,8 +1791,8 @@
         syncCollections();
         messageBus.send({
           type: 'saveCollections',
-          data: $state.snapshot(collectionsStore()),
-        } as any);
+          data: $state.snapshot(collectionsStore()) as Collection[],
+        });
         break;
       }
       case 'openCommandPalette':
@@ -1743,7 +1822,7 @@
     currentView = 'json-explorer';
   }
 
-  function handleOpenJsonExplorer(data: any) {
+  function handleOpenJsonExplorer(data: Partial<JsonExplorerInitData>) {
     // Enrich with active tab context if not provided
     const tab = activeTabFn();
     jsonExplorerDocStack = []; // fresh document is a new root
@@ -1791,7 +1870,23 @@
     setComparisonJson(result.data);
   }
 
-  function handleJsonExplorerMessage(msg: any) {
+  /** Outbound messages sent from @nouto/json-explorer via the window.vscode shim. */
+  type JsonExplorerOutboundMessage =
+    | { type: 'focusRequest'; data?: { requestId?: string } }
+    | {
+        type: 'createAssertion';
+        data?: {
+          requestId?: string;
+          path?: string;
+          operator?: AssertionOperator;
+          expected?: string;
+        };
+      }
+    | { type: 'openSubtreePanel'; data?: { json?: unknown; path?: string } }
+    | { type: 'pickCompareFile' }
+    | { type: 'saveToEnvironment'; data?: { key?: string; value?: unknown } };
+
+  function handleJsonExplorerMessage(msg: JsonExplorerOutboundMessage) {
     switch (msg.type) {
       case 'focusRequest': {
         const rid = msg.data?.requestId;
@@ -1808,12 +1903,12 @@
         if (tab) switchTabFn(tab.id);
         currentView = 'main';
         // Add assertion to current request
-        const currentAssertions = (requestStore as any).assertions || [];
+        const currentAssertions = requestStore.assertions || [];
         setAssertions([
           ...currentAssertions,
           {
             id: generateId(),
-            source: 'body',
+            target: 'body',
             property: path,
             operator: operator || 'equals',
             expected: expected ?? '',
@@ -1850,14 +1945,21 @@
         const activeEnvId = activeEnvironmentId();
         if (activeEnvId) {
           const envList = environmentsList();
-          const activeEnv = envList.find((e: any) => e.id === activeEnvId);
+          const activeEnv = envList.find((e) => e.id === activeEnvId);
           if (activeEnv) {
             const vars = [
               ...(activeEnv.variables || []),
               { key, value: String(value ?? ''), enabled: true },
             ];
             updateEnvironmentVariables(activeEnvId, vars);
-            messageBus.send({ type: 'saveEnvironments', data: $state.snapshot(envList) } as any);
+            messageBus.send({
+              type: 'saveEnvironments',
+              data: $state.snapshot({
+                environments: envList,
+                activeId: activeEnvId,
+                globalVariables: globalVariables(),
+              }) as EnvironmentsData,
+            });
             showNotification('info', `Saved "${key}" to active environment`);
           }
         } else {
@@ -1869,11 +1971,11 @@
   }
 
   // Set up window.vscode shim for JSON Explorer's postToExtension() calls.
-  // The json-explorer package checks (window as any).vscode?.postMessage.
+  // The json-explorer package checks window.vscode?.postMessage (typed in vite-env.d.ts).
   // Also provides getState/setState for search history + bookmark persistence.
   const JSON_EXPLORER_STATE_KEY = 'nouto_json_explorer_state';
-  (window as any).vscode = {
-    postMessage: (msg: any) => handleJsonExplorerMessage(msg),
+  window.vscode = {
+    postMessage: (msg) => handleJsonExplorerMessage(msg as JsonExplorerOutboundMessage),
     getState: () => {
       try {
         return JSON.parse(localStorage.getItem(JSON_EXPLORER_STATE_KEY) || 'null');
@@ -1881,7 +1983,7 @@
         return null;
       }
     },
-    setState: (state: any) => {
+    setState: (state) => {
       try {
         localStorage.setItem(JSON_EXPLORER_STATE_KEY, JSON.stringify(state));
       } catch {
@@ -1903,27 +2005,14 @@
       return;
     }
 
-    // Recursively collect all requests from items
-    function getAllRequests(items: any[]): any[] {
-      const requests: any[] = [];
-      for (const item of items) {
-        if (isRequest(item)) {
-          requests.push(item);
-        } else if (isFolder(item)) {
-          requests.push(...getAllRequests(item.children));
-        }
-      }
-      return requests;
-    }
-
-    let requestItems: any[];
+    let requestItems: SavedRequest[];
     if (data.folderId) {
       const folder = findItemRecursive(col.items, data.folderId);
       if (!folder || !isFolder(folder)) {
         showNotification('error', 'Folder not found.');
         return;
       }
-      requestItems = getAllRequests((folder as any).children);
+      requestItems = getAllRequests(folder.children);
     } else {
       requestItems = getAllRequests(col.items);
     }
@@ -1937,7 +2026,7 @@
       collectionId: col.id,
       collectionName: col.name,
       folderId: data.folderId,
-      requests: requestItems.map((r: any) => ({
+      requests: requestItems.map((r) => ({
         id: r.id,
         name: r.name,
         method: r.method,
@@ -1949,15 +2038,15 @@
     switchView('runner');
   }
 
-  function handleStartBenchmark(data: any) {
+  function handleStartBenchmark(data: { config: BenchmarkConfig }) {
     const reqStore = requestStore;
     const rawUrl = benchmarkState.requestUrl || reqStore.url || '';
-    const rawHeaders = (reqStore.headers || []).map((h: any) => ({
+    const rawHeaders = (reqStore.headers || []).map((h) => ({
       ...h,
       key: substituteVariables(h.key || ''),
       value: substituteVariables(h.value || ''),
     }));
-    const rawParams = (reqStore.params || []).map((p: any) => ({
+    const rawParams = (reqStore.params || []).map((p) => ({
       ...p,
       key: substituteVariables(p.key || ''),
       value: substituteVariables(p.value || ''),
@@ -1980,7 +2069,7 @@
         auth: reqStore.auth,
         requestName: benchmarkState.requestName || '',
       }),
-    } as any);
+    });
   }
 
   // Global keyboard shortcut handler
@@ -2146,7 +2235,7 @@
   }
 
   function openSettingsWindow(section?: string) {
-    messageBus.send({ type: 'createSettingsWindow', data: { section: section ?? null } } as any);
+    messageBus.send({ type: 'createSettingsWindow', data: { section: section ?? null } });
   }
 
   function openEnvironmentsTab() {
@@ -2190,7 +2279,7 @@
         messageBus.send({
           type: 'inputBoxResult',
           data: { requestId: pending.requestId, value },
-        } as any);
+        });
         clearPendingInput();
       }
     }
@@ -2205,7 +2294,7 @@
         messageBus.send({
           type: 'quickPickResult',
           data: { requestId: pending.requestId, value },
-        } as any);
+        });
         clearPendingInput();
       }
     }
@@ -2220,7 +2309,7 @@
         messageBus.send({
           type: 'confirmResult',
           data: { requestId: pending.requestId, confirmed },
-        } as any);
+        });
         clearPendingInput();
       }
     }
@@ -2385,16 +2474,21 @@
       ),
       auth: entry.auth || { type: 'none' },
       body: entry.body || { type: 'none', content: '' },
-      connectionMode: entry.connectionMode,
-      grpc: entry.grpc,
+      connectionMode: entry.connectionMode as ConnectionMode | undefined,
+      grpc: entry.grpc && {
+        useReflection: false,
+        protoPaths: [],
+        protoImportDirs: [],
+        ...entry.grpc,
+      },
     });
     if (saved) {
       collections = collectionsStore();
       syncCollections();
       messageBus.send({
         type: 'saveCollections',
-        data: $state.snapshot(collectionsStore()),
-      } as any);
+        data: $state.snapshot(collectionsStore()) as Collection[],
+      });
       showNotification('info', `Saved "${reqName}" to "${col.name}".`);
     }
     pendingHistorySave = null;
@@ -2472,7 +2566,7 @@
         <Tooltip text="Open Project Folder" position="right">
           <button
             class="rail-btn"
-            onclick={() => messageBus.send({ type: 'openProjectDir' } as any)}
+            onclick={() => messageBus.send({ type: 'openProjectDir' })}
             aria-label="Open Project Folder"
           >
             <span class="codicon codicon-folder-opened"></span>

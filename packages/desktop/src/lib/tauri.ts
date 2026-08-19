@@ -6,6 +6,9 @@ import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import { readTextFile } from '@tauri-apps/plugin-fs';
 import type { IMessageBus } from '@nouto/transport';
 import type { OutgoingMessage, IncomingMessage } from '@nouto/transport';
+import type { ResponseData, Collection } from '@nouto/core';
+import type { Cookie } from '@nouto/core/services';
+import type { RustEventName, RustEventPayloads } from './rust-events';
 import { TauriCookieJarService } from './cookie-store';
 import { settings } from '@nouto/ui/stores/settings.svelte';
 import {
@@ -18,6 +21,7 @@ import { handleRunnerMessage } from './handlers/runner-handler';
 import {
   handleWsSessionMessage,
   createWsSessionState,
+  isWsSessionCommand,
   type WsSessionState,
 } from './handlers/ws-session-handler';
 import { handleCodegenMessage } from './handlers/codegen-handler';
@@ -28,9 +32,17 @@ import {
   handleEnvironmentMessage,
   emitStoredEnvironments,
   cacheEnvironmentEvent,
+  isEnvironmentCommand,
 } from './handlers/environment-handler';
 import { handleOpenApiMessage } from './handlers/openapi-handler';
 import { logger } from './logger';
+
+/** Loose shape of the raw Tauri event payload before it is tagged with its event name. */
+interface RustEventEnvelope {
+  data?: unknown;
+  message?: string;
+  success?: boolean;
+}
 
 const COOKIE_MESSAGE_TYPES = new Set([
   'getCookieJar',
@@ -48,19 +60,6 @@ const COOKIE_MESSAGE_TYPES = new Set([
 
 const COLLECTION_MESSAGE_TYPES = new Set(['getCollections']);
 
-const ENVIRONMENT_MESSAGE_TYPES = new Set([
-  'createEnvironment',
-  'renameEnvironment',
-  'deleteEnvironment',
-  'duplicateEnvironment',
-  'setActiveEnvironment',
-  'importEnvironments',
-  'exportEnvironment',
-  'exportAllEnvironments',
-  'exportGlobalVariables',
-  'importGlobalVariables',
-]);
-
 const FILE_OP_MESSAGE_TYPES = new Set([
   'downloadResponse',
   'downloadBinaryResponse',
@@ -72,16 +71,6 @@ const CODEGEN_MESSAGE_TYPES = new Set(['openInNewTab']);
 const OPENAPI_MESSAGE_TYPES = new Set(['openApiSave', 'openApiSaveAs', 'openApiOpenFile']);
 
 const RUNNER_MESSAGE_TYPES = new Set(['retryFailedRequests', 'exportRunResults']);
-
-const WS_SESSION_MESSAGE_TYPES = new Set([
-  'wsStartRecording',
-  'wsStopRecording',
-  'wsSaveSession',
-  'wsExportSession',
-  'wsLoadSession',
-  'wsStartReplay',
-  'wsCancelReplay',
-]);
 
 const RUST_COMMAND_TYPES = new Set([
   'ready',
@@ -185,7 +174,7 @@ export class TauriMessageBus implements IMessageBus {
   private cookieJarService = new TauriCookieJarService();
 
   private _saveTimer: ReturnType<typeof setTimeout> | null = null;
-  private _pendingSavePayload: any = null;
+  private _pendingSavePayload: Collection[] | null = null;
 
   private wsState: WsSessionState;
   private eventListenersReady: Promise<void>;
@@ -201,7 +190,7 @@ export class TauriMessageBus implements IMessageBus {
   }
 
   private async setupEventListeners() {
-    const eventTypes = [
+    const eventTypes: RustEventName[] = [
       'loadRequest',
       'requestResponse',
       'requestCancelled',
@@ -286,45 +275,54 @@ export class TauriMessageBus implements IMessageBus {
     ];
 
     for (const eventType of eventTypes) {
-      const unlisten = await listen<any>(eventType, (event) => {
+      const unlisten = await listen<RustEventEnvelope>(eventType, (event) => {
         logger.debug(`[TauriMessageBus] Received event: "${eventType}"`);
 
-        if (eventType === 'requestResponse' && event.payload?.data) {
-          this.handleResponseCookies(event.payload.data);
+        // Tauri delivers { data?, message?, success? }; reattaching the event
+        // name reconstructs the full typed IncomingMessage. This is the one
+        // deliberate cast in this file — every branch below narrows `message`
+        // via `message.type === '...'` so the payload stays type-checked.
+        const message = {
+          type: eventType,
+          ...event.payload,
+        } as RustEventPayloads[typeof eventType];
+
+        if (message.type === 'requestResponse') {
+          this.handleResponseCookies(message.data);
         }
 
-        if (eventType === 'backupExportDone') {
+        if (message.type === 'backupExportDone') {
           window.dispatchEvent(new CustomEvent('backup-export-done'));
         }
-        if (eventType === 'backupImportDone') {
+        if (message.type === 'backupImportDone') {
           window.dispatchEvent(new CustomEvent('backup-import-done'));
         }
 
-        if (eventType === 'projectOpened') {
-          setCurrentWorkspacePath(event.payload?.data?.path ?? null);
-        } else if (eventType === 'projectClosed') {
+        if (message.type === 'projectOpened') {
+          setCurrentWorkspacePath(message.data.path);
+        } else if (message.type === 'projectClosed') {
           setCurrentWorkspacePath(null);
-        } else if (eventType === 'workspaceMetaLoaded') {
-          setCurrentWorkspaceMeta(event.payload?.data ?? null);
-        } else if (eventType === 'recentProjectsLoaded') {
-          const list = Array.isArray(event.payload?.data) ? event.payload.data : [];
+        } else if (message.type === 'workspaceMetaLoaded') {
+          setCurrentWorkspaceMeta(message.data);
+        } else if (message.type === 'recentProjectsLoaded') {
+          const list = Array.isArray(message.data) ? message.data : [];
           setRecentWorkspaces(
-            list.map((r: any) => ({ path: r.path ?? '', name: r.name ?? r.path ?? '' })),
+            list.map((r) => ({ path: r.path ?? '', name: r.name ?? r.path ?? '' })),
           );
         }
 
-        if (eventType === 'loadEnvironments' && event.payload?.data) {
-          cacheEnvironmentEvent(event.payload.data);
+        if (message.type === 'loadEnvironments') {
+          cacheEnvironmentEvent(message.data);
         }
 
-        if (eventType === 'restoreCookies' && event.payload?.data) {
-          localStorage.setItem('nouto_cookie_jars', JSON.stringify(event.payload.data));
+        if (message.type === 'restoreCookies' && message.data) {
+          localStorage.setItem('nouto_cookie_jars', JSON.stringify(message.data));
           this.cookieJarService.load();
         }
 
-        if (eventType === 'cookieMutations' && event.payload?.data) {
-          for (const mutation of event.payload.data) {
-            if (mutation.type === 'set' && mutation.cookie) {
+        if (message.type === 'cookieMutations') {
+          for (const mutation of message.data) {
+            if (mutation.type === 'set') {
               this.cookieJarService.addCookie({
                 name: mutation.cookie.name,
                 value: mutation.cookie.value,
@@ -333,7 +331,9 @@ export class TauriMessageBus implements IMessageBus {
                 expires: mutation.cookie.expires ?? undefined,
                 httpOnly: mutation.cookie.http_only ?? false,
                 secure: mutation.cookie.secure ?? false,
-                sameSite: mutation.cookie.same_site ?? undefined,
+                // Wire value is a plain string; scripts are expected to send
+                // one of the three RFC 6265bis values.
+                sameSite: mutation.cookie.same_site as Cookie['sameSite'] | undefined,
                 createdAt: Date.now(),
               });
             } else if (mutation.type === 'delete') {
@@ -345,8 +345,8 @@ export class TauriMessageBus implements IMessageBus {
           return;
         }
 
-        if (eventType === 'wsMessage' && this.wsState.wsRecording && event.payload?.data) {
-          const msgData = event.payload.data;
+        if (message.type === 'wsMessage' && this.wsState.wsRecording) {
+          const msgData = message.data;
           const content = msgData.data || '';
           this.wsState.wsRecordedMessages.push({
             direction: msgData.direction || 'received',
@@ -357,10 +357,6 @@ export class TauriMessageBus implements IMessageBus {
           });
         }
 
-        const message: IncomingMessage = {
-          type: eventType as any,
-          ...event.payload,
-        };
         this.notifyListeners(message);
       });
       this.unlistenFunctions.push(unlisten);
@@ -369,7 +365,11 @@ export class TauriMessageBus implements IMessageBus {
 
   send(message: OutgoingMessage): void {
     if (FORWARD_TO_LISTENERS.has(message.type)) {
-      this.notifyListeners(message as any);
+      // Pure loopback: the payload the UI sent is exactly what listeners
+      // expect back. Some of these types (selectRequest, openMockServer, ...)
+      // are constructed ad hoc by callers and are not real OutgoingMessage
+      // members, so this is the one deliberate cast in this forwarding path.
+      this.notifyListeners(message as unknown as IncomingMessage);
       return;
     }
 
@@ -393,12 +393,12 @@ export class TauriMessageBus implements IMessageBus {
       return;
     }
 
-    if (WS_SESSION_MESSAGE_TYPES.has(message.type)) {
+    if (isWsSessionCommand(message)) {
       handleWsSessionMessage(message, this.notifyListeners.bind(this), this.wsState);
       return;
     }
 
-    if (ENVIRONMENT_MESSAGE_TYPES.has(message.type)) {
+    if (isEnvironmentCommand(message)) {
       handleEnvironmentMessage(message, this.notifyListeners.bind(this));
       return;
     }
@@ -431,19 +431,19 @@ export class TauriMessageBus implements IMessageBus {
     }
 
     if (message.type === 'readFileContent') {
-      const filePath = (message as any).data.path;
+      const filePath = message.data.path;
       readTextFile(filePath)
         .then((content) => {
           this.notifyListeners({
             type: 'fileContentRead',
             data: { path: filePath, content },
-          } as any);
+          });
         })
         .catch((error) => {
           this.notifyListeners({
             type: 'fileContentError',
             data: { path: filePath, error: String(error) },
-          } as any);
+          });
         });
       return;
     }
@@ -451,14 +451,12 @@ export class TauriMessageBus implements IMessageBus {
     if (message.type === 'sendRequest') {
       this.injectCookieHeader(message);
       if (message.data && typeof message.data === 'object') {
-        (message.data as any).cookies = Object.values(
-          this.cookieJarService.getAllByDomain(),
-        ).flat();
+        message.data.cookies = Object.values(this.cookieJarService.getAllByDomain()).flat();
       }
     }
 
     if (message.type === 'sendRequest' && message.data && typeof message.data === 'object') {
-      const d = message.data as any;
+      const d = message.data;
       if (!d.proxy && settings.globalProxy?.enabled) {
         const gp = settings.globalProxy;
         d.proxy = {
@@ -522,6 +520,18 @@ export class TauriMessageBus implements IMessageBus {
     }
 
     const command = this.messageTypeToCommand(message.type);
+
+    if (command === 'save_collections' && message.type === 'saveCollections') {
+      logger.debug(`[TauriMessageBus] Sending command: "${command}"`);
+      this._pendingSavePayload = message.data;
+      if (this._saveTimer) clearTimeout(this._saveTimer);
+      this._saveTimer = setTimeout(() => {
+        this._saveTimer = null;
+        void this.invokePendingSave();
+      }, 300);
+      return;
+    }
+
     const payload =
       command === 'open_external'
         ? this.normalizeOpenExternalPayload(message)
@@ -530,16 +540,6 @@ export class TauriMessageBus implements IMessageBus {
           : {};
 
     logger.debug(`[TauriMessageBus] Sending command: "${command}"`);
-
-    if (command === 'save_collections') {
-      this._pendingSavePayload = payload;
-      if (this._saveTimer) clearTimeout(this._saveTimer);
-      this._saveTimer = setTimeout(() => {
-        this._saveTimer = null;
-        void this.invokePendingSave();
-      }, 300);
-      return;
-    }
 
     invoke(command, { data: payload }).catch((error) => {
       logger.error(`[TauriMessageBus] Command "${command}" failed:`, error);
@@ -621,10 +621,8 @@ export class TauriMessageBus implements IMessageBus {
   }
 
   private normalizeOpenExternalPayload(message: OutgoingMessage): { url?: string } {
-    const data = 'data' in message ? (message as any).data : undefined;
-    return {
-      url: data?.url ?? (message as any).url,
-    };
+    if (message.type !== 'openExternal') return {};
+    return { url: message.data?.url ?? message.url };
   }
 
   destroy() {
@@ -643,13 +641,11 @@ export class TauriMessageBus implements IMessageBus {
   }
 
   private injectCookieHeader(message: OutgoingMessage): void {
-    const data = (message as any).data;
+    const data = 'data' in message ? message.data : undefined;
     if (!data?.url) return;
 
     const headers: Array<{ key: string; value: string; enabled: boolean }> = data.headers || [];
-    const hasExplicitCookie = headers.some(
-      (h: any) => h.enabled && h.key?.toLowerCase() === 'cookie',
-    );
+    const hasExplicitCookie = headers.some((h) => h.enabled && h.key?.toLowerCase() === 'cookie');
     if (hasExplicitCookie) return;
 
     const cookieHeader = this.cookieJarService.buildCookieHeader(data.url);
@@ -659,7 +655,7 @@ export class TauriMessageBus implements IMessageBus {
     }
   }
 
-  private handleResponseCookies(responseData: any): void {
+  private handleResponseCookies(responseData: ResponseData): void {
     if (!responseData?.headers) return;
     const requestUrl = responseData.requestUrl;
     if (!requestUrl) return;

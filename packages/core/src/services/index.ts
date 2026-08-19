@@ -63,7 +63,7 @@ export { DraftsCollectionService } from './RecentCollectionService';
 
 // Native export
 export { NativeExportService } from './NativeExportService';
-export type { NoutoExportFile } from './NativeExportService';
+export type { NoutoExportFile, NoutoBulkExportFile } from './NativeExportService';
 
 // Data file parsing
 export { parseDataFile } from './DataFileService';
@@ -83,6 +83,7 @@ export {
 // Import parsers
 export { CurlParserService } from './CurlParserService';
 export { InsomniaImportService } from './InsomniaImportService';
+export type { InsomniaExport, InsomniaResource } from './InsomniaImportService';
 export { HoppscotchImportService } from './HoppscotchImportService';
 export { ThunderClientImportService } from './ThunderClientImportService';
 export { HarImportService } from './HarImportService';
@@ -91,5 +92,20 @@ export type { HarLog, HarEntry, HarRequest, HarResponse, HarResponseContent } fr
 export { HarExportService } from './HarExportService';
 export { BrunoImportService } from './BrunoImportService';
 export { PostmanImportService } from './PostmanImportService';
+export type {
+  PostmanCollection,
+  PostmanItem,
+  PostmanRequest,
+  PostmanUrl,
+  PostmanHeader,
+  PostmanQueryParam,
+  PostmanBody,
+  PostmanFormParam,
+  PostmanAuth,
+  PostmanVariable,
+  PostmanResponse,
+  PostmanEnvironmentFile,
+  PostmanEnvironmentValue,
+} from './PostmanImportService';
 // OpenAPI subsystem (analysis, lint, completion, outline, spec edits, external refs)
 export * from './openapi';

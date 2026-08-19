@@ -2,19 +2,42 @@ import { invoke } from '@tauri-apps/api/core';
 import { save, open } from '@tauri-apps/plugin-dialog';
 import { writeTextFile, readTextFile } from '@tauri-apps/plugin-fs';
 import type { OutgoingMessage } from '@nouto/transport';
+import type { WsSession, WsSessionMessage } from '@nouto/core';
 import { normalizeWsSession } from '@nouto/core/services';
 import type { NotifyFn } from './types';
 import { logger } from '../logger';
 
+export type WsSessionCommandMessage = Extract<
+  OutgoingMessage,
+  {
+    type:
+      | 'wsStartRecording'
+      | 'wsStopRecording'
+      | 'wsSaveSession'
+      | 'wsExportSession'
+      | 'wsLoadSession'
+      | 'wsStartReplay'
+      | 'wsCancelReplay';
+  }
+>;
+
+const WS_SESSION_COMMAND_TYPES: ReadonlySet<string> = new Set([
+  'wsStartRecording',
+  'wsStopRecording',
+  'wsSaveSession',
+  'wsExportSession',
+  'wsLoadSession',
+  'wsStartReplay',
+  'wsCancelReplay',
+]);
+
+export function isWsSessionCommand(message: OutgoingMessage): message is WsSessionCommandMessage {
+  return WS_SESSION_COMMAND_TYPES.has(message.type);
+}
+
 export interface WsSessionState {
   wsRecording: boolean;
-  wsRecordedMessages: Array<{
-    direction: string;
-    type: string;
-    data: string;
-    size: number;
-    relativeTimeMs: number;
-  }>;
+  wsRecordedMessages: WsSessionMessage[];
   wsRecordingStartTime: number;
   wsRecordingUrl: string;
   wsRecordingProtocols: string[];
@@ -35,27 +58,27 @@ export function createWsSessionState(): WsSessionState {
 }
 
 export async function handleWsSessionMessage(
-  message: OutgoingMessage,
+  message: WsSessionCommandMessage,
   notify: NotifyFn,
   state: WsSessionState,
 ): Promise<void> {
-  const data = 'data' in message ? (message as any).data : undefined;
-
   switch (message.type) {
     case 'wsStartRecording': {
+      const data = message.data;
       state.wsRecording = true;
       state.wsRecordedMessages = [];
       state.wsRecordingStartTime = Date.now();
       state.wsRecordingUrl = data?.url || '';
       state.wsRecordingProtocols = data?.protocols || [];
-      notify({ type: 'wsRecordingState', data: { state: 'recording' } } as any);
+      notify({ type: 'wsRecordingState', data: { state: 'recording' } });
       logger.info('[TauriMessageBus] WebSocket recording started');
       break;
     }
     case 'wsStopRecording': {
+      const data = message.data;
       state.wsRecording = false;
       const duration = Date.now() - state.wsRecordingStartTime;
-      const session = {
+      const session: WsSession = {
         id: crypto.randomUUID().replace(/-/g, '').slice(0, 20),
         name: data?.name || `Session ${new Date().toLocaleString()}`,
         createdAt: state.wsRecordingStartTime,
@@ -71,14 +94,14 @@ export async function handleWsSessionMessage(
       invoke('ws_save_session', { data: session }).catch((error) => {
         logger.error('[TauriMessageBus] Failed to save session:', error);
       });
-      notify({ type: 'wsRecordingState', data: { state: 'idle' } } as any);
-      notify({ type: 'wsSessionSaved', data: { session } } as any);
+      notify({ type: 'wsRecordingState', data: { state: 'idle' } });
+      notify({ type: 'wsSessionSaved', data: { session } });
       state.wsRecordedMessages = [];
       logger.info('[TauriMessageBus] WebSocket recording stopped, session saved');
       break;
     }
     case 'wsSaveSession': {
-      const sessionData = data?.session;
+      const sessionData = message.data.session;
       if (!sessionData) break;
       invoke('ws_save_session', { data: sessionData }).catch((error) => {
         logger.error('[TauriMessageBus] Failed to save session:', error);
@@ -86,7 +109,7 @@ export async function handleWsSessionMessage(
       break;
     }
     case 'wsExportSession': {
-      const sessionData = data?.session;
+      const sessionData = message.data.session;
       if (!sessionData) break;
       try {
         const json = JSON.stringify(sessionData, null, 2);
@@ -100,14 +123,14 @@ export async function handleWsSessionMessage(
           notify({
             type: 'showNotification',
             data: { level: 'info', message: 'Session exported successfully.' },
-          } as any);
+          });
         }
       } catch (error) {
         logger.error('[TauriMessageBus] Session export failed:', error);
         notify({
           type: 'showNotification',
           data: { level: 'error', message: `Failed to export session: ${error}` },
-        } as any);
+        });
       }
       break;
     }
@@ -123,42 +146,43 @@ export async function handleWsSessionMessage(
           notify({
             type: 'wsSessionLoaded',
             data: { session },
-          } as any);
+          });
         }
       } catch (error) {
         logger.error('[TauriMessageBus] Session load failed:', error);
         notify({
           type: 'showNotification',
           data: { level: 'error', message: `Failed to load session: ${error}` },
-        } as any);
+        });
       }
       break;
     }
     case 'wsStartReplay': {
+      const data = message.data;
       const session = data?.session ? normalizeWsSession(data.session) : null;
       const speed = data?.speedMultiplier || 1;
       if (!session?.messages?.length) break;
 
       state.wsReplayCancelled = false;
       state.wsReplayTimers = [];
-      notify({ type: 'wsRecordingState', data: { state: 'replaying' } } as any);
+      notify({ type: 'wsRecordingState', data: { state: 'replaying' } });
 
-      const sentMessages = session.messages.filter((m: any) => m.direction === 'sent');
+      const sentMessages = session.messages.filter((m) => m.direction === 'sent');
       const total = sentMessages.length;
 
       if (total === 0) {
-        notify({ type: 'wsRecordingState', data: { state: 'idle' } } as any);
+        notify({ type: 'wsRecordingState', data: { state: 'idle' } });
         break;
       }
 
-      sentMessages.forEach((msg: any, index: number) => {
+      sentMessages.forEach((msg, index) => {
         const delay = (msg.relativeTimeMs || 0) / speed;
         const timer = setTimeout(() => {
           if (state.wsReplayCancelled) return;
 
           invoke('ws_send', {
             data: {
-              connectionId: data?.connectionId || 'default',
+              connectionId: 'default',
               message: msg.data,
               type: msg.type || 'text',
             },
@@ -173,14 +197,14 @@ export async function handleWsSessionMessage(
               total,
               state: 'replaying' as const,
             },
-          } as any);
+          });
 
           if (index === total - 1) {
             notify({
               type: 'wsReplayProgress',
               data: { index: total, total, state: 'complete' as const },
-            } as any);
-            notify({ type: 'wsRecordingState', data: { state: 'idle' } } as any);
+            });
+            notify({ type: 'wsRecordingState', data: { state: 'idle' } });
           }
         }, delay);
         state.wsReplayTimers.push(timer);
@@ -193,8 +217,11 @@ export async function handleWsSessionMessage(
         clearTimeout(timer);
       }
       state.wsReplayTimers = [];
-      notify({ type: 'wsRecordingState', data: { state: 'idle' } } as any);
-      notify({ type: 'wsReplayProgress', data: { index: 0, total: 0, state: 'complete' } } as any);
+      notify({ type: 'wsRecordingState', data: { state: 'idle' } });
+      notify({
+        type: 'wsReplayProgress',
+        data: { index: 0, total: 0, state: 'complete' as const },
+      });
       logger.info('[TauriMessageBus] WebSocket replay cancelled');
       break;
     }
