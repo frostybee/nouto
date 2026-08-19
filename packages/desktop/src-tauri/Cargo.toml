@@ -116,6 +116,13 @@ tauri-plugin-window-state = "2"
 tauri-plugin-autostart = "2"
 tauri-plugin-global-shortcut = "2"
 
+[target.'cfg(target_os = "windows")'.dependencies]
+windows-sys = { version = "0.59", features = [
+    "Win32_System_ProcessStatus",
+    "Win32_System_Threading",
+    "Win32_Foundation",
+] }
+
 # panic = "abort" is deliberately not set: user scripts run through rquickjs
 # inside tokio::task::spawn_blocking (services/script_engine.rs), and a panic
 # there currently surfaces as a JoinError instead of taking the app down.

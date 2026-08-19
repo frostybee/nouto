@@ -11,10 +11,13 @@ import { logger } from './lib/logger';
 import { getPlatform } from './lib/platform';
 import { initBrowserKeySuppression } from './lib/browser-keys';
 import { syncNativeTheme, watchSystemTheme } from './lib/native-theme';
+import { invoke } from '@tauri-apps/api/core';
+import { getTauriVersion } from '@tauri-apps/api/app';
 import type { DesktopHost } from '@nouto/ui/lib/desktop-host';
 import { readAutostartState, commitAutostart } from './lib/autostart';
 import { registerGlobalShortcut, unregisterGlobalShortcut } from './lib/global-shortcut';
 import { sendTestNotification } from './lib/os-notify';
+import { formatDiagnostics, type DiagnosticsReport } from './lib/diagnostics';
 
 const messageBus = getMessageBus();
 initMessageBus(messageBus);
@@ -57,6 +60,30 @@ const desktopHost: DesktopHost = {
   registerGlobalShortcut,
   unregisterGlobalShortcut,
   sendTestNotification,
+  async collectDiagnostics() {
+    try {
+      const tauriVersion = await getTauriVersion();
+      const report = await invoke<DiagnosticsReport>('collect_diagnostics', { tauriVersion });
+      return { ok: true as const, text: formatDiagnostics(report) };
+    } catch (e) {
+      return { ok: false as const, message: e instanceof Error ? e.message : String(e) };
+    }
+  },
+  async listCrashReports() {
+    try {
+      return await invoke<string[]>('list_crash_reports');
+    } catch {
+      return [];
+    }
+  },
+  async clearCrashReports() {
+    try {
+      const cleared = await invoke<number>('clear_crash_reports');
+      return { ok: true as const, cleared };
+    } catch (e) {
+      return { ok: false as const, message: e instanceof Error ? e.message : String(e) };
+    }
+  },
 };
 
 const params = new URLSearchParams(window.location.search);

@@ -1,7 +1,10 @@
 // Tauri command handlers - bridge between UI and Rust services
 
+pub mod app_state;
 pub mod backup;
 pub mod benchmark;
+pub mod crash_reporter;
+pub mod diagnostics;
 pub mod fonts;
 pub mod global_shortcut;
 pub mod graphql_sub;

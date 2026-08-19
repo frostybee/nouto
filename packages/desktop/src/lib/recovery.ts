@@ -26,4 +26,9 @@ export function captureGlobalError(error: unknown, source: string): void {
   lastGlobalCapture = now;
   logger.error(`Uncaught ${source}`, error);
   void saveEmergencyData(`crash-${source}-${now}`, error);
+  void invoke('log_frontend_error', {
+    message: describeError(error),
+    stack: error instanceof Error ? (error.stack ?? null) : null,
+    componentStack: null,
+  }).catch(() => {});
 }

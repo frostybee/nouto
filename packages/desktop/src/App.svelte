@@ -4,12 +4,13 @@
   import { getCurrentWindow } from '@tauri-apps/api/window';
   import { isLinux, getPlatform } from './lib/platform';
   import { logger } from './lib/logger';
-  import { flushAllStores, quitApp, requestQuit } from './lib/lifecycle';
+  import { confirmQuitIfDirty, flushAllStores, quitApp, requestQuit } from './lib/lifecycle';
   import { syncGlobalShortcut } from './lib/global-shortcut';
   import { notifyIfUnfocused } from './lib/os-notify';
   import { initBrowserKeySuppression } from './lib/browser-keys';
   import { saveEmergencyData, describeError, captureGlobalError } from './lib/recovery';
   import { syncNativeTheme, watchSystemTheme } from './lib/native-theme';
+  import { invoke } from '@tauri-apps/api/core';
   import { listen as tauriListen } from '@tauri-apps/api/event';
   import { getVersion } from '@tauri-apps/api/app';
   import { getMessageBus } from './lib/tauri';
@@ -164,6 +165,7 @@
   import { setCookieJarData, loadCookieJars } from '@nouto/ui/stores/cookieJar.svelte';
   import {
     showNotification,
+    showNotificationWithActions,
     setPendingInput,
     clearPendingInput,
     pendingInput,
@@ -390,6 +392,11 @@
   function handleRenderError(error: unknown): void {
     logger.error('Uncaught render error', error);
     void saveEmergencyData(`crash-${Date.now()}`, error);
+    void invoke('log_frontend_error', {
+      message: describeError(error),
+      stack: error instanceof Error ? (error.stack ?? null) : null,
+      componentStack: null,
+    }).catch(() => {});
   }
 
   async function copyDetails(error: unknown): Promise<void> {
@@ -398,6 +405,19 @@
       showNotification('info', 'Crash details copied to clipboard.');
     } catch {
       showNotification('error', 'Could not copy crash details.');
+    }
+  }
+
+  async function checkForRecentCrash(): Promise<void> {
+    try {
+      const result = await invoke<{ filename: string; timestampSecs: number; secondsAgo: number } | null>('has_recent_crash');
+      if (!result) return;
+      const report = await invoke<string>('get_crash_report', { name: result.filename });
+      showNotificationWithActions('warning', 'The app recovered from a crash.', [
+        { label: 'Copy Report', onclick: () => void navigator.clipboard.writeText(report) },
+      ], 10000);
+    } catch {
+      // Silent — crash detection is best-effort
     }
   }
 
@@ -416,6 +436,8 @@
       .then((v) => setAppVersion(v))
       .catch(() => {});
     setIconUrl(noutoIconUrl);
+
+    void checkForRecentCrash();
 
     // Initialize undo/redo systems
     initRequestUndo();
@@ -478,6 +500,7 @@
         if (closing) return;
         closing = true;
         try {
+          if (!(await confirmQuitIfDirty())) return;
           // Save/Discard/Cancel for dirty OpenAPI documents; a no-op when none.
           if (!(await confirmDiscardAllDirty('The OpenAPI document'))) return;
           try {

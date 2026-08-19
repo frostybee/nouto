@@ -7,6 +7,8 @@
  * Desktop section is not shown.
  */
 export type DesktopActionResult = { ok: true } | { ok: false; message: string };
+export type DesktopDiagnosticsResult = { ok: true; text: string } | { ok: false; message: string };
+export type DesktopClearCrashResult = { ok: true; cleared: number } | { ok: false; message: string };
 
 export interface DesktopHost {
   /** Current OS launch-at-login registration. */
@@ -22,4 +24,10 @@ export interface DesktopHost {
   unregisterGlobalShortcut(): Promise<DesktopActionResult>;
   /** Show an OS notification regardless of focus, to let the user check the toggle works. */
   sendTestNotification(): Promise<DesktopActionResult>;
+  /** Collect and format a diagnostics report for bug reports. */
+  collectDiagnostics(): Promise<DesktopDiagnosticsResult>;
+  /** List filenames of crash reports on disk. */
+  listCrashReports(): Promise<string[]>;
+  /** Delete all crash reports. Returns the number cleared. */
+  clearCrashReports(): Promise<DesktopClearCrashResult>;
 }

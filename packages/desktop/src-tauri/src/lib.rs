@@ -19,6 +19,8 @@ use tauri::{Emitter, Listener, Manager};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    commands::crash_reporter::install_panic_hook();
+
     // Initialize request registry for HTTP request cancellation
     let request_registry = commands::init_request_registry();
     // Initialize WebSocket connection registry
@@ -177,6 +179,9 @@ pub fn run() {
             let runner_history = RunnerHistory::new(app_data_dir);
             app.manage(runner_history);
 
+            commands::crash_reporter::set_app_crash_dir(app.handle());
+            commands::diagnostics::mark_startup();
+
             // Purge crash recovery files older than 7 days
             let cleanup_handle = app.handle().clone();
             tauri::async_runtime::spawn(async move {
@@ -230,8 +235,16 @@ pub fn run() {
             commands::ready,
             commands::load_data,
             commands::lifecycle::quit_app,
+            commands::app_state::set_has_unsaved_changes,
+            commands::app_state::has_unsaved_changes,
             commands::recovery::save_emergency_data,
             commands::recovery::cleanup_old_recovery_files,
+            commands::crash_reporter::log_frontend_error,
+            commands::crash_reporter::has_recent_crash,
+            commands::crash_reporter::list_crash_reports,
+            commands::crash_reporter::get_crash_report,
+            commands::crash_reporter::clear_crash_reports,
+            commands::diagnostics::collect_diagnostics,
             commands::global_shortcut::register_global_shortcut,
             commands::global_shortcut::unregister_global_shortcut,
             commands::save_collections,

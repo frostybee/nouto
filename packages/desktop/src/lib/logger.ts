@@ -39,6 +39,18 @@ function forwardToBackend(level: 'warn' | 'error', message: string, args: unknow
   })();
 }
 
+function forwardToCrashReporter(message: string, args: unknown[]): void {
+  void (async () => {
+    try {
+      const { invoke } = await import('@tauri-apps/api/core');
+      const full = args.length > 0 ? `${message} ${JSON.stringify(args)}` : message;
+      await invoke('log_frontend_error', { message: full, stack: null, componentStack: null });
+    } catch {
+      // Logging must never throw
+    }
+  })();
+}
+
 function log(level: LogLevel, message: string, ...args: unknown[]): void {
   if (IS_DEV) {
     const prefix = `[${new Date().toISOString()}] [${level.toUpperCase()}]`;
@@ -47,6 +59,7 @@ function log(level: LogLevel, message: string, ...args: unknown[]): void {
   }
   if (level === 'warn' || level === 'error') {
     forwardToBackend(level, message, args);
+    if (level === 'error') forwardToCrashReporter(message, args);
   }
 }
 

@@ -160,6 +160,16 @@
   let recordingGlobal = $state(false);
   let globalShortcutError = $state<string | null>(null);
   let notificationStatus = $state<string | null>(null);
+  let diagnosticsStatus = $state<string | null>(null);
+  let crashReportCount = $state<number | null>(null);
+  let clearingCrashReports = $state(false);
+
+  $effect(() => {
+    if (activeSection !== 'desktop' || !desktopHost) return;
+    void desktopHost.listCrashReports().then((list) => {
+      crashReportCount = list.length;
+    });
+  });
 
   $effect(() => {
     if (activeSection !== 'desktop' || !desktopHost || autostartLoaded) return;
@@ -184,6 +194,33 @@
     const result = await desktopHost.sendTestNotification();
     notificationStatus = result.ok ? 'Sent.' : result.message;
     setTimeout(() => { notificationStatus = null; }, 4000);
+  }
+
+  async function handleCopyDiagnostics() {
+    if (!desktopHost) return;
+    diagnosticsStatus = 'Collecting...';
+    const result = await desktopHost.collectDiagnostics();
+    if (result.ok) {
+      try {
+        await navigator.clipboard.writeText(result.text);
+        diagnosticsStatus = 'Copied to clipboard.';
+      } catch {
+        diagnosticsStatus = 'Could not copy to clipboard.';
+      }
+    } else {
+      diagnosticsStatus = result.message;
+    }
+    setTimeout(() => { diagnosticsStatus = null; }, 4000);
+  }
+
+  async function handleClearCrashReports() {
+    if (!desktopHost) return;
+    clearingCrashReports = true;
+    const result = await desktopHost.clearCrashReports();
+    clearingCrashReports = false;
+    if (result.ok) {
+      crashReportCount = 0;
+    }
   }
 
   async function handleGlobalRecordKeydown(event: KeyboardEvent) {
@@ -656,6 +693,30 @@
               {/if}
             </span>
           </div>
+
+          <div class="setting-row">
+            <span class="setting-label">
+              Diagnostics
+              <span class="setting-description">
+                {#if diagnosticsStatus}{diagnosticsStatus}{:else}Copy system and app information for bug reports.{/if}
+              </span>
+            </span>
+            <button class="link-btn" onclick={handleCopyDiagnostics}>
+              Copy Diagnostics
+            </button>
+          </div>
+
+          {#if crashReportCount != null && crashReportCount > 0}
+            <div class="setting-row">
+              <span class="setting-label">
+                Crash Reports
+                <span class="setting-description">{crashReportCount} crash report(s) on disk.</span>
+              </span>
+              <button class="link-btn" onclick={handleClearCrashReports} disabled={clearingCrashReports}>
+                Clear Crash Reports
+              </button>
+            </div>
+          {/if}
         {/if}
 
       {:else if activeSection === 'general'}

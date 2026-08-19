@@ -13,7 +13,7 @@ const MAX_RECOVERY_BYTES: usize = 10 * 1024 * 1024;
 const MAX_AGE_SECS: u64 = 7 * 24 * 60 * 60;
 const MAX_FILENAME_LEN: usize = 200;
 
-fn validate_filename(name: &str) -> Result<(), AppError> {
+pub fn validate_filename(name: &str) -> Result<(), AppError> {
     if name.is_empty() {
         return Err(AppError::Other("Empty filename".into()));
     }
