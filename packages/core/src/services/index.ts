@@ -49,7 +49,7 @@ export { SSEService } from './SSEService';
 export { MockServerService } from './MockServerService';
 
 // gRPC
-export { GrpcService } from './GrpcService';
+export { GrpcService, collectAnyTypes } from './GrpcService';
 export type { GrpcInvokeOptions, GrpcCallbacks } from './GrpcService';
 
 // History

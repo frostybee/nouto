@@ -42,6 +42,7 @@ pub struct GrpcReflectData {
     pub tls_cert_path: Option<String>,
     pub tls_key_path: Option<String>,
     pub tls_ca_cert_path: Option<String>,
+    pub tls_passphrase: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -82,6 +83,7 @@ pub struct GrpcInvokeData {
     pub tls_cert_path: Option<String>,
     pub tls_key_path: Option<String>,
     pub tls_ca_cert_path: Option<String>,
+    pub tls_passphrase: Option<String>,
     pub timeout: Option<u64>,
     pub assertions: Option<Vec<serde_json::Value>>,
 }
@@ -186,6 +188,7 @@ pub async fn grpc_reflect(
             data.tls_cert_path.as_deref(),
             data.tls_key_path.as_deref(),
             data.tls_ca_cert_path.as_deref(),
+            data.tls_passphrase.as_deref(),
         )
         .await
     {
@@ -276,6 +279,7 @@ pub async fn grpc_invoke(
                     data.tls_cert_path.as_deref(),
                     data.tls_key_path.as_deref(),
                     data.tls_ca_cert_path.as_deref(),
+                    data.tls_passphrase.as_deref(),
                     data.timeout,
                     is_client_streaming,
                     is_server_streaming,
@@ -312,6 +316,7 @@ pub async fn grpc_invoke(
             data.tls_cert_path.as_deref(),
             data.tls_key_path.as_deref(),
             data.tls_ca_cert_path.as_deref(),
+            data.tls_passphrase.as_deref(),
             data.timeout,
         )
         .await

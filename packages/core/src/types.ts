@@ -202,6 +202,8 @@ export interface CollectionRunRequestResult {
   duration: number;
   size: number;
   passed: boolean;
+  /** True when the runner did not execute this request (e.g. non-HTTP protocol). Never counted as passed or failed. */
+  skipped?: boolean;
   error?: string;
   assertionResults?: AssertionResult[];
   scriptTestResults?: ScriptTestResult[];

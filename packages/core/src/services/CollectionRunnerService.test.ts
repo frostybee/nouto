@@ -2495,4 +2495,47 @@ describe('CollectionRunnerService', () => {
       expect(callConfig.timeout).toBe(15000);
     });
   });
+
+  describe('non-HTTP requests', () => {
+    it('skips gRPC and WebSocket items instead of executing them as HTTP', async () => {
+      const requests = [
+        makeRequest({ name: 'HTTP' }),
+        makeRequest({ name: 'gRPC call', method: 'POST', url: 'localhost:50051', connectionMode: 'grpc' }),
+        makeRequest({ name: 'Socket', connectionMode: 'websocket' }),
+      ];
+      const completed: string[] = [];
+
+      const result = await service.runCollection(
+        requests, { ...defaultConfig, stopOnFailure: true }, 'Test', defaultEnvData,
+        () => {}, r => { completed.push(r.requestName); },
+      );
+
+      expect(executeRequest).toHaveBeenCalledTimes(1);
+      expect(completed).toEqual(['HTTP', 'gRPC call', 'Socket']);
+      expect(result.results[1].skipped).toBe(true);
+      expect(result.results[1].passed).toBe(false);
+      expect(result.results[1].statusText).toBe('Skipped');
+      expect(result.results[1].error).toContain('gRPC');
+      expect(result.results[2].error).toContain('WebSocket');
+      expect(result.passedRequests).toBe(1);
+      expect(result.failedRequests).toBe(0);
+      expect(result.skippedRequests).toBe(2);
+      // stopOnFailure must not treat a skipped request as a failure
+      expect(result.stoppedEarly).toBe(false);
+    });
+
+    it('skips non-HTTP items in parallel mode too', async () => {
+      const requests = [
+        makeRequest({ name: 'HTTP' }),
+        makeRequest({ name: 'SSE', connectionMode: 'sse' }),
+      ];
+      const result = await service.runCollection(
+        requests, { ...defaultConfig, parallel: true }, 'Test', defaultEnvData,
+        () => {}, () => {},
+      );
+      expect(executeRequest).toHaveBeenCalledTimes(1);
+      expect(result.results.find(r => r.requestName === 'SSE')?.skipped).toBe(true);
+      expect(result.skippedRequests).toBe(1);
+    });
+  });
 });

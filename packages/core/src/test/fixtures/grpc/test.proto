@@ -1,0 +1,37 @@
+syntax = "proto3";
+
+import "google/protobuf/any.proto";
+
+package nouto.test;
+
+service TestService {
+  rpc Echo (EchoRequest) returns (EchoResponse);
+  rpc Count (CountRequest) returns (stream CountResponse);
+  rpc WrapAny (AnyRequest) returns (AnyResponse);
+  rpc Fail (EchoRequest) returns (EchoResponse);
+}
+
+message EchoRequest {
+  string message = 1;
+}
+
+message EchoResponse {
+  string message = 1;
+}
+
+message CountRequest {
+  int32 upTo = 1;
+}
+
+message CountResponse {
+  int32 value = 1;
+}
+
+message AnyRequest {
+  google.protobuf.Any payload = 1;
+}
+
+message AnyResponse {
+  string typeUrl = 1;
+  string label = 2;
+}

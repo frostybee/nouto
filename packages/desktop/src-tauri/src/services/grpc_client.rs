@@ -141,6 +141,38 @@ pub fn strip_json_comments(input: &str) -> String {
     out
 }
 
+/// Decrypt a passphrase-protected PKCS#8 private key PEM ("ENCRYPTED PRIVATE KEY")
+/// into an unencrypted PKCS#8 PEM that rustls can load.
+///
+/// Legacy OpenSSL keys ("RSA PRIVATE KEY" with a DEK-Info header) are not supported;
+/// those need to be converted with `openssl pkcs8 -topk8` first.
+pub fn decrypt_private_key_pem(key_pem: &[u8], passphrase: &str) -> Result<Vec<u8>, String> {
+    use pkcs8::der::pem::decode_vec;
+    use pkcs8::{EncryptedPrivateKeyInfo, LineEnding};
+
+    let (label, der) =
+        decode_vec(key_pem).map_err(|e| format!("Private key is not valid PEM: {}", e))?;
+
+    if label != "ENCRYPTED PRIVATE KEY" {
+        return Err(format!(
+            "A passphrase was given but the key is a '{}' PEM, not a PKCS#8 'ENCRYPTED PRIVATE KEY'. \
+             Convert it with: openssl pkcs8 -topk8 -in key.pem -out key.pk8.pem",
+            label
+        ));
+    }
+
+    let encrypted = EncryptedPrivateKeyInfo::try_from(der.as_slice())
+        .map_err(|e| format!("Failed to parse encrypted private key: {}", e))?;
+    let decrypted = encrypted
+        .decrypt(passphrase.as_bytes())
+        .map_err(|e| format!("Failed to decrypt private key with passphrase: {}", e))?;
+    let pem = decrypted
+        .to_pem("PRIVATE KEY", LineEnding::LF)
+        .map_err(|e| format!("Failed to re-encode decrypted private key: {}", e))?;
+
+    Ok(pem.as_bytes().to_vec())
+}
+
 /// Recursively scan a JSON value for `@type` fields (used by google.protobuf.Any).
 /// Returns a list of fully-qualified type names extracted from `@type` URLs.
 fn collect_any_types(value: &serde_json::Value) -> Vec<String> {
@@ -357,17 +389,34 @@ impl GrpcClient {
         cert_path: Option<&str>,
         key_path: Option<&str>,
         ca_cert_path: Option<&str>,
+        passphrase: Option<&str>,
     ) -> Result<GrpcProtoDescriptor, String> {
         // Try v1 first, fall back to v1alpha if UNIMPLEMENTED
         match self
-            .reflect_with_version(address, tls, cert_path, key_path, ca_cert_path, false)
+            .reflect_with_version(
+                address,
+                tls,
+                cert_path,
+                key_path,
+                ca_cert_path,
+                passphrase,
+                false,
+            )
             .await
         {
             Ok(desc) => Ok(desc),
             Err(e) => {
                 if e.contains("UNIMPLEMENTED") || e.contains("unimplemented") {
-                    self.reflect_with_version(address, tls, cert_path, key_path, ca_cert_path, true)
-                        .await
+                    self.reflect_with_version(
+                        address,
+                        tls,
+                        cert_path,
+                        key_path,
+                        ca_cert_path,
+                        passphrase,
+                        true,
+                    )
+                    .await
                 } else {
                     Err(e)
                 }
@@ -382,6 +431,7 @@ impl GrpcClient {
         cert_path: Option<&str>,
         key_path: Option<&str>,
         ca_cert_path: Option<&str>,
+        passphrase: Option<&str>,
         use_v1alpha: bool,
     ) -> Result<GrpcProtoDescriptor, String> {
         // Check cache first
@@ -395,7 +445,7 @@ impl GrpcClient {
         }
 
         let channel = self
-            .build_channel(address, tls, cert_path, key_path, ca_cert_path)
+            .build_channel(address, tls, cert_path, key_path, ca_cert_path, passphrase)
             .await?;
 
         // Create the reflection client based on version
@@ -642,6 +692,7 @@ impl GrpcClient {
         cert_path: Option<&str>,
         key_path: Option<&str>,
         ca_cert_path: Option<&str>,
+        passphrase: Option<&str>,
         timeout: Option<u64>,
     ) -> Result<(GrpcConnection, Vec<GrpcEvent>), String> {
         let connection_id = Uuid::new_v4().to_string();
@@ -686,7 +737,7 @@ impl GrpcClient {
                 let any_types = collect_any_types(&parsed_json);
                 if !any_types.is_empty() {
                     if let Ok(channel) = self
-                        .build_channel(address, tls, cert_path, key_path, ca_cert_path)
+                        .build_channel(address, tls, cert_path, key_path, ca_cert_path, passphrase)
                         .await
                     {
                         if let Ok(new_pool) = self
@@ -730,7 +781,7 @@ impl GrpcClient {
 
         // Build channel
         let channel = self
-            .build_channel(address, tls, cert_path, key_path, ca_cert_path)
+            .build_channel(address, tls, cert_path, key_path, ca_cert_path, passphrase)
             .await?;
 
         // Encode the dynamic message to bytes
@@ -879,6 +930,7 @@ impl GrpcClient {
         cert_path: Option<&str>,
         key_path: Option<&str>,
         ca_cert_path: Option<&str>,
+        passphrase: Option<&str>,
         timeout: Option<u64>,
         is_client_streaming: bool,
         is_server_streaming: bool,
@@ -930,7 +982,7 @@ impl GrpcClient {
 
         // Build channel
         let channel = self
-            .build_channel(address, tls, cert_path, key_path, ca_cert_path)
+            .build_channel(address, tls, cert_path, key_path, ca_cert_path, passphrase)
             .await?;
 
         // Build the gRPC path
@@ -1472,6 +1524,7 @@ impl GrpcClient {
         cert_path: Option<&str>,
         key_path: Option<&str>,
         ca_cert_path: Option<&str>,
+        passphrase: Option<&str>,
     ) -> Result<Channel, String> {
         let uri = if address.starts_with("http://") || address.starts_with("https://") {
             address.to_string()
@@ -1498,9 +1551,12 @@ impl GrpcClient {
                 let cert = tokio::fs::read(cert_p)
                     .await
                     .map_err(|e| format!("Failed to read cert '{}': {}", cert_p, e))?;
-                let key = tokio::fs::read(key_p)
+                let mut key = tokio::fs::read(key_p)
                     .await
                     .map_err(|e| format!("Failed to read key '{}': {}", key_p, e))?;
+                if let Some(pass) = passphrase.filter(|p| !p.is_empty()) {
+                    key = decrypt_private_key_pem(&key, pass)?;
+                }
                 tls_config = tls_config.identity(Identity::from_pem(cert, key));
             }
 
@@ -1702,5 +1758,117 @@ impl GrpcClient {
 
         DescriptorPool::from_file_descriptor_set(file_descriptor_set)
             .map_err(|e| format!("Failed to create descriptor pool: {}", e))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// prime256v1 key wrapped as PKCS#8 PBES2 (AES-256-CBC, PBKDF2-HMAC-SHA256).
+    /// Passphrase: "nouto-test". Test-only key, never used for anything real.
+    const ENCRYPTED_KEY_PEM: &str = "-----BEGIN ENCRYPTED PRIVATE KEY-----
+MIH0MF8GCSqGSIb3DQEFDTBSMDEGCSqGSIb3DQEFDDAkBBCtL1VMSAg+13kdBrLX
+OedbAgIIADAMBggqhkiG9w0CCQUAMB0GCWCGSAFlAwQBKgQQGXccq+lUj8Amki/b
+XPXRGASBkJqI3gWUAg8OQr543kg1eLHYggdokRh3v71WqSw8+XYYlTd8pN2FDMJD
+54UQ+m0FjwmOIzfeaesoZqYB7HNGp2wPcPTP73wLeiVtnVeTALUIvFbGK6lkXsFj
+bRHadM62NJ5q7f77JjOnc5ujYohhpqmy8LIOfH+BA/2qKfNJAG5LQtAbqv1fAj8H
+rqd8+ix72g==
+-----END ENCRYPTED PRIVATE KEY-----
+";
+
+    #[test]
+    fn decrypt_private_key_pem_decrypts_pkcs8_pbes2_key() {
+        let out = decrypt_private_key_pem(ENCRYPTED_KEY_PEM.as_bytes(), "nouto-test").unwrap();
+        let text = String::from_utf8(out).unwrap();
+        assert!(text.starts_with("-----BEGIN PRIVATE KEY-----"));
+        assert!(text.trim_end().ends_with("-----END PRIVATE KEY-----"));
+    }
+
+    #[test]
+    fn decrypt_private_key_pem_rejects_wrong_passphrase() {
+        let err = decrypt_private_key_pem(ENCRYPTED_KEY_PEM.as_bytes(), "wrong").unwrap_err();
+        assert!(err.contains("decrypt"), "unexpected error: {}", err);
+    }
+
+    #[test]
+    fn decrypt_private_key_pem_rejects_non_pkcs8_pem() {
+        let legacy = "-----BEGIN RSA PRIVATE KEY-----\nAAAA\n-----END RSA PRIVATE KEY-----\n";
+        let err = decrypt_private_key_pem(legacy.as_bytes(), "x").unwrap_err();
+        assert!(
+            err.contains("ENCRYPTED PRIVATE KEY"),
+            "unexpected error: {}",
+            err
+        );
+        assert!(err.contains("RSA PRIVATE KEY"));
+    }
+
+    #[test]
+    fn strip_json_comments_removes_comments_but_keeps_strings() {
+        let input = "{\n  // line comment\n  \"url\": \"http://x\", /* block */ \"n\": 1\n}";
+        let out = strip_json_comments(input);
+        let parsed: serde_json::Value = serde_json::from_str(&out).unwrap();
+        assert_eq!(parsed["url"], "http://x");
+        assert_eq!(parsed["n"], 1);
+    }
+
+    #[test]
+    fn collect_any_types_finds_nested_and_array_type_urls() {
+        let body = serde_json::json!({
+            "payload": { "@type": "type.googleapis.com/pkg.Outer", "inner": { "@type": "example.com/types/pkg.Inner" } },
+            "list": [{ "@type": "type.googleapis.com/pkg.Item" }],
+            "plain": "type.googleapis.com/not.Counted",
+            "bare": { "@type": "no-slash-is-not-a-type-url" }
+        });
+        let types = collect_any_types(&body);
+        assert_eq!(types, vec!["pkg.Outer", "pkg.Inner", "pkg.Item"]);
+    }
+
+    #[test]
+    fn load_proto_to_pool_resolves_methods_and_generates_schema() {
+        let dir = tempfile::tempdir().unwrap();
+        let proto_path = dir.path().join("demo.proto");
+        std::fs::write(
+            &proto_path,
+            r#"syntax = "proto3";
+package demo;
+enum Color { RED = 0; BLUE = 1; }
+message Req {
+  string message = 1;
+  int32 count = 2;
+  Color color = 3;
+  repeated string tags = 4;
+  map<string, string> labels = 5;
+}
+message Resp { string message = 1; }
+service Demo {
+  rpc Echo(Req) returns (Resp);
+  rpc Watch(Req) returns (stream Resp);
+}
+"#,
+        )
+        .unwrap();
+
+        let client = GrpcClient::new(init_grpc_pool_cache());
+        let pool = client
+            .load_proto_to_pool(&[proto_path.to_string_lossy().to_string()], &[])
+            .unwrap();
+
+        let echo = client.find_method(&pool, "demo.Demo", "Echo").unwrap();
+        assert!(!echo.is_server_streaming());
+        let watch = client.find_method(&pool, "demo.Demo", "Watch").unwrap();
+        assert!(watch.is_server_streaming());
+        assert!(client.find_method(&pool, "demo.Demo", "Missing").is_none());
+
+        let schema: serde_json::Value =
+            serde_json::from_str(&client.message_to_json_schema(&echo.input())).unwrap();
+        assert_eq!(schema["properties"]["message"]["type"], "string");
+        assert_eq!(schema["properties"]["tags"]["type"], "array");
+        let schema_text = schema.to_string();
+        assert!(
+            schema_text.contains("\"RED\""),
+            "enum values missing: {}",
+            schema_text
+        );
     }
 }

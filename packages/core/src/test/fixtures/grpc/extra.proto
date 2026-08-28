@@ -1,0 +1,9 @@
+syntax = "proto3";
+
+package nouto.extra;
+
+// Deliberately NOT imported by test.proto so that reflecting the service does not
+// bring this file along. Used to exercise on-demand google.protobuf.Any resolution.
+message Extra {
+  string label = 1;
+}

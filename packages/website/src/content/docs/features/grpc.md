@@ -48,6 +48,8 @@ The **Message** tab contains a JSON editor for the request payload. The editor p
 
 JSON comments (`//` and `/* */`) are supported in the editor and stripped before the message is sent, so you can annotate fields for reference.
 
+`{{variable}}` placeholders in the message body are resolved against the active environment before the message is sent, the same as for HTTP request bodies. This applies to the initial message and to each message sent on a streaming call.
+
 Press **Invoke** (or **Send** for streaming) to call the method.
 
 ## Metadata

@@ -486,7 +486,7 @@
       methodName: request.grpc?.methodName || '',
       metadata: (Array.isArray(request.headers) ? request.headers : []).map(h => ({ ...h, key: substituteVariables(h.key), value: substituteVariables(h.value) })),
       auth: request.auth,
-      body: request.body.content || '{}',
+      body: request.body.content ? substituteVariables(request.body.content) : '{}',
       useReflection: request.grpc?.useReflection ?? true,
       protoPaths: request.grpc?.protoPaths || [],
       importDirs: request.grpc?.protoImportDirs || [],
@@ -1087,7 +1087,7 @@
     {@const conn = grpcConnection()}
     {@const isStreamActive = streaming && conn?.state !== 'closed'}
     {#if isStreamActive}
-      <button class="send-button" onclick={() => messageBus({ type: 'grpcSendMessage', data: { connectionId: conn?.id, body: request.body.content || '{}' } } as any)}>
+      <button class="send-button" onclick={() => messageBus({ type: 'grpcSendMessage', data: { connectionId: conn?.id, body: request.body.content ? substituteVariables(request.body.content) : '{}' } } as any)}>
         Send
       </button>
       {#if mType === 'client_streaming' || mType === 'streaming'}

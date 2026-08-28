@@ -47,6 +47,7 @@
         tlsCertPath: request.grpc?.tlsCertPath,
         tlsKeyPath: request.grpc?.tlsKeyPath,
         tlsCaCertPath: request.grpc?.tlsCaCertPath,
+        tlsPassphrase: request.grpc?.tlsPassphrase,
       } } as any);
     } else {
       postMessage({ type: 'grpcLoadProto', data: { protoPaths, importDirs } } as any);

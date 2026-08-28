@@ -27,6 +27,32 @@ export interface GrpcCallbacks {
 
 export type GrpcMethodType = 'unary' | 'server_streaming' | 'client_streaming' | 'bidi';
 
+type ReflectionVersion = 'v1' | 'v1alpha';
+
+/** gRPC status UNIMPLEMENTED (12): the server does not expose this reflection version. */
+function isUnimplemented(err: any): boolean {
+  return err?.code === 12 || Boolean(err?.message?.includes('UNIMPLEMENTED'));
+}
+
+/**
+ * Collect fully-qualified message type names referenced by `@type` URLs anywhere in a
+ * JSON value (the canonical JSON form of `google.protobuf.Any`). Returns unique names in
+ * first-seen order, e.g. `type.googleapis.com/pkg.Msg` -> `pkg.Msg`.
+ */
+export function collectAnyTypes(value: unknown, out: string[] = []): string[] {
+  if (Array.isArray(value)) {
+    for (const item of value) collectAnyTypes(item, out);
+  } else if (value && typeof value === 'object') {
+    const typeUrl = (value as Record<string, unknown>)['@type'];
+    if (typeof typeUrl === 'string') {
+      const name = typeUrl.slice(typeUrl.lastIndexOf('/') + 1);
+      if (name && !out.includes(name)) out.push(name);
+    }
+    for (const item of Object.values(value as Record<string, unknown>)) collectAnyTypes(item, out);
+  }
+  return out;
+}
+
 // Lazy-load gRPC packages to avoid hard failures when they are not installed
 function loadGrpc(): any {
   try { return require('@grpc/grpc-js'); } catch { throw new Error('gRPC support requires @grpc/grpc-js. Install it with: npm install @grpc/grpc-js'); }
@@ -92,63 +118,61 @@ export class GrpcService {
    * Reflect on a gRPC server to discover services using the gRPC reflection protocol.
    * Tries v1 first, falls back to v1alpha if the server returns UNIMPLEMENTED.
    */
-  async reflect(address: string, metadata?: Record<string, string>, tls?: boolean, tlsCertPath?: string, tlsKeyPath?: string, tlsCaCertPath?: string): Promise<GrpcProtoDescriptor> {
+  async reflect(address: string, metadata?: Record<string, string>, tls?: boolean, tlsCertPath?: string, tlsKeyPath?: string, tlsCaCertPath?: string, tlsPassphrase?: string): Promise<GrpcProtoDescriptor> {
     const grpc = loadGrpc();
     const protoLoader = loadProtoLoader();
-    const path = require('path');
 
-    const credentials = this.buildCredentials(grpc, tls, tlsCertPath, tlsKeyPath, tlsCaCertPath);
-    const fs = require('fs');
+    const credentials = this.buildCredentials(grpc, tls, tlsCertPath, tlsKeyPath, tlsCaCertPath, tlsPassphrase);
+    const meta = this.buildMetadata(grpc, metadata);
 
-    // Build gRPC Metadata from user-provided headers
+    // Try v1 first, fall back to v1alpha
+    try {
+      return await this.reflectWithVersion(grpc, protoLoader, address, credentials, meta, 'v1');
+    } catch (v1Error: any) {
+      if (isUnimplemented(v1Error)) {
+        return await this.reflectWithVersion(grpc, protoLoader, address, credentials, meta, 'v1alpha');
+      }
+      throw v1Error;
+    }
+  }
+
+  private buildMetadata(grpc: any, metadata?: Record<string, string>): any {
     const meta = new grpc.Metadata();
     if (metadata) {
       for (const [key, value] of Object.entries(metadata)) {
         meta.add(key, value);
       }
     }
-
-    // Resolve the bundled reflection proto files.
-    // In the esbuild bundle (packages/vscode/out/extension.js) proto files are
-    // copied to packages/vscode/out/proto/ by the build script, so __dirname = out/.
-    // In the CJS build (packages/core/dist/services/) __dirname = dist/services/,
-    // so ../../proto points to packages/core/proto/.
-    function resolveProto(relative: string): string {
-      const candidates = [
-        path.resolve(__dirname, './proto', relative),   // esbuild bundle: out/proto/
-        path.resolve(__dirname, '../../proto', relative), // CJS build: core/proto/
-      ];
-      for (const p of candidates) {
-        if (fs.existsSync(p)) return p;
-      }
-      throw new Error(`Reflection proto not found: ${relative}. Searched:\n  ${candidates.join('\n  ')}`);
-    }
-
-    // Try v1 first, fall back to v1alpha
-    try {
-      return await this.reflectWithProto(
-        grpc, protoLoader, path, address, credentials, meta,
-        resolveProto('grpc/reflection/v1/reflection.proto'),
-        'grpc.reflection.v1.ServerReflection'
-      );
-    } catch (v1Error: any) {
-      // If UNIMPLEMENTED (code 12), try v1alpha
-      if (v1Error.code === 12 || v1Error.message?.includes('UNIMPLEMENTED')) {
-        return await this.reflectWithProto(
-          grpc, protoLoader, path, address, credentials, meta,
-          resolveProto('grpc/reflection/v1alpha/reflection.proto'),
-          'grpc.reflection.v1alpha.ServerReflection'
-        );
-      }
-      throw v1Error;
-    }
+    return meta;
   }
 
-  private async reflectWithProto(
-    grpc: any, protoLoader: any, _path: any,
-    address: string, credentials: any, meta: any,
-    protoPath: string, servicePath: string
-  ): Promise<GrpcProtoDescriptor> {
+  /**
+   * Resolve one of the bundled reflection proto files.
+   * In the esbuild bundle (packages/vscode/out/extension.js) proto files are
+   * copied to packages/vscode/out/proto/ by the build script, so __dirname = out/.
+   * In the CJS build (packages/core/dist/services/) __dirname = dist/services/,
+   * so ../../proto points to packages/core/proto/.
+   */
+  private resolveReflectionProto(relative: string): string {
+    const path = require('path');
+    const fs = require('fs');
+    const candidates = [
+      path.resolve(__dirname, './proto', relative),   // esbuild bundle: out/proto/
+      path.resolve(__dirname, '../../proto', relative), // CJS build: core/proto/
+    ];
+    for (const p of candidates) {
+      if (fs.existsSync(p)) return p;
+    }
+    throw new Error(`Reflection proto not found: ${relative}. Searched:\n  ${candidates.join('\n  ')}`);
+  }
+
+  /** Create a ServerReflection client for the given protocol version. Caller must close() it. */
+  private async createReflectionClient(
+    grpc: any, protoLoader: any, address: string, credentials: any, version: ReflectionVersion
+  ): Promise<any> {
+    const protoPath = this.resolveReflectionProto(`grpc/reflection/${version}/reflection.proto`);
+    const servicePath = `grpc.reflection.${version}.ServerReflection`;
+
     const packageDefinition = await protoLoader.load(protoPath, {
       keepCase: false,
       longs: String,
@@ -160,16 +184,23 @@ export class GrpcService {
     const packageObject = grpc.loadPackageDefinition(packageDefinition);
 
     // Navigate to ServerReflection service
-    const parts = servicePath.split('.');
     let ServiceConstructor: any = packageObject;
-    for (const part of parts) {
+    for (const part of servicePath.split('.')) {
       ServiceConstructor = ServiceConstructor?.[part];
     }
     if (!ServiceConstructor) {
       throw new Error(`Reflection service not found at ${servicePath}`);
     }
 
-    const client = new ServiceConstructor(address, credentials);
+    return new ServiceConstructor(address, credentials);
+  }
+
+  private async reflectWithVersion(
+    grpc: any, protoLoader: any,
+    address: string, credentials: any, meta: any,
+    version: ReflectionVersion
+  ): Promise<GrpcProtoDescriptor> {
+    const client = await this.createReflectionClient(grpc, protoLoader, address, credentials, version);
 
     try {
       // Step 1: List services
@@ -471,7 +502,7 @@ export class GrpcService {
           // Re-reflect to get fresh descriptors
           await this.reflect(
             options.address, options.metadata, options.tls,
-            options.tlsCertPath, options.tlsKeyPath, options.tlsCaCertPath
+            options.tlsCertPath, options.tlsKeyPath, options.tlsCaCertPath, options.tlsPassphrase
           );
           if (this.packageDefinitionCache.has(options.address)) {
             packageObject = this.packageDefinitionCache.get(options.address).packageObject;
@@ -481,6 +512,18 @@ export class GrpcService {
         }
       } else {
         throw new Error('No proto files available for invoke. Load proto files first.');
+      }
+
+      // google.protobuf.Any payloads reference types by URL. With reflection, those types
+      // may live in files the service descriptors never imported, so fetch them on demand.
+      if (options.useReflection && !(options.protoPaths && options.protoPaths.length > 0)) {
+        let parsedForScan: unknown;
+        try { parsedForScan = JSON.parse(stripJsonComments(options.body || '{}')); } catch { parsedForScan = undefined; }
+        const anyTypes = parsedForScan ? collectAnyTypes(parsedForScan) : [];
+        if (anyTypes.length > 0) {
+          const rebuilt = await this.resolveAnyTypes(grpc, protoLoader, options, anyTypes);
+          if (rebuilt) packageObject = rebuilt;
+        }
       }
 
       // Navigate to the service constructor
@@ -957,6 +1000,75 @@ export class GrpcService {
 
   // --- Private helpers ---
 
+  /**
+   * Fetch descriptors for `google.protobuf.Any` payload types that are missing from the
+   * reflected descriptor set, merge them in, and rebuild the package definition.
+   * Returns the rebuilt package object, or null when nothing changed.
+   */
+  private async resolveAnyTypes(grpc: any, protoLoader: any, options: GrpcInvokeOptions, typeNames: string[]): Promise<any | null> {
+    const stored = this.reflectedDescriptorBytes.get(options.address) || [];
+    const missing = typeNames.filter(name => !this.descriptorsContainType(stored, name));
+    if (missing.length === 0) return null;
+
+    const credentials = this.buildCredentials(grpc, options.tls, options.tlsCertPath, options.tlsKeyPath, options.tlsCaCertPath, options.tlsPassphrase);
+    const meta = this.buildMetadata(grpc, options.metadata);
+
+    const seen = new Set(stored.map(fd => Buffer.from(fd).toString('base64')));
+    const merged: Uint8Array[] = [...stored];
+    let added = false;
+
+    for (const symbol of missing) {
+      let fds: Uint8Array[];
+      try {
+        fds = await this.reflectSymbol(grpc, protoLoader, options.address, credentials, meta, symbol);
+      } catch {
+        continue; // Leave unresolved types to fail at encode time with the normal error
+      }
+      for (const fd of fds) {
+        const key = Buffer.from(fd).toString('base64');
+        if (!seen.has(key)) {
+          seen.add(key);
+          merged.push(Buffer.from(fd));
+          added = true;
+        }
+      }
+    }
+
+    if (!added) return null;
+    this.reflectedDescriptorBytes.set(options.address, merged);
+    if (!this.buildPackageDefinitionFromDescriptors(grpc, protoLoader, options.address, merged)) return null;
+    return this.packageDefinitionCache.get(options.address)?.packageObject ?? null;
+  }
+
+  /** Ask the server (v1, then v1alpha) for the file descriptors that define `symbol`. */
+  private async reflectSymbol(grpc: any, protoLoader: any, address: string, credentials: any, meta: any, symbol: string): Promise<Uint8Array[]> {
+    const versions: ReflectionVersion[] = ['v1', 'v1alpha'];
+    let lastError: any;
+    for (const version of versions) {
+      const client = await this.createReflectionClient(grpc, protoLoader, address, credentials, version);
+      try {
+        return await this.reflectionGetFileDescriptors(client, symbol, meta);
+      } catch (err: any) {
+        lastError = err;
+        if (!isUnimplemented(err)) throw err;
+      } finally {
+        client.close();
+      }
+    }
+    throw lastError;
+  }
+
+  /** True when a fully-qualified message/enum name is defined by any of the given FileDescriptorProtos. */
+  private descriptorsContainType(fdBytes: Uint8Array[], fullName: string): boolean {
+    if (fdBytes.length === 0) return false;
+    try {
+      const root = this.rootFromDescriptorBytes(fdBytes);
+      return Boolean(root.lookup(fullName.replace(/^\./, '')));
+    } catch {
+      return false;
+    }
+  }
+
   private buildCredentials(grpc: any, tls?: boolean, certPath?: string, keyPath?: string, caCertPath?: string, passphrase?: string): any {
     if (!tls) return grpc.credentials.createInsecure();
 
@@ -1027,11 +1139,16 @@ export class GrpcService {
         for (const [methodName, methodDef] of Object.entries(serviceDef)) {
           const def = methodDef as any;
 
-          // Generate JSON Schema from the request type
+          // Generate JSON Schema from the request type. proto-loader attaches the serialized
+          // FileDescriptorProtos to every type definition, so build a protobufjs Root from them
+          // and reuse the same generator as the reflection path.
           let inputSchema: string | undefined;
           try {
-            if (def.requestType?.type) {
-              inputSchema = JSON.stringify(this.protoLoaderTypeToJsonSchema(def.requestType.type));
+            const fdBytes = def.requestType?.fileDescriptorProtos;
+            const typeName = def.requestType?.type?.name;
+            if (Array.isArray(fdBytes) && fdBytes.length > 0 && typeName) {
+              const msgType = this.findMessageType(this.rootFromDescriptorBytes(fdBytes), typeName);
+              if (msgType) inputSchema = JSON.stringify(this.messageTypeToJsonSchema(msgType));
             }
           } catch {
             // Schema generation is best-effort
@@ -1057,125 +1174,37 @@ export class GrpcService {
     return services;
   }
 
-  /**
-   * Generate JSON Schema from a proto-loader type definition.
-   * proto-loader exposes type info via requestType.type with fields array.
-   */
-  private protoLoaderTypeToJsonSchema(type: any, visited = new Set<string>()): any {
-    if (!type) return { type: 'object' };
-
-    const typeName = type.name || '';
-    if (visited.has(typeName)) {
-      return { $ref: `#/$defs/${typeName}` };
-    }
-    visited.add(typeName);
-
-    const schema: any = { type: 'object', properties: {} as Record<string, any> };
-    const defs: Record<string, any> = {};
-
-    const fields = type.field || type.fields || [];
-    // proto-loader can expose fields as an object or array
-    const fieldEntries = Array.isArray(fields)
-      ? fields
-      : Object.values(fields);
-
-    for (const field of fieldEntries) {
-      const fieldName = field.name || field.camelCase || '';
-      if (!fieldName) continue;
-
-      let fieldSchema = this.protoFieldToJsonSchema(field, visited, defs);
-
-      // Handle repeated fields
-      if (field.repeated || field.rule === 'repeated') {
-        fieldSchema = { type: 'array', items: fieldSchema };
-      }
-
-      schema.properties[fieldName] = fieldSchema;
-    }
-
-    if (Object.keys(defs).length > 0) {
-      schema.$defs = defs;
-    }
-
-    return schema;
+  /** Build a resolved protobufjs Root from serialized FileDescriptorProto buffers. */
+  private rootFromDescriptorBytes(fdBytes: Uint8Array[]): any {
+    const protobuf = require('protobufjs');
+    require('protobufjs/ext/descriptor');
+    const files = fdBytes.map(b => protobuf.descriptor.FileDescriptorProto.decode(b));
+    const root = protobuf.Root.fromDescriptor({ file: files });
+    try { root.resolveAll(); } catch { /* best effort */ }
+    return root;
   }
 
-  private protoFieldToJsonSchema(field: any, visited: Set<string>, defs: Record<string, any>): any {
-    // Map proto type strings/numbers to JSON Schema
-    const protoType = field.type || '';
-
-    // proto-loader uses string type names
-    if (typeof protoType === 'string') {
-      switch (protoType.toLowerCase()) {
-        case 'double': case 'float': return { type: 'number' };
-        case 'int32': case 'sint32': case 'sfixed32':
-        case 'uint32': case 'fixed32': return { type: 'integer' };
-        case 'int64': case 'sint64': case 'sfixed64':
-        case 'uint64': case 'fixed64': return { type: 'string' };
-        case 'bool': return { type: 'boolean' };
-        case 'string': return { type: 'string' };
-        case 'bytes': return { type: 'string', format: 'byte' };
+  /** Find a message Type by fully-qualified or short name anywhere in a protobufjs Root. */
+  private findMessageType(root: any, name: string): any | null {
+    try {
+      return root.lookupType(name.replace(/^\./, ''));
+    } catch {
+      // Short names that are not resolvable from the root fall through to a full scan
+    }
+    const protobuf = require('protobufjs');
+    const stack: any[] = [root];
+    while (stack.length > 0) {
+      const ns = stack.pop();
+      for (const nested of ns.nestedArray || []) {
+        if (nested instanceof protobuf.Type && nested.name === name) return nested;
+        if (nested.nestedArray) stack.push(nested);
       }
     }
-
-    // Handle numeric proto field types (from protobufjs descriptors)
-    if (typeof protoType === 'number') {
-      return this.protoFieldNumberToJsonSchema(protoType);
-    }
-
-    // Handle nested message types
-    if (field.resolvedType) {
-      // Enum type
-      if (field.resolvedType.valuesById || field.resolvedType.values) {
-        const enumValues = field.resolvedType.values
-          ? Object.keys(field.resolvedType.values)
-          : Object.values(field.resolvedType.valuesById || {});
-        return { type: 'string', enum: enumValues };
-      }
-      // Message type
-      const nestedSchema = this.protoLoaderTypeToJsonSchema(field.resolvedType, visited);
-      const refName = field.resolvedType.name || 'Nested';
-      if (nestedSchema.$defs) {
-        Object.assign(defs, nestedSchema.$defs);
-        delete nestedSchema.$defs;
-      }
-      defs[refName] = nestedSchema;
-      return { $ref: `#/$defs/${refName}` };
-    }
-
-    // Map type
-    if (field.map || field.keyType) {
-      return { type: 'object', additionalProperties: {} };
-    }
-
-    return {};
-  }
-
-  private protoFieldNumberToJsonSchema(typeNum: number): any {
-    // protobuf FieldDescriptorProto type numbers
-    switch (typeNum) {
-      case 1: return { type: 'number' };  // double
-      case 2: return { type: 'number' };  // float
-      case 3: return { type: 'string' };  // int64
-      case 4: return { type: 'string' };  // uint64
-      case 5: return { type: 'integer' }; // int32
-      case 6: return { type: 'string' };  // fixed64
-      case 7: return { type: 'integer' }; // fixed32
-      case 8: return { type: 'boolean' }; // bool
-      case 9: return { type: 'string' };  // string
-      case 12: return { type: 'string', format: 'byte' }; // bytes
-      case 13: return { type: 'integer' }; // uint32
-      case 14: return { type: 'string' };  // enum (will be overridden if resolvedType exists)
-      case 15: return { type: 'integer' }; // sfixed32
-      case 16: return { type: 'string' };  // sfixed64
-      case 17: return { type: 'integer' }; // sint32
-      case 18: return { type: 'string' };  // sint64
-      default: return {};
-    }
+    return null;
   }
 
   /**
-   * Generate JSON Schema from a protobufjs message Type (used for reflection path).
+   * Generate JSON Schema from a protobufjs message Type (shared by the reflection and proto-file paths).
    */
   private messageTypeToJsonSchema(msgType: any, visited = new Set<string>()): any {
     const fullName = msgType.fullName || msgType.name || '';

@@ -609,7 +609,7 @@ export class ProtocolHandlers {
   async handleGrpcReflect(webview: vscode.Webview, panelId: string, data: any): Promise<void> {
     const service = this.getOrCreateGrpcService(panelId);
     try {
-      const descriptor = await service.reflect(data.address, data.metadata, data.tls, data.tlsCertPath, data.tlsKeyPath, data.tlsCaCertPath);
+      const descriptor = await service.reflect(data.address, data.metadata, data.tls, data.tlsCertPath, data.tlsKeyPath, data.tlsCaCertPath, data.tlsPassphrase);
       webview.postMessage({ type: 'grpcProtoLoaded', data: descriptor });
     } catch (err: any) {
       webview.postMessage({ type: 'grpcProtoError', data: { message: err.message || String(err) } });

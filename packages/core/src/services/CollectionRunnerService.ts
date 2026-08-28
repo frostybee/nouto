@@ -19,6 +19,24 @@ import type {
   DataRow,
 } from '../types';
 
+const NON_HTTP_MODE_LABELS: Record<string, string> = {
+  grpc: 'gRPC',
+  websocket: 'WebSocket',
+  sse: 'SSE',
+  'graphql-ws': 'GraphQL subscription',
+};
+
+/**
+ * Returns a human-readable reason when the collection runner cannot execute a request
+ * (non-HTTP protocols such as gRPC, WebSocket, SSE), or null when it is runnable.
+ */
+export function runnerSkipReason(request: Pick<SavedRequest, 'connectionMode'>): string | null {
+  const mode = request.connectionMode;
+  if (!mode || mode === 'http') return null;
+  const label = NON_HTTP_MODE_LABELS[mode] || mode;
+  return `Skipped: ${label} requests are not supported by the collection runner`;
+}
+
 export class CollectionRunnerService {
   private abortController: AbortController | null = null;
   private scriptEngine = new ScriptEngine();
@@ -100,6 +118,13 @@ export class CollectionRunnerService {
       const promises = requests.map(async (request, idx) => {
         if (this.abortController?.signal.aborted) return;
         onProgress({ current: idx + 1, total: requests.length, requestName: request.name });
+        const skipReason = runnerSkipReason(request);
+        if (skipReason) {
+          const skippedResult = this.makeSkippedResult(request, skipReason, currentDataRow, iterIdx);
+          results.push(skippedResult);
+          onRequestComplete(skippedResult);
+          return;
+        }
         try {
           const result = await this.executeSingleRequest(request, iterEnvData, responseContext, requestNameToId, config, undefined, collection);
           if (currentDataRow) {
@@ -153,6 +178,15 @@ export class CollectionRunnerService {
 
       const request = requests[currentIndex];
       onProgress({ current: results.length + 1, total: requests.length, requestName: request.name });
+
+      const skipReason = runnerSkipReason(request);
+      if (skipReason) {
+        const skippedResult = this.makeSkippedResult(request, skipReason, currentDataRow, iterIdx);
+        results.push(skippedResult);
+        onRequestComplete(skippedResult);
+        currentIndex++;
+        continue;
+      }
 
       try {
         // Resolve scripts
@@ -354,9 +388,10 @@ export class CollectionRunnerService {
     } // end data iteration for loop
 
     const completedAt = new Date().toISOString();
-    const passedRequests = results.filter(r => r.passed).length;
-    const failedRequests = results.filter(r => !r.passed).length;
-    const skippedRequests = Math.max(0, (iterationLimit * requests.length) - results.length);
+    const passedRequests = results.filter(r => r.passed && !r.skipped).length;
+    const failedRequests = results.filter(r => !r.passed && !r.skipped).length;
+    const explicitlySkipped = results.filter(r => r.skipped).length;
+    const skippedRequests = explicitlySkipped + Math.max(0, (iterationLimit * requests.length) - results.length);
     const totalDuration = results.reduce((sum, r) => sum + r.duration, 0);
 
     this.abortController = null;
@@ -374,6 +409,28 @@ export class CollectionRunnerService {
       results,
       stoppedEarly,
       ...(dataRows && dataRows.length > 0 ? { dataRowCount: dataRows.length } : {}),
+    };
+  }
+
+  private makeSkippedResult(
+    request: SavedRequest,
+    reason: string,
+    currentDataRow: DataRow | undefined,
+    iterIdx: number,
+  ): CollectionRunRequestResult {
+    return {
+      requestId: request.id,
+      requestName: request.name,
+      method: request.method,
+      url: request.url,
+      status: 0,
+      statusText: 'Skipped',
+      duration: 0,
+      size: 0,
+      passed: false,
+      skipped: true,
+      error: reason,
+      ...(currentDataRow ? { iterationIndex: iterIdx, iterationData: currentDataRow } : {}),
     };
   }
 

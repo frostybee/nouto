@@ -247,6 +247,36 @@ pub async fn start_collection_run(
                     }),
                 );
 
+                // Non-HTTP protocols (gRPC, WebSocket, SSE) cannot be executed by the runner
+                if let Some(reason) = runner_skip_reason(&effective_request) {
+                    let skipped_result = CollectionRunRequestResult {
+                        request_id: req_id.clone(),
+                        request_name: req_name.clone(),
+                        method: HttpMethod(req_method_str.clone()),
+                        url: req_url.clone(),
+                        status: 0,
+                        status_text: "Skipped".to_string(),
+                        duration: 0,
+                        size: 0,
+                        passed: false,
+                        skipped: true,
+                        error: Some(reason),
+                        assertion_results: None,
+                        script_test_results: None,
+                        response_data: None,
+                        response_headers: None,
+                        script_logs: None,
+                    };
+                    let _ = app.emit(
+                        "collectionRunRequestResult",
+                        serde_json::json!({ "data": &skipped_result }),
+                    );
+                    results.push(skipped_result);
+                    cursor += 1;
+                    global_index += 1;
+                    continue;
+                }
+
                 // Resolve script chain (collection -> folders -> request)
                 let (mut pre_scripts, mut post_scripts) =
                     resolve_script_chain(&collection, &req_id);
@@ -480,6 +510,7 @@ pub async fn start_collection_run(
                             duration: response.duration,
                             size: response.size,
                             passed: passed && script_tests_passed && script_error.is_none(),
+                            skipped: false,
                             error: if !passed {
                                 Some(
                                     response
@@ -517,6 +548,7 @@ pub async fn start_collection_run(
                         duration: 0,
                         size: 0,
                         passed: false,
+                        skipped: false,
                         error: Some(error_msg.to_string()),
                         assertion_results: None,
                         script_test_results: None,
@@ -585,9 +617,10 @@ pub async fn start_collection_run(
         }
 
         // Build summary
-        let passed_count = results.iter().filter(|r| r.passed).count();
-        let failed_count = results.iter().filter(|r| !r.passed).count();
-        let skipped_count = total - results.len();
+        let passed_count = results.iter().filter(|r| r.passed && !r.skipped).count();
+        let failed_count = results.iter().filter(|r| !r.passed && !r.skipped).count();
+        let explicitly_skipped = results.iter().filter(|r| r.skipped).count();
+        let skipped_count = explicitly_skipped + total.saturating_sub(results.len());
         let total_duration: i64 = results.iter().map(|r| r.duration).sum();
 
         let run_result = CollectionRunResult {
@@ -1035,6 +1068,24 @@ fn find_folder_items(items: Option<&Vec<Value>>, folder_id: &str) -> Option<Vec<
     None
 }
 
+/// Returns a reason string when a saved request uses a protocol the runner cannot execute
+/// (gRPC, WebSocket, SSE, GraphQL subscriptions), or None for plain HTTP requests.
+fn runner_skip_reason(request: &Value) -> Option<String> {
+    let mode = request.get("connectionMode").and_then(|v| v.as_str())?;
+    let label = match mode {
+        "http" => return None,
+        "grpc" => "gRPC",
+        "websocket" => "WebSocket",
+        "sse" => "SSE",
+        "graphql-ws" => "GraphQL subscription",
+        other => other,
+    };
+    Some(format!(
+        "Skipped: {} requests are not supported by the collection runner",
+        label
+    ))
+}
+
 /// Recursively collect all request items from a list of collection items
 fn collect_requests(items: &[Value]) -> Vec<&Value> {
     let mut requests = Vec::new();
@@ -1479,6 +1530,16 @@ mod tests {
         let mut path = Vec::new();
         assert!(!find_path_to_request(items, "missing", &mut path));
         assert!(path.is_empty());
+    }
+
+    #[test]
+    fn runner_skip_reason_only_for_non_http_modes() {
+        assert!(runner_skip_reason(&serde_json::json!({ "url": "x" })).is_none());
+        assert!(runner_skip_reason(&serde_json::json!({ "connectionMode": "http" })).is_none());
+        let grpc = runner_skip_reason(&serde_json::json!({ "connectionMode": "grpc" })).unwrap();
+        assert!(grpc.contains("gRPC"));
+        let ws = runner_skip_reason(&serde_json::json!({ "connectionMode": "websocket" })).unwrap();
+        assert!(ws.contains("WebSocket"));
     }
 
     #[test]

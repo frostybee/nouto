@@ -634,6 +634,9 @@ pub struct CollectionRunRequestResult {
     pub duration: i64,
     pub size: usize,
     pub passed: bool,
+    /// True when the runner did not execute this request (e.g. non-HTTP protocol).
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub skipped: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]

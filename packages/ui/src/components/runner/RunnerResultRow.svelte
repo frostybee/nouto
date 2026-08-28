@@ -11,7 +11,7 @@
   }
   let { result, index, expandedId, showIteration = false }: Props = $props();
 
-  const statusClass = $derived(result.passed ? 'pass' : 'fail');
+  const statusClass = $derived(result.skipped ? 'skip' : result.passed ? 'pass' : 'fail');
   const methodColor = $derived(getMethodColor(result.method));
   const hasAssertions = $derived(result.assertionResults && result.assertionResults.length > 0);
   const assertionPassed = $derived(result.assertionResults?.filter(r => r.passed).length ?? 0);
@@ -48,7 +48,7 @@
   }
 </script>
 
-<tr class="result-row" class:pass={result.passed} class:fail={!result.passed}
+<tr class="result-row" class:pass={result.passed} class:fail={!result.passed && !result.skipped} class:skip={result.skipped}
   onclick={() => isExpandable && setExpandedResult(result.requestId)}
   class:clickable={isExpandable}
 >
@@ -65,6 +65,8 @@
       <span class="status-code" class:status-ok={result.status < 400} class:status-err={result.status >= 400}>
         {result.status} {result.statusText}
       </span>
+    {:else if result.skipped}
+      <span class="status-skipped">Skipped</span>
     {:else}
       <span class="status-error">Error</span>
     {/if}
@@ -72,7 +74,7 @@
   <td class="col-duration">{formatDuration(result.duration)}</td>
   <td class="col-result">
     <span class="result-badge {statusClass}">
-      {result.passed ? 'Pass' : 'Fail'}
+      {result.skipped ? 'Skipped' : result.passed ? 'Pass' : 'Fail'}
     </span>
     {#if hasAssertions}
       <span class="assertion-count">{assertionPassed}/{assertionTotal}</span>
@@ -202,6 +204,7 @@
   .status-ok { color: var(--hf-testing-iconPassed, #49cc90); }
   .status-err { color: var(--hf-testing-iconFailed, #f93e3e); }
   .status-error { color: var(--hf-errorForeground); font-size: 0.846rem; }
+  .status-skipped { color: var(--hf-descriptionForeground); font-size: 0.846rem; }
 
   .col-duration {
     width: 6.154rem;
@@ -229,6 +232,16 @@
   .result-badge.fail {
     background: rgba(249, 62, 62, 0.15);
     color: var(--hf-testing-iconFailed, #f93e3e);
+  }
+
+  .result-badge.skip {
+    background: var(--hf-input-background);
+    color: var(--hf-descriptionForeground);
+  }
+
+  .result-row.skip .error-detail,
+  .result-row.skip + .error-row .error-detail {
+    color: var(--hf-descriptionForeground);
   }
 
   .error-row td { padding: 0.308rem 0.923rem 0.615rem; }

@@ -92,7 +92,7 @@ export function runnerSummary() { return runnerState.summary; }
 export function filteredResults() {
   if (runnerState.resultFilter === 'all') return runnerState.results;
   if (runnerState.resultFilter === 'passed') return runnerState.results.filter(r => r.passed);
-  return runnerState.results.filter(r => !r.passed);
+  return runnerState.results.filter(r => !r.passed && !r.skipped);
 }
 
 export function initRunner(data: {

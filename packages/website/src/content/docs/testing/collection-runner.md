@@ -38,7 +38,9 @@ Each completed request appears as a row:
 | Status | HTTP status code and text |
 | Duration | Response time in ms |
 | Assertions | Pass/fail badge (e.g., "3/4") |
-| Result | Pass or Fail |
+| Result | Pass, Fail, or Skipped |
+
+The runner executes HTTP requests only. gRPC, WebSocket, SSE, and GraphQL subscription items saved in the collection are reported as Skipped rather than run, and do not count as passed or failed. They also do not trigger "stop on failure".
 
 Failed requests show an expandable row with the error message or failed assertion details. Click any row to expand and see individual assertion and script test results.
 

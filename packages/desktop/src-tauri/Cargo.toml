@@ -73,6 +73,7 @@ tonic = { version = "0.12", features = ["tls", "tls-roots"] }
 tonic-reflection = "0.12"
 prost = "0.13"
 prost-reflect = { version = "0.14", features = ["serde"] }
+pkcs8 = { version = "0.10", features = ["encryption", "pem", "std"] }
 protox = "0.7"
 tokio-stream = "0.1"
 async-stream = "0.3"
