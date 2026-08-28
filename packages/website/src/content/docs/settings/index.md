@@ -11,9 +11,9 @@ The Settings page is accessible from the gear icon in the Nouto toolbar, or from
 
 ### Appearance
 
-- **Theme**: choose from 26 themes (see [Themes](/settings/themes))
+- **Theme**: choose from 26 built-in themes, browse and install from a catalog of 65 VS Code themes, or create custom themes (see [Themes](/settings/themes))
 - **UI font and size**: customize the interface font
-- **Editor font and size**: customize the CodeMirror editor font
+- **Editor font and size**: customize the CodeMirror and Monaco editor font. In the desktop app, `Ctrl+scroll` (or `Cmd+scroll` on macOS) over a code editor zooms the editor font size
 - **Minimap**: show, hide, or auto-detect based on response length
 
 ### Network

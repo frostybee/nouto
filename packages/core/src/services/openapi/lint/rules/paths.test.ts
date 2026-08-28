@@ -203,6 +203,126 @@ describe('path rules (Phase 2)', () => {
     // Different segment counts never conflict.
     expect(ambiguousFindings.some((d) => d.pointer?.includes('toys'))).toBe(false);
   });
+
+  describe('path-ambiguous respects the template parameter schema', () => {
+    const R = 'responses: { default: { description: E } }';
+    const withPaths = (extra: string[], components: string[] = []) =>
+      findings(spec({}, [...extra, ...components]), 'path-ambiguous').map((d) => d.pointer);
+    const idPath = (schema: string, literal = 'mine') => [
+      '  /pets/{id}:',
+      `    get: { parameters: [{ name: id, in: path, required: true, schema: ${schema} }], ${R} }`,
+      `  /pets/${literal}:`,
+      `    get: { ${R} }`,
+    ];
+
+    it('stays silent when the literal cannot satisfy the schema', () => {
+      expect(withPaths(idPath('{ type: integer }'))).toEqual([]);
+      expect(withPaths(idPath('{ type: number }'))).toEqual([]);
+      expect(withPaths(idPath('{ type: boolean }'))).toEqual([]);
+      expect(withPaths(idPath("{ type: string, pattern: '^[0-9]+$' }"))).toEqual([]);
+      expect(withPaths(idPath('{ type: string, enum: [a, b] }'))).toEqual([]);
+      expect(withPaths(idPath('{ type: string, maxLength: 2 }'))).toEqual([]);
+      expect(withPaths(idPath('{ type: integer, maximum: 100 }', '123'))).toEqual([]);
+      // 3.1 type arrays: null is ignored, integer still rejects the literal.
+      expect(withPaths(idPath('{ type: [integer, "null"] }'))).toEqual([]);
+    });
+
+    it('still warns when the literal could be a valid value', () => {
+      expect(withPaths(idPath('{ type: string }'))).toEqual(['/paths/~1pets~1mine']);
+      expect(withPaths(idPath('{ type: integer }', '123'))).toEqual(['/paths/~1pets~1123']);
+      expect(withPaths(idPath('{ type: number }', '1.5'))).toEqual(['/paths/~1pets~11.5']);
+      expect(withPaths(idPath('{ type: boolean }', 'true'))).toEqual(['/paths/~1pets~1true']);
+      expect(withPaths(idPath("{ type: string, pattern: '^m' }"))).toEqual(['/paths/~1pets~1mine']);
+      expect(withPaths(idPath('{ enum: [mine, yours] }'))).toEqual(['/paths/~1pets~1mine']);
+      // No type at all, or composition keywords: unknown, keep warning.
+      expect(withPaths(idPath('{ description: x }'))).toEqual(['/paths/~1pets~1mine']);
+      expect(withPaths(idPath('{ oneOf: [{ type: integer }] }'))).toEqual(['/paths/~1pets~1mine']);
+      // A `content` parameter has no schema to inspect.
+      expect(withPaths([
+        '  /pets/{id}:',
+        `    get: { parameters: [{ name: id, in: path, required: true, content: { text/plain: { schema: { type: integer } } } }], ${R} }`,
+        '  /pets/mine:',
+        `    get: { ${R} }`,
+      ])).toEqual(['/paths/~1pets~1mine']);
+    });
+
+    it('requires every operation on the templated path to reject the literal', () => {
+      const mixed = [
+        '  /pets/{id}:',
+        `    get: { parameters: [{ name: id, in: path, required: true, schema: { type: integer } }], ${R} }`,
+        `    delete: { parameters: [{ name: id, in: path, required: true, schema: { type: string } }], ${R} }`,
+        '  /pets/mine:',
+        `    get: { ${R} }`,
+      ];
+      expect(withPaths(mixed)).toEqual(['/paths/~1pets~1mine']);
+      const undeclaredOnOne = [
+        '  /pets/{id}:',
+        `    get: { parameters: [{ name: id, in: path, required: true, schema: { type: integer } }], ${R} }`,
+        `    delete: { ${R} }`,
+        '  /pets/mine:',
+        `    get: { ${R} }`,
+      ];
+      expect(withPaths(undeclaredOnOne)).toEqual(['/paths/~1pets~1mine']);
+      const bothInteger = [
+        '  /pets/{id}:',
+        `    get: { parameters: [{ name: id, in: path, required: true, schema: { type: integer } }], ${R} }`,
+        `    delete: { parameters: [{ name: id, in: path, required: true, schema: { type: integer } }], ${R} }`,
+        '  /pets/mine:',
+        `    get: { ${R} }`,
+      ];
+      expect(withPaths(bothInteger)).toEqual([]);
+    });
+
+    it('reads path-level parameters and $ref parameters', () => {
+      const pathLevel = [
+        '  /pets/{id}:',
+        '    parameters: [{ name: id, in: path, required: true, schema: { type: integer } }]',
+        `    get: { ${R} }`,
+        `    put: { ${R} }`,
+        '  /pets/mine:',
+        `    get: { ${R} }`,
+      ];
+      expect(withPaths(pathLevel)).toEqual([]);
+      const noOperations = [
+        '  /pets/{id}:',
+        '    parameters: [{ name: id, in: path, required: true, schema: { type: integer } }]',
+        '  /pets/mine:',
+        `    get: { ${R} }`,
+      ];
+      expect(withPaths(noOperations)).toEqual([]);
+      const viaRef = [
+        '  /pets/{id}:',
+        `    get: { parameters: [{ $ref: '#/components/parameters/PetId' }], ${R} }`,
+        '  /pets/mine:',
+        `    get: { ${R} }`,
+      ];
+      const components = [
+        'components:',
+        '  parameters:',
+        '    PetId: { name: id, in: path, required: true, schema: { $ref: "#/components/schemas/Id" } }',
+        '  schemas:',
+        '    Id: { type: integer }',
+      ];
+      expect(withPaths(viaRef, components)).toEqual([]);
+    });
+
+    it('handles templates on either side and multiple overlapping segments', () => {
+      // Template on the earlier key, literal on the later one.
+      expect(withPaths([
+        '  /pets/mine:',
+        `    get: { ${R} }`,
+        '  /pets/{id}:',
+        `    get: { parameters: [{ name: id, in: path, required: true, schema: { type: integer } }], ${R} }`,
+      ])).toEqual([]);
+      // One pair resolved by schema, the other not: still ambiguous.
+      expect(withPaths([
+        '  /a/{x}/b:',
+        `    get: { parameters: [{ name: x, in: path, required: true, schema: { type: integer } }], ${R} }`,
+        '  /a/c/{y}:',
+        `    get: { parameters: [{ name: y, in: path, required: true, schema: { type: string } }], ${R} }`,
+      ])).toEqual(['/paths/~1a~1c~1{y}']);
+    });
+  });
 });
 
 describe('server rules (Phase 2)', () => {

@@ -46,9 +46,11 @@ Path key and parameter hygiene.
 | `path-key-trailing-slash` | Warning | Yes | A path key ends with `/`; most routers treat `/a` and `/a/` differently |
 | `path-key-has-query` | Error | Yes | A path key contains `?`; declare query parameters with `in: query` instead |
 | `path-duplicate` | Error | No | Two path keys are identical except for template variable names (`/pets/{id}` and `/pets/{petId}`) |
-| `path-ambiguous` | Warning | No | A concrete segment overlaps a template segment in another path with the same shape (`/users/me` vs `/users/{id}`) |
+| `path-ambiguous` | Warning | No | A concrete segment overlaps a template segment in another path with the same shape (`/users/me` vs `/users/{id}`). Suppressed when the template parameter's declared schema provably rejects the literal (e.g. `{petId}` typed as `integer` won't match `findByStatus`) |
 
 The rename fixes rewrite only the key token, so the path item's operations and formatting stay untouched.
+
+The `path-ambiguous` rule checks the template parameter's declared `type`, `enum`, `pattern`, `const`, and numeric bounds. If every operation on the templated path declares a schema that rejects the literal segment, the warning is suppressed. Parameters without a `schema` (e.g. using `content`), undeclared parameters, and composition keywords (`oneOf`/`anyOf`/`allOf`) are treated as unconstrained and still produce the warning.
 
 ## Schemas
 
@@ -150,6 +152,23 @@ Opt-in rules are disabled by default and must be enabled in Settings. They stay 
 | `rate-limit-headers` | Warning | Yes | Successful responses declare no rate-limit headers (`X-RateLimit-*` or `RateLimit`) |
 | `info-missing-license` | Warning | Yes | The `info` object has no `license` |
 | `tag-missing-description` | Warning | Yes | A root tag has no `description` |
+
+## How Nouto's Linter Compares
+
+Nouto's linting engine is built from scratch for the editor, not adapted from a CLI tool. It goes beyond diagnostics: 41 of the 65 rules include a one-click quick fix that rewrites the spec in place.
+
+| | Nouto | Spectral | Redocly CLI |
+|---|---|---|---|
+| Rules | 65 across 11 groups | ~30 core | ~70 (configurable presets) |
+| One-click quick fixes | 41 rules | None | None |
+| Schema-aware checks | Yes (`path-ambiguous` checks parameter types, `enum`, `pattern`, numeric bounds) | No | No |
+| Example validation | JSON Schema validation against Ajv (VS Code) / `jsonschema` crate (Desktop) | No | Basic |
+| OpenAPI 3.2 | 4 dedicated rules | No | Partial |
+| Editor integration | Inline diagnostics with pointers, anchors, and automatic refresh | CLI / CI output | CLI / CI output |
+| Runtime | Pure TypeScript (runs in VS Code and Tauri with no extra dependencies) | Node.js | Node.js |
+| Custom rulesets | Per-rule severity (Off / Warning / Error) | `.spectral.yaml` with custom functions | `redocly.yaml` with configurable presets |
+
+Spectral and Redocly are CI/CLI linters that report problems. Nouto diagnoses and fixes them inside the editor as you type.
 
 ## Configuring Severity
 
