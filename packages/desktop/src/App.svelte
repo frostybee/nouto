@@ -55,6 +55,7 @@
   import noutoIconUrl from '../src-tauri/icons/icon.png';
   import UpdateBanner from '@nouto/ui/components/shared/UpdateBanner.svelte';
   import TopToolbar from './components/TopToolbar.svelte';
+  import StatusBar from './components/StatusBar.svelte';
   import WorkspaceSettingsDialog from './components/WorkspaceSettingsDialog.svelte';
   import SaveToCollectionDialog from './components/SaveToCollectionDialog.svelte';
   import {
@@ -2877,6 +2878,8 @@
     </svelte:boundary>
   </main>
 </div>
+
+<StatusBar />
 
 <style>
   .draft-recovery-banner {
