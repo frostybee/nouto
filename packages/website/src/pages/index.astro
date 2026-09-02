@@ -1,11 +1,11 @@
 ---
 import Landing from '../layouts/Landing.astro';
 import Hero from '../components/Hero.astro';
+import ProductShowcase from "../components/ProductShowcase.astro";
 import Protocols from '../components/Protocols.astro';
 import ValueProps from '../components/ValueProps.astro';
 import FeatureList from '../components/FeatureList.astro';
 import PrivacySection from '../components/PrivacySection.astro';
-import PlatformCards from '../components/PlatformCards.astro';
 import ImportStrip from '../components/ImportStrip.astro';
 import Footer from '../components/Footer.astro';
 
@@ -59,14 +59,14 @@ const comparison = [
 const importSources = ['Postman', 'Insomnia', 'Hoppscotch', 'Thunder Client', 'Bruno', 'OpenAPI', 'cURL', 'HAR'];
 ---
 
-<Landing title="Nouto | Open Source REST Client" description="A local-first REST client for VS Code and Desktop. Test HTTP, gRPC, GraphQL, WebSocket, and SSE without creating an account.">
+<Landing title="Nouto | Open Source REST Client" description="Open-source API client for HTTP, gRPC, GraphQL, WebSocket, and SSE. Runs in VS Code, as a desktop app, and from the command line. No account, no telemetry.">
   <div class="page">
     <Hero />
+    <ProductShowcase />
     <Protocols protocols={protocols} />
     <ValueProps features={valueProps} />
     <FeatureList features={allFeatures} />
     <PrivacySection comparison={comparison} />
-    <PlatformCards />
     <ImportStrip sources={importSources} />
     <Footer />
   </div>

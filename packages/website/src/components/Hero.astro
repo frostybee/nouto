@@ -4,18 +4,15 @@
 <section class="hero">
   <div class="hero-text">
     <h1 class="hero-title">
-      Swiss Army knife<br />
-      for <span class="gradient-text">API testing</span>
+      Test APIs without<br />
+      handing over <span class="gradient-text">your data</span>
     </h1>
     <p class="hero-sub">
-      A local-first REST client for VS Code and Desktop. Test HTTP, gRPC, GraphQL, WebSocket, and SSE without creating an account.
+      Nouto is an open-source API client for HTTP, gRPC, GraphQL, WebSocket, and SSE. It runs in VS Code, as a desktop app, and from the command line. No account. No telemetry. Collections are plain JSON you can commit.
     </p>
     <div class="hero-cta">
-      <a href="https://marketplace.visualstudio.com/items?itemName=frostybee-dev.nouto" class="btn btn-primary">
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M14.5 0L9 5.3V10.7L14.5 16H16V0H14.5ZM0 4.2L3.3 7.1V8.9L0 11.8V4.2ZM5.4 5.6L9 2.5V13.5L5.4 10.4V5.6Z"/></svg>
-        Download for VS Code
-      </a>
-      <a href="/getting-started/installation/" class="btn btn-secondary">Download Desktop App</a>
+      <a href="#get-nouto" class="btn btn-primary">Get Nouto</a>
+      <a href="/getting-started/installation/" class="btn btn-secondary">Read the docs</a>
     </div>
   </div>
 
@@ -30,7 +27,7 @@
   }
 
   .hero-text {
-    margin-bottom: 3rem;
+    margin-bottom: 2rem;
   }
 
   .hero-title {
@@ -61,39 +58,6 @@
     gap: 1rem;
     flex-wrap: wrap;
     margin-bottom: 1.5rem;
-  }
-
-  .btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.85rem 1.75rem;
-    border-radius: 8px;
-    font-size: 0.95rem;
-    font-weight: 600;
-    text-decoration: none;
-    transition: all 0.2s;
-  }
-
-  .btn-primary {
-    background: linear-gradient(135deg, #10b981, #059669);
-    color: white;
-    box-shadow: 0 0 20px rgba(16, 185, 129, 0.25);
-  }
-
-  .btn-primary:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 0 30px rgba(16, 185, 129, 0.35);
-  }
-
-  .btn-secondary {
-    background: var(--color-surface);
-    color: var(--color-text);
-    border: 1px solid var(--color-border);
-  }
-
-  .btn-secondary:hover {
-    background: var(--color-bg-alt);
   }
 
   @media (max-width: 600px) {

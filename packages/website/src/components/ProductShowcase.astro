@@ -1,0 +1,801 @@
+---
+type FrameKind = 'vscode' | 'desktop' | 'terminal';
+
+interface Product {
+  id: string;
+  label: string;
+  frame: FrameKind;
+  windowTitle: string;
+  caption: string;
+  ctaLabel: string;
+  href: string;
+  external?: boolean;
+  src?: string;
+  alt?: string;
+}
+
+interface Props {
+  products?: Product[];
+  activeId?: string;
+}
+
+const defaultProducts: Product[] = [
+  {
+    id: 'vscode',
+    label: 'VS Code extension',
+    frame: 'vscode',
+    windowTitle: 'users.json — Nouto',
+    caption: 'Requests, collections, and environments inside the editor you already use.',
+    ctaLabel: 'Install from Marketplace',
+    href: 'https://marketplace.visualstudio.com/items?itemName=frostybee-dev.nouto',
+    external: true,
+  },
+  {
+    id: 'json-explorer',
+    label: 'JSON Explorer',
+    frame: 'vscode',
+    windowTitle: 'response.json — JSON Explorer',
+    caption: 'Tree and table views, query filter, compare, and type generation for any JSON file.',
+    ctaLabel: 'Install from Marketplace',
+    href: 'https://marketplace.visualstudio.com/items?itemName=frostybee-dev.nouto-json-explorer',
+    external: true,
+  },
+  {
+    id: 'desktop',
+    label: 'Desktop app',
+    frame: 'desktop',
+    windowTitle: 'Nouto',
+    caption: 'Standalone Tauri app for Windows, macOS, and Linux. Same collections, same plain JSON.',
+    ctaLabel: 'Download',
+    href: 'https://github.com/frostybee/nouto/releases',
+    external: true,
+  },
+  {
+    id: 'cli',
+    label: 'CLI',
+    frame: 'terminal',
+    windowTitle: 'terminal',
+    caption: 'Run collections, benchmarks, imports, exports, and codegen from a shell or CI.',
+    ctaLabel: 'Read the CLI guide',
+    href: '/cli/',
+  },
+];
+
+const { products = defaultProducts, activeId = products[0]?.id } = Astro.props;
+const activeIndex = Math.max(0, products.findIndex((p) => p.id === activeId));
+---
+
+<section class="showcase" id="get-nouto" aria-label="Get Nouto">
+  <div class="tabs" role="tablist" aria-label="Nouto products" id="showcaseTabs">
+    {products.map((p, i) => (
+      <button
+        class="tab"
+        role="tab"
+        id={`tab-${p.id}`}
+        aria-controls={`panel-${p.id}`}
+        aria-selected={i === activeIndex ? 'true' : 'false'}
+        tabindex={i === activeIndex ? 0 : -1}
+        data-index={i}
+      >
+        <span class="tab-icon" aria-hidden="true">
+          {p.frame === 'terminal' ? (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+          ) : p.frame === 'desktop' ? (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+          ) : p.id === 'json-explorer' ? (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H7a2 2 0 0 0-2 2v5a2 2 0 0 1-2 2 2 2 0 0 1 2 2v5a2 2 0 0 0 2 2h1"/><path d="M16 3h1a2 2 0 0 1 2 2v5a2 2 0 0 0 2 2 2 2 0 0 0-2 2v5a2 2 0 0 1-2 2h-1"/></svg>
+          ) : (
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M14.5 0L9 5.3V10.7L14.5 16H16V0H14.5ZM0 4.2L3.3 7.1V8.9L0 11.8V4.2ZM5.4 5.6L9 2.5V13.5L5.4 10.4V5.6Z"/></svg>
+          )}
+        </span>
+        <span class="tab-label">{p.label}</span>
+      </button>
+    ))}
+  </div>
+
+  {products.map((p, i) => (
+    <div
+      class="panel"
+      role="tabpanel"
+      id={`panel-${p.id}`}
+      aria-labelledby={`tab-${p.id}`}
+      data-index={i}
+      hidden={i !== activeIndex}
+    >
+      <button class={`frame frame-${p.frame}`} type="button" aria-label={`Open ${p.label} screenshot fullscreen`} data-open-lightbox>
+        <div class="frame-bar">
+          {p.frame === 'desktop' ? (
+            <>
+              <span class="frame-app"><img src="/favicon.svg" alt="" width="14" height="14" />{p.windowTitle}</span>
+              <span class="frame-winctl" aria-hidden="true"><span>&#8212;</span><span>&#9633;</span><span>&#10005;</span></span>
+            </>
+          ) : (
+            <>
+              <span class="frame-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+              <span class="frame-title">{p.windowTitle}</span>
+            </>
+          )}
+        </div>
+        <div class="frame-body">
+          {p.src ? (
+            <img src={p.src} alt={p.alt ?? p.label} loading="lazy" />
+          ) : p.frame === 'terminal' ? (
+            <pre class="sketch sketch-terminal" aria-hidden="true">{`$ nouto run ./collections/users.json --env staging
+
+  ✔ GET   /users            200   118 ms
+  ✔ POST  /users            201    96 ms
+  ✖ GET   /users/42         404    41 ms
+      expected status 200, got 404
+
+  2 passed, 1 failed   0.26 s
+$ `}</pre>
+          ) : (
+            <div class="sketch sketch-app" aria-hidden="true">
+              <div class="sk-side">
+                <div class="sk-line w60"></div>
+                <div class="sk-line w80 indent"></div>
+                <div class="sk-line w70 indent"></div>
+                <div class="sk-line w50"></div>
+                <div class="sk-line w75 indent"></div>
+                <div class="sk-line w40"></div>
+              </div>
+              <div class="sk-main">
+                <div class="sk-url"><span class="sk-method">GET</span><span class="sk-line w70"></span><span class="sk-send"></span></div>
+                <div class="sk-tabs"><span class="w15"></span><span class="w15"></span><span class="w10"></span><span class="w10"></span></div>
+                <div class="sk-status"><span class="sk-ok"></span><span class="sk-line w20"></span><span class="sk-line w15"></span></div>
+                <div class="sk-code">
+                  <div class="sk-line w30"></div>
+                  <div class="sk-line w55 indent"></div>
+                  <div class="sk-line w45 indent"></div>
+                  <div class="sk-line w60 indent"></div>
+                  <div class="sk-line w20"></div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </button>
+      <p class="showcase-caption">{p.caption}</p>
+      <a
+        href={p.href}
+        class="btn btn-primary"
+        target={p.external ? '_blank' : undefined}
+        rel={p.external ? 'noopener noreferrer' : undefined}
+      >{p.ctaLabel}</a>
+    </div>
+  ))}
+</section>
+
+<!-- Fullscreen lightbox -->
+<div class="fullscreen-modal" id="fullscreenModal" role="dialog" aria-modal="true" aria-label="Screenshot viewer">
+  <div class="fullscreen-header">
+    <span class="fullscreen-counter" id="fullscreenCounter"></span>
+    <button class="fullscreen-close" id="fullscreenClose" aria-label="Close">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+    </button>
+  </div>
+  <div class="fullscreen-stage">
+    <button class="fullscreen-nav prev" id="fsPrev" aria-label="Previous"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <div class="fullscreen-track" id="fullscreenTrack">
+      {products.map((p, i) => (
+        <div class="fullscreen-card" data-index={i} data-label={p.label} hidden={i !== activeIndex}>
+          {p.src ? (
+            <img src={p.src} alt={p.alt ?? p.label} loading="lazy" />
+          ) : (
+            <div class="placeholder"><span class="label">{p.label}</span><span class="sub">Screenshot coming soon</span></div>
+          )}
+        </div>
+      ))}
+    </div>
+    <button class="fullscreen-nav next" id="fsNext" aria-label="Next"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg></button>
+  </div>
+  <div class="fullscreen-footer" id="fullscreenThumbs">
+    {products.map((p, i) => (
+      <button class="fullscreen-thumb" data-index={i} aria-label={`Show ${p.label}`}>{p.label}</button>
+    ))}
+  </div>
+</div>
+
+<script>
+  const tabs = Array.from(document.querySelectorAll<HTMLButtonElement>('#showcaseTabs [role="tab"]'));
+  const panels = Array.from(document.querySelectorAll<HTMLElement>('#get-nouto [role="tabpanel"]'));
+  const openButtons = Array.from(document.querySelectorAll<HTMLButtonElement>('#get-nouto [data-open-lightbox]'));
+
+  const modal = document.getElementById('fullscreenModal');
+  const fsCards = Array.from(document.querySelectorAll<HTMLElement>('#fullscreenTrack .fullscreen-card'));
+  const fsCounter = document.getElementById('fullscreenCounter');
+  const fsClose = document.getElementById('fullscreenClose');
+  const fsThumbs = Array.from(document.querySelectorAll<HTMLButtonElement>('#fullscreenThumbs .fullscreen-thumb'));
+  const fsPrev = document.getElementById('fsPrev');
+  const fsNext = document.getElementById('fsNext');
+
+  const total = tabs.length;
+  let current = Math.max(0, tabs.findIndex((t) => t.getAttribute('aria-selected') === 'true'));
+
+  function isOpen(): boolean {
+    return modal?.classList.contains('active') ?? false;
+  }
+
+  function render() {
+    tabs.forEach((tab, i) => {
+      const active = i === current;
+      tab.setAttribute('aria-selected', active ? 'true' : 'false');
+      tab.tabIndex = active ? 0 : -1;
+    });
+    panels.forEach((panel, i) => { panel.hidden = i !== current; });
+    fsCards.forEach((card, i) => { card.hidden = i !== current; });
+    fsThumbs.forEach((thumb, i) => thumb.classList.toggle('active', i === current));
+    if (fsCounter) {
+      const label = fsCards[current]?.dataset.label ?? '';
+      fsCounter.textContent = `${label}  ${current + 1} / ${total}`;
+    }
+  }
+
+  function select(i: number, focusTab = false) {
+    current = ((i % total) + total) % total;
+    render();
+    if (focusTab) tabs[current]?.focus();
+  }
+
+  function open() {
+    if (!modal) return;
+    render();
+    modal.classList.add('active');
+    document.body.style.overflow = 'hidden';
+    fsClose?.focus();
+  }
+
+  function close() {
+    if (!modal) return;
+    modal.classList.remove('active');
+    document.body.style.overflow = '';
+    tabs[current]?.focus();
+  }
+
+  tabs.forEach((tab, i) => {
+    tab.addEventListener('click', () => select(i));
+    tab.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight') { e.preventDefault(); select(i + 1, true); }
+      else if (e.key === 'ArrowLeft') { e.preventDefault(); select(i - 1, true); }
+      else if (e.key === 'Home') { e.preventDefault(); select(0, true); }
+      else if (e.key === 'End') { e.preventDefault(); select(total - 1, true); }
+    });
+  });
+
+  openButtons.forEach((btn) => btn.addEventListener('click', open));
+  fsClose?.addEventListener('click', close);
+  fsPrev?.addEventListener('click', () => select(current - 1));
+  fsNext?.addEventListener('click', () => select(current + 1));
+  fsThumbs.forEach((thumb, i) => thumb.addEventListener('click', () => select(i)));
+  modal?.addEventListener('click', (e) => { if (e.target === modal) close(); });
+
+  document.addEventListener('keydown', (e) => {
+    const tag = (e.target as HTMLElement | null)?.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+    if (isOpen()) {
+      if (e.key === 'Escape') close();
+      else if (e.key === 'ArrowRight') select(current + 1);
+      else if (e.key === 'ArrowLeft') select(current - 1);
+    } else if (e.key === 'f' || e.key === 'F') {
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      open();
+    }
+  });
+
+  render();
+</script>
+
+<style>
+  .showcase {
+    max-width: 72rem;
+    margin: 0 auto;
+    padding: 0 2rem 4rem;
+    scroll-margin-top: 5rem;
+  }
+
+  /* Tabs */
+  .tabs {
+    display: flex;
+    justify-content: center;
+    gap: 0.25rem;
+    border-bottom: 1px solid var(--color-border);
+    margin-bottom: 2rem;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.1rem;
+    margin-bottom: -1px;
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--color-text-muted);
+    font: inherit;
+    font-size: 0.95rem;
+    font-weight: 500;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: color 0.15s ease, border-color 0.15s ease;
+  }
+
+  .tab:hover {
+    color: var(--color-text);
+  }
+
+  .tab[aria-selected="true"] {
+    color: var(--color-text);
+    border-bottom-color: var(--color-accent);
+  }
+
+  .tab-icon {
+    display: inline-flex;
+    color: inherit;
+  }
+
+  .tab[aria-selected="true"] .tab-icon {
+    color: var(--color-accent);
+  }
+
+  /* Panel */
+  .panel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.25rem;
+  }
+
+  .panel[hidden] {
+    display: none;
+  }
+
+  .frame {
+    display: block;
+    width: 100%;
+    padding: 0;
+    text-align: left;
+    font: inherit;
+    color: inherit;
+    background: var(--color-card-bg);
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.06);
+    cursor: zoom-in;
+    transition: box-shadow 0.2s ease, border-color 0.2s ease;
+  }
+
+  .frame:hover {
+    border-color: var(--color-accent);
+    box-shadow: 0 16px 48px rgba(16, 185, 129, 0.12);
+  }
+
+  [data-theme="dark"] .frame {
+    background: var(--color-surface);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+  }
+
+  .frame-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    height: 36px;
+    padding: 0 0.9rem;
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
+    border-bottom: 1px solid var(--color-border);
+    background: var(--color-bg-alt);
+  }
+
+  .frame-vscode .frame-bar {
+    background: #1e1e2e;
+    color: #a6adc8;
+    border-bottom-color: #2a2a3e;
+  }
+
+  .frame-terminal .frame-bar {
+    background: #0b0b14;
+    color: #8b8fa3;
+    border-bottom-color: #1f1f2e;
+  }
+
+  .frame-dots {
+    display: inline-flex;
+    gap: 6px;
+  }
+
+  .frame-dots i {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: currentColor;
+    opacity: 0.35;
+  }
+
+  .frame-title {
+    flex: 1;
+    text-align: center;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.01em;
+    padding-right: 42px; /* balance the dots on the left */
+  }
+
+  .frame-app {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex: 1;
+    font-weight: 500;
+    color: var(--color-text);
+  }
+
+  .frame-app img {
+    border-radius: 3px;
+  }
+
+  .frame-winctl {
+    display: inline-flex;
+    gap: 1.1rem;
+    font-size: 0.75rem;
+    opacity: 0.7;
+  }
+
+  .frame-body {
+    position: relative;
+    aspect-ratio: 16 / 9;
+    background: var(--color-bg);
+  }
+
+  .frame-vscode .frame-body {
+    background: #181825;
+  }
+
+  .frame-terminal .frame-body {
+    background: #0b0b14;
+  }
+
+  .frame-body img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  /* Placeholder sketches */
+  .sketch-app {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    grid-template-columns: 22% 1fr;
+    --sk: rgba(127, 127, 150, 0.22);
+    --sk-strong: rgba(127, 127, 150, 0.4);
+  }
+
+  .frame-vscode .sketch-app {
+    --sk: rgba(166, 173, 200, 0.16);
+    --sk-strong: rgba(166, 173, 200, 0.3);
+  }
+
+  .sk-side {
+    padding: 1.25rem 1rem;
+    border-right: 1px solid var(--sk);
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .sk-main {
+    padding: 1.25rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.9rem;
+  }
+
+  .sk-line {
+    display: block;
+    height: 8px;
+    border-radius: 4px;
+    background: var(--sk);
+  }
+
+  .sk-line.indent { margin-left: 1rem; }
+  .w10 { width: 10%; } .w15 { width: 15%; } .w20 { width: 20%; }
+  .w30 { width: 30%; } .w40 { width: 40%; } .w45 { width: 45%; }
+  .w50 { width: 50%; } .w55 { width: 55%; } .w60 { width: 60%; }
+  .w70 { width: 70%; } .w75 { width: 75%; } .w80 { width: 80%; }
+
+  .sk-url {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    height: 32px;
+    padding: 0 0.75rem;
+    border: 1px solid var(--sk-strong);
+    border-radius: 6px;
+  }
+
+  .sk-method {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--color-accent);
+  }
+
+  .sk-send {
+    margin-left: auto;
+    width: 56px;
+    height: 20px;
+    border-radius: 4px;
+    background: var(--color-accent);
+    opacity: 0.8;
+  }
+
+  .sk-tabs {
+    display: flex;
+    gap: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--sk);
+  }
+
+  .sk-tabs span {
+    height: 8px;
+    border-radius: 4px;
+    background: var(--sk);
+  }
+
+  .sk-tabs span:first-child {
+    background: var(--sk-strong);
+  }
+
+  .sk-status {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .sk-ok {
+    width: 36px;
+    height: 14px;
+    border-radius: 3px;
+    background: var(--color-accent);
+    opacity: 0.85;
+  }
+
+  .sk-code {
+    flex: 1;
+    padding: 1rem;
+    border: 1px solid var(--sk);
+    border-radius: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 0.7rem;
+  }
+
+  .sketch-terminal {
+    position: absolute;
+    inset: 0;
+    margin: 0;
+    padding: 1.5rem 1.75rem;
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    line-height: 1.7;
+    color: #b4b8c8;
+    overflow: hidden;
+    white-space: pre;
+  }
+
+  .showcase-caption {
+    max-width: 40rem;
+    text-align: center;
+    color: var(--color-text-muted);
+    font-size: 1rem;
+    line-height: 1.6;
+  }
+
+  /* Fullscreen lightbox */
+  .fullscreen-modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(5, 5, 12, 0.94);
+    z-index: 1000;
+    display: none;
+    flex-direction: column;
+    opacity: 0;
+    transition: opacity 0.25s;
+    color: #e4e4e7;
+  }
+
+  .fullscreen-modal.active {
+    display: flex;
+    opacity: 1;
+  }
+
+  .fullscreen-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.5rem;
+  }
+
+  .fullscreen-counter {
+    font-size: 0.9rem;
+    color: #a1a1aa;
+    font-weight: 500;
+    white-space: pre;
+  }
+
+  .fullscreen-close {
+    background: none;
+    border: none;
+    color: inherit;
+    cursor: pointer;
+    padding: 0.5rem;
+    border-radius: 8px;
+    transition: background 0.2s;
+  }
+
+  .fullscreen-close:hover {
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  .fullscreen-stage {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    min-height: 0;
+  }
+
+  .fullscreen-track {
+    width: min(90vw, 1400px);
+    height: 100%;
+    max-height: 80vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .fullscreen-card {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .fullscreen-card[hidden] {
+    display: none;
+  }
+
+  .fullscreen-card img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .fullscreen-card .placeholder {
+    width: 100%;
+    height: 100%;
+    max-height: 70vh;
+    aspect-ratio: 16 / 9;
+    border: 1px dashed rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+  }
+
+  .fullscreen-card .placeholder .label {
+    font-size: 1.5rem;
+    font-weight: 600;
+  }
+
+  .fullscreen-card .placeholder .sub {
+    font-size: 0.9rem;
+    color: #a1a1aa;
+  }
+
+  .fullscreen-footer {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    padding: 1.5rem;
+  }
+
+  .fullscreen-thumb {
+    padding: 0.5rem 1rem;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 8px;
+    color: #a1a1aa;
+    font: inherit;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .fullscreen-thumb:hover {
+    color: #e4e4e7;
+    border-color: rgba(255, 255, 255, 0.3);
+  }
+
+  .fullscreen-thumb.active {
+    color: #e4e4e7;
+    border-color: var(--color-accent);
+  }
+
+  .fullscreen-nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: inherit;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    z-index: 2;
+  }
+
+  .fullscreen-nav:hover {
+    border-color: var(--color-accent);
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  .fullscreen-nav.prev { left: 1.5rem; }
+  .fullscreen-nav.next { right: 1.5rem; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .frame,
+    .tab,
+    .fullscreen-modal {
+      transition: none;
+    }
+  }
+
+  @media (max-width: 40rem) {
+    .showcase {
+      padding: 0 1rem 3rem;
+    }
+
+    .tabs {
+      justify-content: flex-start;
+    }
+
+    .tab {
+      padding: 0.65rem 0.85rem;
+      font-size: 0.875rem;
+    }
+
+    .frame-title {
+      padding-right: 0;
+    }
+
+    .sketch-terminal {
+      font-size: 0.7rem;
+      padding: 1rem;
+    }
+
+    .fullscreen-nav.prev { left: 0.5rem; }
+    .fullscreen-nav.next { right: 0.5rem; }
+  }
+</style>
