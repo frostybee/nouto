@@ -7,14 +7,16 @@ import { generateId } from '../types';
  * Decodes percent-encoded values safely.
  */
 export function parseUrlParams(fullUrl: string): { baseUrl: string; params: KeyValue[] } {
-  const qIndex = findQueryStart(fullUrl);
+  // Strip leading/trailing whitespace only (never interior) so pasted URLs are stored clean
+  const trimmedUrl = fullUrl.trim();
+  const qIndex = findQueryStart(trimmedUrl);
 
   if (qIndex === -1) {
-    return { baseUrl: fullUrl, params: [] };
+    return { baseUrl: trimmedUrl, params: [] };
   }
 
-  const baseUrl = fullUrl.substring(0, qIndex);
-  const rest = fullUrl.substring(qIndex + 1);
+  const baseUrl = trimmedUrl.substring(0, qIndex);
+  const rest = trimmedUrl.substring(qIndex + 1);
 
   // Strip hash fragment
   const hashIndex = rest.indexOf('#');

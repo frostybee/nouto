@@ -2,7 +2,7 @@
 
 All notable changes to the Nouto VS Code extension will be documented in this file.
 
-## [1.5.0] - 2026-08-15
+## [1.6.0] - 2026-09-05
 
 ### Added
 
@@ -34,11 +34,18 @@ All notable changes to the Nouto VS Code extension will be documented in this fi
 - **JSON Explorer JSONL / NDJSON support**: NDJSON response bodies parse as arrays, and `.jsonl` / `.ndjson` files can be opened via the Open in JSON Explorer command
 - **JSON Explorer compare from file**: a "Choose file..." button in the compare dialog picks a JSON file from disk alongside the existing paste flow
 - **JSON Explorer schema validation**: paste a JSON Schema into the new schema panel to validate the document; failing nodes are marked in the tree, the error panel lists path and message per violation with click-to-navigate
+- **Schema-aware path-ambiguous lint rule**: the ambiguous-path lint rule now considers the OpenAPI schema, reducing false positives on endpoints that differ only by path parameter type
+- **Collection runner skip reporting**: gRPC, WebSocket, and SSE items in a collection run are reported as skipped instead of silently attempted as HTTP requests
 
 ### Fixed
 
 - Invalid component key meta-schema errors now underline the key instead of the enclosing block
 - Missing-path-param diagnostic now targets the operation key instead of the full path item
+- Pasted URLs with leading or trailing whitespace no longer cause "Invalid URL" errors
+- Template variables are now substituted in gRPC message bodies
+- gRPC TLS key passphrase is now honored on the desktop app
+- `google.protobuf.Any` types resolved via reflection in the gRPC client
+- Proto-file schema generation fixed in the Node gRPC client
 
 ### Changed
 

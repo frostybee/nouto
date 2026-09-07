@@ -49,7 +49,9 @@ const HTTP_STATUS_TEXT: Record<number, string> = {
 };
 
 function buildRequestUrl(baseUrl: string, params: Record<string, string>): URL {
-  const normalized = /^https?:\/\//i.test(baseUrl) ? baseUrl : `https://${baseUrl}`;
+  // Strip leading/trailing whitespace (common when pasting) so the scheme check below is anchored correctly
+  const trimmed = baseUrl.trim();
+  const normalized = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
   const url = new URL(normalized);
   for (const [key, value] of Object.entries(params)) {
     if (key) {

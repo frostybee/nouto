@@ -1,4 +1,4 @@
-import { parsePathParams, substitutePathParams, mergePathParams } from './url-params';
+import { parsePathParams, substitutePathParams, mergePathParams, parseUrlParams } from './url-params';
 import type { PathParam } from '../types';
 import { generateId } from '../types';
 
@@ -195,5 +195,28 @@ describe('mergePathParams', () => {
     const result = mergePathParams(existing, ['userId', 'postId']);
     expect(result[0].key).toBe('userId');
     expect(result[1].key).toBe('postId');
+  });
+});
+
+describe('parseUrlParams', () => {
+  it('should strip leading and trailing whitespace from base URL', () => {
+    const result = parseUrlParams('  https://api.example.com/users\n');
+    expect(result.baseUrl).toBe('https://api.example.com/users');
+    expect(result.params).toEqual([]);
+  });
+
+  it('should strip leading whitespace and still parse query params', () => {
+    const result = parseUrlParams('\thttps://api.example.com/users?page=1&q=hi');
+    expect(result.baseUrl).toBe('https://api.example.com/users');
+    expect(result.params.map(p => [p.key, p.value])).toEqual([['page', '1'], ['q', 'hi']]);
+  });
+
+  it('should preserve interior whitespace', () => {
+    const result = parseUrlParams(' https://api.example.com/x y ');
+    expect(result.baseUrl).toBe('https://api.example.com/x y');
+  });
+
+  it('should return empty base URL for whitespace-only input', () => {
+    expect(parseUrlParams('   ')).toEqual({ baseUrl: '', params: [] });
   });
 });

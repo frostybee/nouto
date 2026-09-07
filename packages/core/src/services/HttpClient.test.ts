@@ -289,6 +289,14 @@ describe('HttpClient - executeRequest', () => {
     expect(data.url).toContain('page=1');
   });
 
+  it('leading/trailing whitespace in URL is trimmed before sending', async () => {
+    const res = await executeRequest(makeConfig({
+      url: `  http://127.0.0.1:${port}/json\n`,
+    }));
+    expect(res.status).toBe(200);
+    expect(res.data).toEqual({ message: 'hello', items: [1, 2, 3] });
+  });
+
   it('empty param key is skipped', async () => {
     const res = await executeRequest(makeConfig({
       path: '/echo-url',

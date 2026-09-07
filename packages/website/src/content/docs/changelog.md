@@ -5,9 +5,9 @@ description: Release history for the Nouto VS Code extension.
 
 Release history for the Nouto VS Code extension.
 
-## 1.5.0
+## 1.6.0
 
-Released August 2026.
+Released September 2026.
 
 ### OpenAPI Editor
 
@@ -15,7 +15,8 @@ Full editing support for OpenAPI 3.0, 3.1, and 3.2 specifications in YAML and JS
 
 - Schema-aware autocomplete and hover documentation, gated by an IntelliSense setting
 - Go-to-definition for `$ref` values, including references into other workspace files
-- 60 lint rules across eleven groups (Security, Servers, Responses, Paths, Schemas, Components, OWASP, OpenAPI 3.2, Metadata, Policy, Opt-in), each with configurable severity
+- 65 lint rules across eleven groups (Security, Servers, Responses, Paths, Schemas, Components, OWASP, OpenAPI 3.2, Metadata, Policy, Opt-in), each with configurable severity
+- Schema-aware ambiguous-path detection reduces false positives on endpoints that differ only by path parameter type
 - One-click quick fixes for most lint rules and structural diagnostics
 - Example validation against schemas (`example-invalid-schema` / `example-invalid-media`)
 - Opt-in rules stay off until you pick a severity, so upgrades never enable new rules silently
@@ -43,11 +44,17 @@ Full editing support for OpenAPI 3.0, 3.1, and 3.2 specifications in YAML and JS
 ### Other
 
 - Sidebar three-dot menu with Environments, Settings, and About entries
+- Collection runner reports gRPC, WebSocket, and SSE items as skipped instead of running them as HTTP
 
 ### Fixed
 
 - Invalid component key meta-schema errors now underline the key instead of the enclosing block
 - Missing-path-param diagnostic now targets the operation key
+- Pasted URLs with leading or trailing whitespace no longer cause "Invalid URL" errors
+- Template variables are now substituted in gRPC message bodies
+- gRPC TLS key passphrase is now honored on the desktop app
+- `google.protobuf.Any` types resolved via reflection in the gRPC client
+- Proto-file schema generation fixed in the Node gRPC client
 
 ## 1.4.0
 

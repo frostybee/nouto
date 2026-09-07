@@ -2,7 +2,7 @@
   "name": "nouto",
   "displayName": "Nouto",
   "description": "Open-source API client for REST, GraphQL, WebSockets, SSE and gRPC. Runs inside VS Code or as a standalone desktop app.",
-  "version": "1.5.0",
+  "version": "1.6.0",
   "publisher": "frostybee-dev",
   "license": "MIT",
   "repository": {
