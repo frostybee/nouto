@@ -1,0 +1,64 @@
+{
+  "info": {
+    "name": "Nouto Test Collection",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Get IP Address",
+      "request": {
+        "method": "GET",
+        "url": "https://httpbin.org/ip"
+      }
+    },
+    {
+      "name": "Post JSON Data",
+      "request": {
+        "method": "POST",
+        "url": "https://httpbin.org/post",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Nouto Tester\",\n  \"tool\": \"Postman\"\n}",
+          "options": { "raw": { "language": "json" } }
+        }
+      }
+    },
+    {
+      "name": "Get with Headers",
+      "request": {
+        "method": "GET",
+        "url": "https://httpbin.org/headers",
+        "header": [
+          { "key": "X-Custom-Header", "value": "postman-import-test" },
+          { "key": "Accept", "value": "application/json" }
+        ]
+      }
+    },
+    {
+      "name": "Users",
+      "item": [
+        {
+          "name": "List Users",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "https://jsonplaceholder.typicode.com/users?_limit=5",
+              "protocol": "https",
+              "host": ["jsonplaceholder", "typicode", "com"],
+              "path": ["users"],
+              "query": [
+                { "key": "_limit", "value": "5" }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    { "key": "baseUrl", "value": "https://httpbin.org" }
+  ]
+}

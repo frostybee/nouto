@@ -1,0 +1,47 @@
+{
+  "_id": "col-nouto-test",
+  "colName": "Nouto Test Collection",
+  "folders": [
+    {
+      "_id": "fld-basics",
+      "name": "Basic Requests",
+      "colId": "col-nouto-test",
+      "sortNum": 1
+    }
+  ],
+  "requests": [
+    {
+      "_id": "req-1",
+      "colId": "col-nouto-test",
+      "containerId": "fld-basics",
+      "name": "Get IP Address",
+      "url": "https://httpbin.org/ip",
+      "method": "GET",
+      "headers": [
+        { "name": "Accept", "value": "application/json" }
+      ],
+      "sortNum": 1
+    },
+    {
+      "_id": "req-2",
+      "colId": "col-nouto-test",
+      "containerId": "fld-basics",
+      "name": "Post JSON Data",
+      "url": "https://httpbin.org/post",
+      "method": "POST",
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"name\": \"Nouto Tester\",\n  \"source\": \"Thunder Client\"\n}"
+      },
+      "sortNum": 2
+    },
+    {
+      "_id": "req-3",
+      "colId": "col-nouto-test",
+      "name": "List Users",
+      "url": "https://jsonplaceholder.typicode.com/users",
+      "method": "GET",
+      "sortNum": 3
+    }
+  ]
+}

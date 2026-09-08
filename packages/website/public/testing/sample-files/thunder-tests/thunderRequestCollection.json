@@ -1,0 +1,22 @@
+[
+  {
+    "_id": "req-tf-1",
+    "colId": "col-thunder-folder",
+    "name": "Get IP Address",
+    "url": "https://httpbin.org/ip",
+    "method": "GET",
+    "sortNum": 1
+  },
+  {
+    "_id": "req-tf-2",
+    "colId": "col-thunder-folder",
+    "name": "Post Data",
+    "url": "https://httpbin.org/post",
+    "method": "POST",
+    "body": {
+      "type": "json",
+      "raw": "{\n  \"source\": \"Thunder Client folder import\"\n}"
+    },
+    "sortNum": 2
+  }
+]

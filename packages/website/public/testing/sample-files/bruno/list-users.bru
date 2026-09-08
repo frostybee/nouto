@@ -1,0 +1,17 @@
+meta {
+  name: List Users
+  type: http
+  seq: 3
+}
+
+get {
+  url: https://jsonplaceholder.typicode.com/users
+}
+
+query {
+  _limit: 5
+}
+
+auth:bearer {
+  token: test-bearer-token
+}

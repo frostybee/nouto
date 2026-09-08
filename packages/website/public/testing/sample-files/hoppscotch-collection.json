@@ -1,0 +1,49 @@
+[
+  {
+    "v": 2,
+    "name": "Nouto Test Collection",
+    "folders": [
+      {
+        "v": 2,
+        "name": "Basic Requests",
+        "folders": [],
+        "requests": [
+          {
+            "v": "1",
+            "name": "Get IP Address",
+            "endpoint": "https://httpbin.org/ip",
+            "method": "GET",
+            "headers": [],
+            "params": []
+          }
+        ]
+      }
+    ],
+    "requests": [
+      {
+        "v": "1",
+        "name": "Post JSON Data",
+        "endpoint": "https://httpbin.org/post",
+        "method": "POST",
+        "headers": [
+          { "key": "Content-Type", "value": "application/json", "active": true }
+        ],
+        "params": [],
+        "body": {
+          "contentType": "application/json",
+          "body": "{\n  \"name\": \"Nouto Tester\",\n  \"source\": \"Hoppscotch\"\n}"
+        }
+      },
+      {
+        "v": "1",
+        "name": "List Users",
+        "endpoint": "https://jsonplaceholder.typicode.com/users",
+        "method": "GET",
+        "headers": [],
+        "params": [
+          { "key": "_limit", "value": "5", "active": true }
+        ]
+      }
+    ]
+  }
+]

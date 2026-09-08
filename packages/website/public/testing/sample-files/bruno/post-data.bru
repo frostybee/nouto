@@ -1,0 +1,21 @@
+meta {
+  name: Post JSON Data
+  type: http
+  seq: 2
+}
+
+post {
+  url: https://httpbin.org/post
+}
+
+headers {
+  Content-Type: application/json
+  ~X-Debug: true
+}
+
+body:json {
+  {
+    "name": "Nouto Tester",
+    "source": "Bruno"
+  }
+}

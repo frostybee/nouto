@@ -1,0 +1,10 @@
+{
+  "id": "env-nouto-test",
+  "name": "Nouto Test Environment",
+  "values": [
+    { "key": "baseUrl", "value": "https://httpbin.org", "enabled": true, "type": "default" },
+    { "key": "apiKey", "value": "sk-test-key-12345", "enabled": true, "type": "secret" },
+    { "key": "debugMode", "value": "true", "enabled": false, "type": "default" }
+  ],
+  "_postman_variable_scope": "environment"
+}

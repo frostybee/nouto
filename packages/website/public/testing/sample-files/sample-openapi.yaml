@@ -1,0 +1,67 @@
+openapi: "3.0.3"
+info:
+  title: Nouto Test API
+  version: "1.0.0"
+  description: A sample OpenAPI spec for testing Nouto imports.
+servers:
+  - url: https://httpbin.org
+paths:
+  /ip:
+    get:
+      summary: Get Origin IP
+      operationId: getIp
+      tags:
+        - Basics
+      responses:
+        "200":
+          description: Returns the requester's IP address
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  origin:
+                    type: string
+  /post:
+    post:
+      summary: Post JSON Data
+      operationId: postData
+      tags:
+        - Basics
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                source:
+                  type: string
+            example:
+              name: Nouto Tester
+              source: OpenAPI
+      responses:
+        "200":
+          description: Echoes the posted data
+  /get:
+    get:
+      summary: Get with Query Params
+      operationId: getWithParams
+      tags:
+        - Basics
+      parameters:
+        - name: search
+          in: query
+          schema:
+            type: string
+          description: A search term
+        - name: limit
+          in: query
+          schema:
+            type: integer
+          description: Max results
+      responses:
+        "200":
+          description: Returns request details including query params
