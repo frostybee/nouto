@@ -24,6 +24,7 @@
     "version:vscode": "npm version --prefix packages/vscode --no-git-tag-version",
     "start:docs": "pnpm -F @nouto/website run start",
     "verify:docs": "node scripts/verify-website-docs.mjs",
+    "build:docs": "pnpm -F @nouto/website run build",
     "prepublish:docs": "pnpm run verify:docs && pnpm -F @nouto/website run build",
     "lint": "eslint packages/desktop",
     "lint:fix": "eslint packages/desktop --fix",

@@ -15,6 +15,8 @@ packages/vscode/webview-dist/
 *.zip
 *.vsix
 
+!packages/website/public/testing/sample-files.zip
+
 # build output
 dist/
 dist-spike/

@@ -5,10 +5,22 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
-    ".": "./dist/index.js",
-    "./services": "./dist/services/index.js",
-    "./data/sample-collection": "./dist/data/sample-collection/index.js",
-    "./*": "./dist/*/index.js"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./services": {
+      "types": "./dist/services/index.d.ts",
+      "default": "./dist/services/index.js"
+    },
+    "./data/sample-collection": {
+      "types": "./dist/data/sample-collection/index.d.ts",
+      "default": "./dist/data/sample-collection/index.js"
+    },
+    "./*": {
+      "types": "./dist/*/index.d.ts",
+      "default": "./dist/*/index.js"
+    }
   },
   "typesVersions": {
     "*": {
