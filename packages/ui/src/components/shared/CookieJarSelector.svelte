@@ -74,7 +74,7 @@
 <svelte:window onclick={handleClickOutside} />
 
 <div class="jar-selector">
-  <Tooltip text={tooltipText}>
+  <Tooltip text={tooltipText} position="right">
     <button
       bind:this={buttonEl}
       class="jar-button"

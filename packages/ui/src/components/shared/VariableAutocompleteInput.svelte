@@ -316,7 +316,7 @@
     padding: 0.077rem 0.308rem;
     border-radius: 0.231rem;
     background: var(--hf-badge-background, rgba(255, 255, 255, 0.1));
-    color: var(--hf-descriptionForeground);
+    color: var(--hf-badge-foreground);
     text-transform: uppercase;
     letter-spacing: 0.3px;
   }

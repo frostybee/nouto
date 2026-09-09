@@ -72,7 +72,7 @@
 <svelte:window onclick={handleClickOutside} />
 
 <div class="env-selector">
-  <Tooltip text={tooltipText}>
+  <Tooltip text={tooltipText} position="right">
     <button
       bind:this={buttonEl}
       class="env-button"
