@@ -2,7 +2,7 @@ import { mount } from 'svelte';
 import SettingsPage from '@nouto/ui/components/shared/SettingsPage.svelte';
 import './app.css';
 import { initTheme, setOnAppearanceChanged, currentTheme } from '@nouto/ui/stores/theme.svelte';
-import { loadSettings, type UserSettings } from '@nouto/ui/stores/settings.svelte';
+import { loadSettings, setAppVersion, setIconUrl, type UserSettings } from '@nouto/ui/stores/settings.svelte';
 import { listen, emitTo } from '@tauri-apps/api/event';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { getMessageBus } from './lib/tauri';
@@ -12,7 +12,8 @@ import { getPlatform } from './lib/platform';
 import { initBrowserKeySuppression } from './lib/browser-keys';
 import { syncNativeTheme, watchSystemTheme } from './lib/native-theme';
 import { invoke } from '@tauri-apps/api/core';
-import { getTauriVersion } from '@tauri-apps/api/app';
+import { getVersion, getTauriVersion } from '@tauri-apps/api/app';
+import noutoIconUrl from '../src-tauri/icons/icon.png';
 import type { DesktopHost } from '@nouto/ui/lib/desktop-host';
 import { readAutostartState, commitAutostart } from './lib/autostart';
 import { registerGlobalShortcut, unregisterGlobalShortcut } from './lib/global-shortcut';
@@ -45,6 +46,9 @@ listen<string>('focusSection', (event) => {
 });
 
 messageBus.send({ type: 'getSettings' });
+
+getVersion().then((v) => setAppVersion(v)).catch(() => {});
+setIconUrl(noutoIconUrl);
 
 window.addEventListener('storage', (e) => {
   if (e.key === 'nouto_appearance') {
