@@ -25,7 +25,6 @@
 
   // Import UI components from @nouto/ui
   import MainPanel from '@nouto/ui/components/main-panel/MainPanel.svelte';
-  import ActionBar from '@nouto/ui/components/main-panel/ActionBar.svelte';
   import CollectionsTab from '@nouto/ui/components/sidebar/CollectionsTab.svelte';
   import TrashTab from '@nouto/ui/components/sidebar/TrashTab.svelte';
   import HistoryTab from '@nouto/ui/components/sidebar/HistoryTab.svelte';
@@ -231,8 +230,9 @@
   // Sidebar split ratio from ui store
   const sidebarSplitRatio = $derived(ui.sidebarSplitRatio || 0.2);
   const sidebarCollapsed = $derived(ui.sidebarCollapsed);
+  // Content column must be a full 1fr: a flex sum below 1 only fills a fraction of the leftover space
   const gridColumns = $derived(
-    sidebarCollapsed ? '0fr 0px 1fr' : `${sidebarSplitRatio}fr 4px ${1 - sidebarSplitRatio}fr`,
+    sidebarCollapsed ? '0px 0px 1fr' : `minmax(15.385rem, ${sidebarSplitRatio * 100}%) 4px 1fr`,
   );
 
   import {
@@ -2779,7 +2779,6 @@
         oninstall={installUpdate}
         ondismiss={dismissUpdate}
       />
-      <ActionBar {collectionId} {collections} {postMessage} />
       {#if currentView === 'main'}
         <TabBar />
         {#if tabsList().length === 0}
@@ -2817,7 +2816,7 @@
               {collections}
               {showSaveNudge}
               {postMessage}
-              hideActionBar
+              hostMenu={false}
               onDismissNudge={() => {
                 showSaveNudge = false;
                 nudgeDismissed = true;
@@ -2955,11 +2954,9 @@
     display: flex;
     flex-direction: row;
     overflow: hidden;
-    min-width: 15.385rem;
   }
 
   .sidebar.collapsed {
-    min-width: 0;
     visibility: hidden;
     pointer-events: none;
   }

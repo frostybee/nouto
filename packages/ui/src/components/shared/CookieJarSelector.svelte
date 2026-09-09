@@ -19,6 +19,8 @@
   });
   import Tooltip from './Tooltip.svelte';
 
+  let { compact = false }: { compact?: boolean } = $props();
+
   let showDropdown = $state(false);
   let buttonEl: HTMLButtonElement | undefined = $state();
   let dropdownPos = $state({ top: 0, right: 0 });
@@ -26,6 +28,7 @@
   const jarList = $derived(cookieJars());
   const activeId = $derived(activeCookieJarId());
   const activeJar = $derived(activeCookieJar());
+  const tooltipText = $derived(compact ? `Cookie jar: ${activeJar?.name ?? 'No Jar'}` : 'Select cookie jar');
 
   function toggleDropdown() {
     showDropdown = !showDropdown;
@@ -71,19 +74,23 @@
 <svelte:window onclick={handleClickOutside} />
 
 <div class="jar-selector">
-  <Tooltip text="Select cookie jar">
+  <Tooltip text={tooltipText}>
     <button
       bind:this={buttonEl}
       class="jar-button"
+      class:compact
       onclick={(e) => { e.stopPropagation(); toggleDropdown(); }}
+      aria-label={compact ? tooltipText : undefined}
     >
       <i class="codicon codicon-globe"></i>
-      {#if activeJar}
-        <span class="jar-name">{activeJar.name}</span>
-      {:else}
-        <span class="jar-name muted">No Jar</span>
+      {#if !compact}
+        {#if activeJar}
+          <span class="jar-name">{activeJar.name}</span>
+        {:else}
+          <span class="jar-name muted">No Jar</span>
+        {/if}
+        <svg class="dropdown-arrow" class:open={showDropdown} width="10" height="10" viewBox="0 0 16 16" fill="currentColor"><path d="M8 10.5L2.5 5h11L8 10.5z"/></svg>
       {/if}
-      <svg class="dropdown-arrow" class:open={showDropdown} width="10" height="10" viewBox="0 0 16 16" fill="currentColor"><path d="M8 10.5L2.5 5h11L8 10.5z"/></svg>
     </button>
   </Tooltip>
 
@@ -142,6 +149,12 @@
 
   .jar-button:hover {
     border-color: var(--hf-focusBorder);
+  }
+
+  .jar-button.compact {
+    padding: 0 0.462rem;
+    min-width: 2.154rem;
+    justify-content: center;
   }
 
   .jar-button .codicon {

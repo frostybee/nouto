@@ -1,6 +1,7 @@
 <script lang="ts">
   import { getCurrentWindow } from '@tauri-apps/api/window';
   import { toggleSidebar, ui } from '@nouto/ui/stores/ui.svelte';
+  import CookieJarSelector from '@nouto/ui/components/shared/CookieJarSelector.svelte';
   import EnvironmentSelector from '@nouto/ui/components/shared/EnvironmentSelector.svelte';
   import Tooltip from '@nouto/ui/components/shared/Tooltip.svelte';
   import WorkspaceMenu from './WorkspaceMenu.svelte';
@@ -44,8 +45,28 @@
     return binding ? `${label} (${bindingToDisplayString(binding)})` : label;
   });
 
+  const COMPACT_SELECTORS_BREAKPOINT = 900;
+  const ICON_SEARCH_BREAKPOINT = 1100;
+  let headerEl = $state<HTMLElement>(undefined!);
+  let headerWidth = $state(Infinity);
+  const compact = $derived(headerWidth < COMPACT_SELECTORS_BREAKPOINT);
+  const iconSearch = $derived(headerWidth < ICON_SEARCH_BREAKPOINT);
+
+  $effect(() => {
+    if (!headerEl) return;
+    const observer = new ResizeObserver((entries) => {
+      headerWidth = entries[0].contentRect.width;
+    });
+    observer.observe(headerEl);
+    return () => observer.disconnect();
+  });
+
   function handleDblClick(e: MouseEvent) {
-    if ((e.target as HTMLElement).closest('button, .dropdown, .search-field, [data-no-drag]'))
+    if (
+      (e.target as HTMLElement).closest(
+        'button, .dropdown, .search-field, .env-selector, .jar-selector, [data-no-drag]',
+      )
+    )
       return;
     getCurrentWindow().toggleMaximize();
   }
@@ -53,6 +74,7 @@
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <header
+  bind:this={headerEl}
   class="top-toolbar"
   class:macos={isMacOS()}
   data-tauri-drag-region
@@ -83,20 +105,35 @@
 
     <span class="sep" data-tauri-drag-region>›</span>
 
-    <EnvironmentSelector />
+    <EnvironmentSelector {compact} />
+
+    <span class="sep" data-tauri-drag-region>›</span>
+
+    <CookieJarSelector {compact} />
   </div>
 
   <div class="center" data-tauri-drag-region>
-    <button
-      class="search-field"
-      onclick={onSearch}
-      title="Search ({searchShortcutLabel})"
-      aria-label="Search"
-    >
-      <span class="codicon codicon-search"></span>
-      <span class="search-placeholder">Search</span>
-      <span class="search-shortcut">{searchShortcutLabel}</span>
-    </button>
+    {#if iconSearch}
+      <button
+        class="icon-btn"
+        onclick={onSearch}
+        title="Search ({searchShortcutLabel})"
+        aria-label="Search"
+      >
+        <span class="codicon codicon-search"></span>
+      </button>
+    {:else}
+      <button
+        class="search-field"
+        onclick={onSearch}
+        title="Search ({searchShortcutLabel})"
+        aria-label="Search"
+      >
+        <span class="codicon codicon-search"></span>
+        <span class="search-placeholder">Search</span>
+        <span class="search-shortcut">{searchShortcutLabel}</span>
+      </button>
+    {/if}
   </div>
 
   <div class="right" data-tauri-drag-region>
@@ -130,6 +167,8 @@
   .top-toolbar :global(button),
   .top-toolbar :global(.search-field),
   .top-toolbar :global(.dropdown),
+  .top-toolbar :global(.env-selector),
+  .top-toolbar :global(.jar-selector),
   .top-toolbar :global(select) {
     -webkit-app-region: no-drag;
   }
@@ -139,6 +178,11 @@
     align-items: center;
     gap: 0.462rem;
     min-width: 0;
+  }
+
+  .left :global(.env-selector),
+  .left :global(.jar-selector) {
+    flex-shrink: 0;
   }
 
   .right {

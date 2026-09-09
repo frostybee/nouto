@@ -9,6 +9,8 @@
   import { onMount, onDestroy } from 'svelte';
   import Tooltip from './Tooltip.svelte';
 
+  let { compact = false }: { compact?: boolean } = $props();
+
   let showDropdown = $state(false);
   let buttonEl: HTMLButtonElement | undefined = $state();
   let dropdownPos = $state({ top: 0, right: 0 });
@@ -16,6 +18,7 @@
   const envList = $derived(environments());
   const activeId = $derived(activeEnvironmentId());
   const activeEnv = $derived(activeEnvironment());
+  const tooltipText = $derived(compact ? `Environment: ${activeEnv?.name ?? 'No Environment'}` : 'Select environment');
 
   onMount(() => {
     window.addEventListener('nouto:closeDropdowns', handleCloseDropdowns);
@@ -69,25 +72,29 @@
 <svelte:window onclick={handleClickOutside} />
 
 <div class="env-selector">
-  <Tooltip text="Select environment">
+  <Tooltip text={tooltipText}>
     <button
       bind:this={buttonEl}
       class="env-button"
       class:active={activeEnv !== null}
+      class:compact
       style={activeEnv?.color ? `--env-color: ${activeEnv.color};` : ''}
       onclick={(e) => { e.stopPropagation(); toggleDropdown(); }}
+      aria-label={compact ? tooltipText : undefined}
     >
       {#if activeEnv?.color}
         <span class="env-color-dot" style="background: {activeEnv.color};"></span>
       {:else}
         <span class="env-icon">ENV</span>
       {/if}
-      {#if activeEnv}
-        <span class="env-name">{activeEnv.name}</span>
-      {:else}
-        <span class="env-name muted">No Environment</span>
+      {#if !compact}
+        {#if activeEnv}
+          <span class="env-name">{activeEnv.name}</span>
+        {:else}
+          <span class="env-name muted">No Environment</span>
+        {/if}
+        <svg class="dropdown-arrow" class:open={showDropdown} width="10" height="10" viewBox="0 0 16 16" fill="currentColor"><path d="M8 10.5L2.5 5h11L8 10.5z"/></svg>
       {/if}
-      <svg class="dropdown-arrow" class:open={showDropdown} width="10" height="10" viewBox="0 0 16 16" fill="currentColor"><path d="M8 10.5L2.5 5h11L8 10.5z"/></svg>
     </button>
   </Tooltip>
 
@@ -162,6 +169,12 @@
 
   .env-button.active {
     border-color: var(--env-color, var(--hf-charts-green, #49cc90));
+  }
+
+  .env-button.compact {
+    padding: 0 0.462rem;
+    min-width: 2.154rem;
+    justify-content: center;
   }
 
   .env-color-dot {

@@ -5,7 +5,8 @@
   import { ui, setConnectionMode } from '../../stores/ui.svelte';
   import { postMessage as vsCodePostMessage } from '../../lib/vscode';
   import { tick } from 'svelte';
-  import { getUnresolvedVariables, activeVariables, activeVariablesList, activeEnvironment, globalVariables } from '../../stores/environment.svelte';
+  import { getUnresolvedVariables, activeVariables, activeVariablesList, activeEnvironment, globalVariables, environments, activeEnvironmentId, setActiveEnvironment } from '../../stores/environment.svelte';
+  import { cookieJars, activeCookieJarId, switchCookieJar, requestCookieJars } from '../../stores/cookieJar.svelte';
   import { MOCK_VARIABLES } from '../../lib/value-transforms';
   import { validateUrl, isIncompleteUrl, suggestUrlFix, STANDARD_HTTP_METHODS } from '@nouto/core';
   import { clearScriptOutput } from '../../stores/scripts.svelte';
@@ -45,8 +46,10 @@
     onSaveToCollection: () => void;
     onSaveRequest: () => void;
     onRevertRequest: () => void;
+    /** Adds Search and Benchmark to the overflow menu for hosts that have no title bar or rail. */
+    hostMenu?: boolean;
   }
-  let { postMessage, collectionId, collectionName, collections, onSaveToCollection, onSaveRequest, onRevertRequest }: Props = $props();
+  let { postMessage, collectionId, collectionName, collections, onSaveToCollection, onSaveRequest, onRevertRequest, hostMenu = false }: Props = $props();
 
   // Use provided postMessage or fallback to VSCode postMessage (for VSCode extension)
   const messageBus = $derived(postMessage || vsCodePostMessage);
@@ -719,6 +722,10 @@
   }
 
   function handleGlobalKeydown(event: KeyboardEvent) {
+    if (event.key === 'Escape' && showSendMenu) {
+      closeSendMenu();
+      return;
+    }
     const sendBinding = shortcuts.get('sendRequest');
     if (sendBinding && matchesBinding(event, sendBinding)) {
       event.preventDefault();
@@ -771,6 +778,7 @@
   function toggleSendMenu(e: MouseEvent) {
     e.stopPropagation();
     showSendMenu = !showSendMenu;
+    if (showSendMenu && hostMenu) requestCookieJars();
   }
 
   function closeSendMenu() {
@@ -780,6 +788,46 @@
   let showCurlImport = $state(false);
   let curlInput = $state('');
   let curlError = $state('');
+
+  const searchMenuLabel = $derived.by(() => {
+    const binding = shortcuts.get('openCommandPalette');
+    return binding ? `Search requests (${bindingToDisplayString(binding)})` : 'Search requests';
+  });
+
+  function handleOpenSearch() {
+    showSendMenu = false;
+    messageBus({ type: 'openCommandPalette' } as any);
+  }
+
+  function handleOpenBenchmark() {
+    showSendMenu = false;
+    messageBus({ type: 'openBenchmark' } as any);
+  }
+
+  const hostEnvironments = $derived(environments());
+  const hostActiveEnvId = $derived(activeEnvironmentId());
+  const hostJars = $derived(cookieJars());
+  const hostActiveJarId = $derived(activeCookieJarId());
+
+  function handleSelectEnvironment(id: string | null) {
+    setActiveEnvironment(id);
+    showSendMenu = false;
+  }
+
+  function handleSelectJar(id: string) {
+    switchCookieJar(id);
+    showSendMenu = false;
+  }
+
+  function handleManageEnvironments() {
+    showSendMenu = false;
+    messageBus({ type: 'openEnvironmentsPanel' } as any);
+  }
+
+  function handleManageCookies() {
+    showSendMenu = false;
+    messageBus({ type: 'openEnvironmentsPanel', data: { tab: 'cookieJar' } } as any);
+  }
 
   function handleImportCurl() {
     showSendMenu = false;
@@ -1123,9 +1171,9 @@
       </button>
     </Tooltip>
   {:else}
-    <div class="send-button-wrapper">
-      <Tooltip text={sendTooltip}>
-        <div class="send-button-group">
+    <div class="url-actions">
+      <div class="send-button-wrapper">
+        <Tooltip text={sendTooltip}>
           <button
             class="send-button"
             onclick={handleSend}
@@ -1133,39 +1181,96 @@
           >
             Send
           </button>
-          <span class="send-divider"></span>
+        </Tooltip>
+        <ContextualHint hintId="send-shortcut" text="Tip: Press Ctrl+Enter to send requests quickly" />
+      </div>
+      <Tooltip text="Show code">
+        <button
+          class="secondary-btn"
+          onclick={handleShowCode}
+          type="button"
+          disabled={!currentUrl.trim()}
+        >
+          <i class="codicon codicon-code"></i>
+          <span>Code</span>
+        </button>
+      </Tooltip>
+      <div class="overflow-wrapper">
+        <Tooltip text="More actions">
           <button
-            class="send-dropdown-btn"
+            class="overflow-btn"
             onclick={toggleSendMenu}
             type="button"
-            aria-label="Send options"
+            aria-label="More actions"
+            aria-haspopup="menu"
+            aria-expanded={showSendMenu}
           >
-            <svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor"><path d="M8 10.5L2.5 5h11L8 10.5z"/></svg>
+            <i class="codicon codicon-ellipsis"></i>
           </button>
-        </div>
-      </Tooltip>
-      {#if showSendMenu}
-        <!-- svelte-ignore a11y_interactive_supports_focus -->
-        <div class="send-menu" onclick={(e) => e.stopPropagation()} onkeydown={(e) => e.stopPropagation()} role="menu">
-          <button class="send-menu-item" onclick={handleImportCurl} type="button">
-            <i class="codicon codicon-terminal"></i>
-            <span>Import cURL</span>
-          </button>
-          <button class="send-menu-item" onclick={handleShowCode} type="button" disabled={!currentUrl.trim()}>
-            <i class="codicon codicon-code"></i>
-            <span>Show code</span>
-          </button>
-          <div class="send-menu-separator"></div>
-          <button class="send-menu-item danger" onclick={handleClearAll} type="button">
-            <i class="codicon codicon-trash"></i>
-            <span>Clear all</span>
-          </button>
-        </div>
-      {/if}
-      <ContextualHint hintId="send-shortcut" text="Tip: Press Ctrl+Enter to send requests quickly" />
+        </Tooltip>
+        {#if showSendMenu}
+          <!-- svelte-ignore a11y_interactive_supports_focus -->
+          <div
+            class="send-menu"
+            onclick={(e) => e.stopPropagation()}
+            onkeydown={(e) => { e.stopPropagation(); if (e.key === 'Escape') closeSendMenu(); }}
+            role="menu"
+          >
+            {#if hostMenu}
+              <button class="send-menu-item" onclick={handleOpenSearch} type="button">
+                <i class="codicon codicon-search"></i>
+                <span>{searchMenuLabel}</span>
+              </button>
+              <button class="send-menu-item" onclick={handleOpenBenchmark} type="button">
+                <i class="codicon codicon-pulse"></i>
+                <span>Benchmark</span>
+              </button>
+              <div class="send-menu-separator"></div>
+              <div class="send-menu-heading">Environment</div>
+              <button class="send-menu-item" class:selected={hostActiveEnvId === null} onclick={() => handleSelectEnvironment(null)} type="button" role="menuitemradio" aria-checked={hostActiveEnvId === null}>
+                <span class="send-menu-check">{#if hostActiveEnvId === null}<i class="codicon codicon-check"></i>{/if}</span>
+                <span>No Environment</span>
+              </button>
+              {#each hostEnvironments as env (env.id)}
+                <button class="send-menu-item" class:selected={hostActiveEnvId === env.id} onclick={() => handleSelectEnvironment(env.id)} type="button" role="menuitemradio" aria-checked={hostActiveEnvId === env.id}>
+                  <span class="send-menu-check">{#if hostActiveEnvId === env.id}<i class="codicon codicon-check"></i>{/if}</span>
+                  {#if env.color}<span class="send-menu-dot" style="background: {env.color};"></span>{/if}
+                  <span class="send-menu-label">{env.name}</span>
+                </button>
+              {/each}
+              <button class="send-menu-item" onclick={handleManageEnvironments} type="button">
+                <i class="codicon codicon-symbol-variable"></i>
+                <span>Manage Environments</span>
+              </button>
+              <div class="send-menu-separator"></div>
+              <div class="send-menu-heading">Cookie jar</div>
+              {#each hostJars as jar (jar.id)}
+                <button class="send-menu-item" class:selected={hostActiveJarId === jar.id} onclick={() => handleSelectJar(jar.id)} type="button" role="menuitemradio" aria-checked={hostActiveJarId === jar.id}>
+                  <span class="send-menu-check">{#if hostActiveJarId === jar.id}<i class="codicon codicon-check"></i>{/if}</span>
+                  <span class="send-menu-label">{jar.name}</span>
+                </button>
+              {/each}
+              <button class="send-menu-item" onclick={handleManageCookies} type="button">
+                <i class="codicon codicon-browser"></i>
+                <span>Manage Cookies</span>
+              </button>
+              <div class="send-menu-separator"></div>
+            {/if}
+            <button class="send-menu-item" onclick={handleImportCurl} type="button">
+              <i class="codicon codicon-terminal"></i>
+              <span>Import cURL</span>
+            </button>
+            <div class="send-menu-separator"></div>
+            <button class="send-menu-item danger" onclick={handleClearAll} type="button">
+              <i class="codicon codicon-trash"></i>
+              <span>Clear all</span>
+            </button>
+          </div>
+        {/if}
+      </div>
     </div>
   {/if}
-  <CollectionSaveButton {collectionId} {collectionName} {collections} {onSaveToCollection} {onSaveRequest} {onRevertRequest} />
+  <CollectionSaveButton {collectionId} {collectionName} {collections} {onSaveToCollection} {onSaveRequest} {onRevertRequest} showBadge={false} />
 </div>
 
 {#if isLoading() && downloadProgress()}
@@ -1509,12 +1614,54 @@
     color: var(--hf-input-placeholderForeground);
   }
 
-  .send-button-group {
+  .url-actions {
     display: flex;
-    align-items: stretch;
-    border-radius: 0.462rem;
-    overflow: hidden;
+    align-items: center;
+    gap: 0.462rem;
+    flex-shrink: 0;
+  }
+
+  .secondary-btn,
+  .overflow-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.462rem;
     height: 2.462rem;
+    padding: 0 0.923rem;
+    background: var(--hf-button-secondaryBackground);
+    color: var(--hf-button-secondaryForeground);
+    border: 1px solid var(--hf-input-border, var(--hf-panel-border));
+    border-radius: 0.462rem;
+    cursor: pointer;
+    font-size: 0.923rem;
+    white-space: nowrap;
+    transition: background 0.15s, border-color 0.15s;
+  }
+
+  .overflow-btn {
+    width: 2.462rem;
+    padding: 0;
+  }
+
+  .secondary-btn:hover:not(:disabled),
+  .overflow-btn:hover:not(:disabled) {
+    background: var(--hf-button-secondaryHoverBackground, var(--hf-list-hoverBackground));
+    border-color: var(--hf-focusBorder);
+  }
+
+  .secondary-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .secondary-btn .codicon,
+  .overflow-btn .codicon {
+    font-size: 1.077rem;
+  }
+
+  .overflow-wrapper {
+    position: relative;
   }
 
   .send-button {
@@ -1530,41 +1677,11 @@
     white-space: nowrap;
   }
 
-  .send-button-group .send-button {
-    border-radius: 0;
-  }
-
   .send-button:hover:not(:disabled) {
     background: var(--hf-button-hoverBackground);
   }
 
   .send-button:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-
-  .send-divider {
-    width: 1px;
-    background: rgba(255, 255, 255, 0.3);
-  }
-
-  .send-dropdown-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0.615rem 0.615rem;
-    background: var(--hf-button-background);
-    color: var(--hf-button-foreground);
-    border: none;
-    cursor: pointer;
-    transition: background 0.15s;
-  }
-
-  .send-dropdown-btn:hover:not(:disabled) {
-    background: var(--hf-button-hoverBackground);
-  }
-
-  .send-dropdown-btn:disabled {
     opacity: 0.5;
     cursor: not-allowed;
   }
@@ -1578,6 +1695,9 @@
     top: calc(100% + 4px);
     right: 0;
     min-width: 13.846rem;
+    max-width: 20rem;
+    max-height: 70vh;
+    overflow-y: auto;
     background: var(--hf-menu-background, var(--hf-dropdown-background));
     border: 1px solid var(--hf-menu-border, var(--hf-dropdown-border, var(--hf-panel-border)));
     border-radius: 0.462rem;
@@ -1626,6 +1746,40 @@
     height: 0.077rem;
     background: var(--hf-panel-border);
     margin: 0.308rem 0;
+  }
+
+  .send-menu-heading {
+    padding: 0.308rem 0.923rem 0.154rem;
+    font-size: 0.769rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--hf-descriptionForeground);
+  }
+
+  .send-menu-item.selected {
+    font-weight: 500;
+  }
+
+  .send-menu-check {
+    width: 1.077rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .send-menu-dot {
+    width: 0.615rem;
+    height: 0.615rem;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .send-menu-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .cancel-button {

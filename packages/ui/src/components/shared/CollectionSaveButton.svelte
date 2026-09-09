@@ -14,8 +14,9 @@
     onSaveToCollection?: () => void;
     onSaveRequest?: () => void;
     onRevertRequest?: () => void;
+    showBadge?: boolean;
   }
-  let { collectionId, collectionName, collections, onSaveToCollection, onSaveRequest, onRevertRequest }: Props = $props();
+  let { collectionId, collectionName, collections, onSaveToCollection, onSaveRequest, onRevertRequest, showBadge = true }: Props = $props();
 
   const dirty = $derived(isDirty());
   const currentCollection = $derived(collectionId ? collections.find(c => c.id === collectionId) : null);
@@ -119,15 +120,17 @@
           <span class="codicon codicon-discard"></span>
         </button>
       </Tooltip>
-      <Tooltip text={collectionName || 'Collection'}>
-        <span class="collection-badge dirty">
-          <span class="codicon {collectionIcon}" style={collectionColor ? `color: ${collectionColor}` : ''}></span>
-          <span class="badge-label">{collectionName || 'Collection'}</span>
-          <span class="dirty-dot"><svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor"><circle cx="4" cy="4" r="4"/></svg></span>
-        </span>
-      </Tooltip>
+      {#if showBadge}
+        <Tooltip text={collectionName || 'Collection'}>
+          <span class="collection-badge dirty">
+            <span class="codicon {collectionIcon}" style={collectionColor ? `color: ${collectionColor}` : ''}></span>
+            <span class="badge-label">{collectionName || 'Collection'}</span>
+            <span class="dirty-dot"><svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor"><circle cx="4" cy="4" r="4"/></svg></span>
+          </span>
+        </Tooltip>
+      {/if}
     </div>
-  {:else if collectionId}
+  {:else if collectionId && showBadge}
     <Tooltip text={collectionName || 'Collection'}>
       <span class="collection-badge">
         <span class="codicon {collectionIcon}" style={collectionColor ? `color: ${collectionColor}` : ''}></span>

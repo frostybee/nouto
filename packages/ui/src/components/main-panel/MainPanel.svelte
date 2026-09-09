@@ -9,7 +9,7 @@
   import { isRequest, isFolder, generateId } from '../../types';
   import ExamplesTab from '../shared/ExamplesTab.svelte';
   import UrlBar from './UrlBar.svelte';
-  import ActionBar from './ActionBar.svelte';
+  import RequestBreadcrumb from '../shared/RequestBreadcrumb.svelte';
   import PanelSplitter from '../shared/PanelSplitter.svelte';
   import KeyValueEditor from '../shared/KeyValueEditor.svelte';
   import PathParamsEditor from '../shared/PathParamsEditor.svelte';
@@ -78,7 +78,8 @@
     onConflictReload?: () => void;
     onConflictKeep?: () => void;
     postMessage?: (message: OutgoingMessage) => void;
-    hideActionBar?: boolean;
+    /** Hosts without their own title bar or rail (VS Code) get search, benchmark, environment and cookie jar in the URL-row menu. */
+    hostMenu?: boolean;
   }
   let {
     collectionId,
@@ -97,7 +98,7 @@
     onConflictReload,
     onConflictKeep,
     postMessage,
-    hideActionBar = false,
+    hostMenu = true,
   }: Props = $props();
 
   // Use provided postMessage or fallback to VSCode postMessage (for VSCode extension)
@@ -791,13 +792,6 @@
 <svelte:window onkeydown={handleMainKeydown} />
 
 <main class="main-panel" bind:this={mainPanelEl}>
-  {#if !hideActionBar}
-    <ActionBar
-      {collectionId}
-      {collections}
-      {postMessage}
-    />
-  {/if}
   <UrlBar
     {postMessage}
     {collectionId}
@@ -806,7 +800,9 @@
     {onSaveToCollection}
     onSaveRequest={handleSaveRequest}
     onRevertRequest={handleRevertRequest}
+    {hostMenu}
   />
+  <RequestBreadcrumb variant="line" {collections} {postMessage} />
 
   {#if settingsOpen()}
     <SettingsPage onclose={() => setSettingsOpen(false)} />
