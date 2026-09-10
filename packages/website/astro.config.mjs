@@ -120,6 +120,13 @@ export default defineConfig({
 					collapsed: true,
 					items: [{ autogenerate: { directory: 'desktop' } }],
 				},
+				{
+					label: 'Compare',
+					collapsed: true,
+					items: [
+						{ label: 'Feature Comparison', slug: 'compare' },
+					],
+				},
 				{ label: 'Changelog', slug: 'changelog' },
 			],
 		}),

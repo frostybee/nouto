@@ -30,7 +30,7 @@ An API (Application Programming Interface) is a way for programs to talk to each
 
 Since you are reading this guide on a website, the checkboxes are not interactive. Use one of these methods to track your results:
 
-1. **Spreadsheet template (recommended):** [Download the test results template](/test-results-template.csv) and open it in Google Sheets, Excel, or LibreOffice Calc. All 187 scenarios are already listed. Just fill in the **Result** column with `Pass` or `Fail` and add any observations in the **Notes** column.
+1. **Spreadsheet template (recommended):** [Download the test results template](/test-results-template.csv) and open it in Google Sheets, Excel, or LibreOffice Calc. All 193 scenarios are already listed. Just fill in the **Result** column with `Pass` or `Fail` and add any observations in the **Notes** column.
 2. **Print this page:** Print this guide (or save it as a PDF with `Ctrl+P`) and check off each scenario with a pen.
 3. **Notepad:** Open a text file and write the scenario number and result for each test, e.g.:
    ```
@@ -2619,6 +2619,113 @@ node server.js
 
 ---
 
+## Section 30: Credential Storage and Persistence
+
+> **What is credential storage?** When you enter passwords, tokens, or API keys in Nouto, the app stores them securely in your operating system's credential manager (Windows Credential Manager on Windows, Keychain on macOS). The collection files saved to disk never contain your actual passwords. Variable placeholders like `{{token}}` are not credentials, so they stay in the file as-is and are resolved at send time.
+
+### 30.1 Variable Placeholder Survives Save Cycle
+
+**Steps:**
+1. Make sure the **Sample Collection (httpbin.org)** is loaded. If it is not, load it from the welcome screen or Collections menu.
+2. Set the **Sample Environment** as the active environment.
+3. In the sidebar, expand the Sample Collection > **Authentication** folder.
+4. Click the **Bearer Token** request to open it.
+5. Click the **Auth** tab in the request panel.
+6. Confirm the type is **Bearer Token** and the Token field shows `{{token}}`.
+7. Click **Send**.
+8. Close the app completely.
+9. Reopen the app.
+10. Open the same **Bearer Token** request again.
+11. Click the **Auth** tab.
+
+**Expected:** The Token field still shows `{{token}}` (the literal placeholder text, not an empty field). The request sent in step 7 should have returned **200 OK** with the token resolved to `my-sample-token`.
+
+`- [ ] Pass`
+
+### 30.2 Real Credential Persists Across Restart (Windows)
+
+**Steps:**
+1. Open a new request. Method: **GET**. URL: `https://httpbin.org/basic-auth/testuser/persist-me`
+2. Click the **Auth** tab. Select **Basic Auth**.
+3. Username: `testuser`, Password: `persist-me`
+4. Click **Send**. Confirm Status: **200 OK**.
+5. Save the request to any collection. Name it `Persist Test`.
+6. Close the app completely.
+7. Reopen the app.
+8. Open the `Persist Test` request from the collection.
+9. Click the **Auth** tab.
+10. Open a terminal (Command Prompt or PowerShell) and run:
+    ```
+    cmdkey /list | findstr nouto
+    ```
+
+**Expected:** The Auth tab shows **Basic Auth** with username `testuser` and password `persist-me` (click the eye icon to reveal). The terminal output from step 10 includes at least one entry with `nouto` in its name, confirming the credential is stored in Windows Credential Manager.
+
+`- [ ] Pass`
+
+### 30.3 Real Credential Persists Across Restart (macOS)
+
+**Steps:**
+1. Follow the same steps as 30.2, but on a Mac.
+2. After reopening the app, confirm the credentials are intact.
+3. Open **Keychain Access** (Applications > Utilities > Keychain Access).
+4. In the search bar, type `nouto-desktop`.
+
+**Expected:** The Auth tab shows the saved credentials. Keychain Access shows at least one entry with `nouto-desktop` as the service name.
+
+`- [ ] Pass`
+
+### 30.4 On-Disk File Does Not Contain Plaintext Credentials
+
+**Steps:**
+1. After completing 30.2 (Windows) or 30.3 (macOS), open the collections file in a text editor:
+   - **Windows:** `%APPDATA%\com.nouto.app\nouto\collections.json`
+     (Type `%APPDATA%` in the File Explorer address bar, then navigate to `com.nouto.app\nouto`)
+   - **macOS:** `~/Library/Application Support/com.nouto.app/nouto/collections.json`
+     (In Finder, press `Cmd+Shift+G` and paste the path)
+2. Search the file for the text `persist-me`.
+
+**Expected:** The text `persist-me` does not appear anywhere in the file. Instead, the `Persist Test` request shows `"password": ""` and a `"passwordRef"` field with a keychain reference key. The actual password is stored only in the OS credential manager, not on disk.
+
+`- [ ] Pass`
+
+### 30.5 First-Run Sample Collection Loads with Auth Intact
+
+**Steps:**
+1. Delete the **Sample Collection (httpbin.org)** from the sidebar (right-click > Delete).
+2. Delete the **Sample Environment** from the environments panel.
+3. Close the app completely.
+4. Reopen the app.
+5. On the welcome screen, click **Load Sample Collection** (or find this option in the Collections menu).
+6. In the sidebar, expand Sample Collection > **Authentication**.
+7. Click **Bearer Token**. Click the **Auth** tab.
+8. Click **Basic Auth**. Click the **Auth** tab.
+9. Click the **Environments** icon in the activity rail. Check the environments list.
+
+**Expected:**
+- The Bearer Token request's Auth tab shows type **Bearer Token** with `{{token}}` in the Token field.
+- The Basic Auth request's Auth tab shows type **Basic Auth** with username `user` and password `passwd`.
+- The **Sample Environment** appears in the environments panel with two variables: `baseUrl` = `https://httpbin.org` and `token` = `my-sample-token`.
+
+`- [ ] Pass`
+
+### 30.6 Sample Environment Survives App Restart After First Run
+
+**Steps:**
+1. Immediately after completing 30.5 (do not make any other changes), close the app.
+2. Reopen the app.
+3. Click the **Environments** icon in the activity rail.
+4. Open the collections file on disk (same path as 30.4).
+5. Open the environments file in a text editor:
+   - **Windows:** `%APPDATA%\com.nouto.app\nouto\environments.json`
+   - **macOS:** `~/Library/Application Support/com.nouto.app/nouto/environments.json`
+
+**Expected:** The Sample Environment is still visible in the environments panel with both variables (`baseUrl` and `token`). The `environments.json` file contains the sample environment data (it is not empty or missing the environment entry).
+
+`- [ ] Pass`
+
+---
+
 ## Test Summary
 
 After completing all sections, count your results:
@@ -2654,6 +2761,7 @@ After completing all sections, count your results:
 | 27 | Settings | 8 | __ | __ |
 | 28 | Projects and Workspace | 5 | __ | __ |
 | 29 | Miscellaneous | 6 | __ | __ |
-| **Total** | | **187** | **__** | **__** |
+| 30 | Credential Storage and Persistence | 6 | __ | __ |
+| **Total** | | **193** | **__** | **__** |
 
 **Thank you for testing!** Please file GitHub issues for any failed scenarios at: https://github.com/frostybee/nouto/issues
