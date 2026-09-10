@@ -1629,7 +1629,7 @@ export interface CookieMutationsMessage {
 
 export interface SecretsResolvedMessage {
   type: 'secretsResolved';
-  data: { collections: Collection[]; environments: EnvironmentsData; generation: number };
+  data: { collections: Collection[] | null; environments: EnvironmentsData | null; generation: number };
 }
 
 export interface BackupExportDoneMessage {

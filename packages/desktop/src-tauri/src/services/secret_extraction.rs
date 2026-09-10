@@ -84,12 +84,27 @@ const AUTH_SECRET_FIELDS: &[AuthSecretField] = &[
 
 // ---------- Shared keychain helpers ----------
 
-fn resolve_optional_ref(field: &mut Option<String>, ref_key: &Option<String>) {
+/// `{{var}}` templates are resolved at send time and must stay readable on disk,
+/// so they are never treated as credentials.
+fn is_variable_placeholder(value: &str) -> bool {
+    match value.find("{{") {
+        Some(start) => value[start + 2..].contains("}}"),
+        None => false,
+    }
+}
+
+fn is_extractable_secret(value: &str) -> bool {
+    !value.is_empty() && !is_variable_placeholder(value)
+}
+
+/// Returns true when a value was read back from the keychain.
+fn resolve_optional_ref(field: &mut Option<String>, ref_key: &Option<String>) -> bool {
     if let Some(ref key) = ref_key {
         match keyring::Entry::new(SERVICE_NAME, key) {
             Ok(entry) => match entry.get_password() {
                 Ok(value) => {
                     *field = Some(value);
+                    return true;
                 }
                 Err(keyring::Error::NoEntry) => {}
                 Err(e) => {
@@ -101,6 +116,7 @@ fn resolve_optional_ref(field: &mut Option<String>, ref_key: &Option<String>) {
             }
         }
     }
+    false
 }
 
 // ---------- Extract auth secrets ----------
@@ -113,11 +129,13 @@ fn extract_auth(auth: &mut AuthState, owner_id: &str) -> Vec<(String, String)> {
     for field in AUTH_SECRET_FIELDS {
         let value = (field.value_getter)(auth);
         if let Some(val) = value {
-            if !val.is_empty() {
+            if is_extractable_secret(val) {
                 let key = format!("auth.{}.{}", owner_id, field.field_name);
                 secrets.push((key.clone(), val.clone()));
                 (field.ref_setter)(auth, Some(key));
                 (field.value_setter)(auth, Some(String::new()));
+            } else if is_variable_placeholder(val) && (field.ref_getter)(auth).is_some() {
+                (field.ref_setter)(auth, None);
             }
         } else {
             // If value is None but a ref exists, the credential was removed: clean up
@@ -144,22 +162,26 @@ fn extract_oauth2(oauth2: &mut OAuth2Config, owner_id: &str) -> Vec<(String, Str
     let mut secrets = Vec::new();
 
     if let Some(ref val) = oauth2.client_secret.clone() {
-        if !val.is_empty() {
+        if is_extractable_secret(val) {
             let key = format!("auth.{}.oauth2ClientSecret", owner_id);
             secrets.push((key.clone(), val.clone()));
             oauth2.client_secret_ref = Some(key);
             oauth2.client_secret = Some(String::new());
+        } else if is_variable_placeholder(val) {
+            oauth2.client_secret_ref = None;
         }
     } else if oauth2.client_secret_ref.is_some() {
         oauth2.client_secret_ref = None;
     }
 
     if let Some(ref val) = oauth2.password.clone() {
-        if !val.is_empty() {
+        if is_extractable_secret(val) {
             let key = format!("auth.{}.oauth2Password", owner_id);
             secrets.push((key.clone(), val.clone()));
             oauth2.password_ref = Some(key);
             oauth2.password = Some(String::new());
+        } else if is_variable_placeholder(val) {
+            oauth2.password_ref = None;
         }
     } else if oauth2.password_ref.is_some() {
         oauth2.password_ref = None;
@@ -193,17 +215,25 @@ fn extract_oauth_token(token_data: &mut OAuthToken, owner_id: &str) -> Vec<(Stri
     secrets
 }
 
-fn resolve_oauth2(oauth2: &mut OAuth2Config) {
-    resolve_optional_ref(&mut oauth2.client_secret, &oauth2.client_secret_ref.clone());
-    resolve_optional_ref(&mut oauth2.password, &oauth2.password_ref.clone());
+fn resolve_oauth2(oauth2: &mut OAuth2Config) -> usize {
+    let mut resolved = 0;
+    if resolve_optional_ref(&mut oauth2.client_secret, &oauth2.client_secret_ref.clone()) {
+        resolved += 1;
+    }
+    if resolve_optional_ref(&mut oauth2.password, &oauth2.password_ref.clone()) {
+        resolved += 1;
+    }
+    resolved
 }
 
-fn resolve_oauth_token(token_data: &mut OAuthToken) {
+fn resolve_oauth_token(token_data: &mut OAuthToken) -> usize {
+    let mut resolved = 0;
     if let Some(ref ref_key) = token_data.access_token_ref.clone() {
         match keyring::Entry::new(SERVICE_NAME, ref_key) {
             Ok(entry) => match entry.get_password() {
                 Ok(value) => {
                     token_data.access_token = value;
+                    resolved += 1;
                 }
                 Err(keyring::Error::NoEntry) => {}
                 Err(e) => {
@@ -215,21 +245,26 @@ fn resolve_oauth_token(token_data: &mut OAuthToken) {
             }
         }
     }
-    resolve_optional_ref(
+    if resolve_optional_ref(
         &mut token_data.refresh_token,
         &token_data.refresh_token_ref.clone(),
-    );
+    ) {
+        resolved += 1;
+    }
+    resolved
 }
 
 fn extract_proxy(proxy: &mut ProxyConfig, owner_id: &str) -> Vec<(String, String)> {
     let mut secrets = Vec::new();
 
     if let Some(ref val) = proxy.password.clone() {
-        if !val.is_empty() {
+        if is_extractable_secret(val) {
             let key = format!("req.{}.proxyPassword", owner_id);
             secrets.push((key.clone(), val.clone()));
             proxy.password_ref = Some(key);
             proxy.password = Some(String::new());
+        } else if is_variable_placeholder(val) {
+            proxy.password_ref = None;
         }
     } else if proxy.password_ref.is_some() {
         proxy.password_ref = None;
@@ -242,11 +277,13 @@ fn extract_ssl(ssl: &mut SslConfig, owner_id: &str) -> Vec<(String, String)> {
     let mut secrets = Vec::new();
 
     if let Some(ref val) = ssl.passphrase.clone() {
-        if !val.is_empty() {
+        if is_extractable_secret(val) {
             let key = format!("req.{}.sslPassphrase", owner_id);
             secrets.push((key.clone(), val.clone()));
             ssl.passphrase_ref = Some(key);
             ssl.passphrase = Some(String::new());
+        } else if is_variable_placeholder(val) {
+            ssl.passphrase_ref = None;
         }
     } else if ssl.passphrase_ref.is_some() {
         ssl.passphrase_ref = None;
@@ -255,12 +292,18 @@ fn extract_ssl(ssl: &mut SslConfig, owner_id: &str) -> Vec<(String, String)> {
     secrets
 }
 
-fn resolve_proxy(proxy: &mut ProxyConfig) {
-    resolve_optional_ref(&mut proxy.password, &proxy.password_ref.clone());
+fn resolve_proxy(proxy: &mut ProxyConfig) -> usize {
+    usize::from(resolve_optional_ref(
+        &mut proxy.password,
+        &proxy.password_ref.clone(),
+    ))
 }
 
-fn resolve_ssl(ssl: &mut SslConfig) {
-    resolve_optional_ref(&mut ssl.passphrase, &ssl.passphrase_ref.clone());
+fn resolve_ssl(ssl: &mut SslConfig) -> usize {
+    usize::from(resolve_optional_ref(
+        &mut ssl.passphrase,
+        &ssl.passphrase_ref.clone(),
+    ))
 }
 
 /// Recursively extract auth secrets from a collection item tree.
@@ -314,13 +357,15 @@ pub fn extract_env_secrets(environments: &mut [Environment]) -> Vec<(String, Str
 
     for env in environments.iter_mut() {
         for var in env.variables.iter_mut() {
-            if var.is_secret == Some(true) && !var.value.is_empty() {
+            if var.is_secret == Some(true) && is_extractable_secret(&var.value) {
                 let key = format!("env.{}.{}", env.id, var.key);
                 secrets.push((key.clone(), var.value.clone()));
                 var.secret_ref = Some(key);
                 var.value = String::new();
-            } else if var.is_secret != Some(true) && var.secret_ref.is_some() {
-                // Variable is no longer marked as secret: clear the ref
+            } else if (var.is_secret != Some(true) || is_variable_placeholder(&var.value))
+                && var.secret_ref.is_some()
+            {
+                // No longer a stored secret (unmarked, or now a template): clear the ref
                 var.secret_ref = None;
             }
         }
@@ -332,13 +377,16 @@ pub fn extract_env_secrets(environments: &mut [Environment]) -> Vec<(String, Str
 // ---------- Resolve auth secrets ----------
 
 /// Resolve a single auth state's ref fields back to values from the keychain.
-fn resolve_auth(auth: &mut AuthState) {
+/// Returns the number of refs that were read back.
+fn resolve_auth(auth: &mut AuthState) -> usize {
+    let mut resolved = 0;
     for field in AUTH_SECRET_FIELDS {
         if let Some(ref ref_key) = (field.ref_getter)(auth) {
             match keyring::Entry::new(SERVICE_NAME, ref_key) {
                 Ok(entry) => match entry.get_password() {
                     Ok(value) => {
                         (field.value_setter)(auth, Some(value));
+                        resolved += 1;
                     }
                     Err(keyring::Error::NoEntry) => {
                         // Secret was deleted from keychain; leave value empty
@@ -356,52 +404,60 @@ fn resolve_auth(auth: &mut AuthState) {
 
     // Resolve OAuth2 nested secrets
     if let Some(ref mut oauth2) = auth.oauth2 {
-        resolve_oauth2(oauth2);
+        resolved += resolve_oauth2(oauth2);
     }
 
     // Resolve OAuthToken live token data
     if let Some(ref mut token_data) = auth.oauth_token_data {
-        resolve_oauth_token(token_data);
+        resolved += resolve_oauth_token(token_data);
     }
+    resolved
 }
 
 /// Recursively resolve auth secrets in a collection item tree.
-fn resolve_items_auth(items: &mut [CollectionItem]) {
+fn resolve_items_auth(items: &mut [CollectionItem]) -> usize {
+    let mut resolved = 0;
     for item in items.iter_mut() {
         match item {
             CollectionItem::Request(req) => {
-                resolve_auth(&mut req.auth);
+                resolved += resolve_auth(&mut req.auth);
                 if let Some(ref mut proxy) = req.proxy {
-                    resolve_proxy(proxy);
+                    resolved += resolve_proxy(proxy);
                 }
                 if let Some(ref mut ssl) = req.ssl {
-                    resolve_ssl(ssl);
+                    resolved += resolve_ssl(ssl);
                 }
             }
             CollectionItem::Folder(folder) => {
                 if let Some(ref mut auth) = folder.auth {
-                    resolve_auth(auth);
+                    resolved += resolve_auth(auth);
                 }
-                resolve_items_auth(&mut folder.children);
+                resolved += resolve_items_auth(&mut folder.children);
             }
         }
     }
+    resolved
 }
 
 /// Resolve all auth secrets in collections from the OS keychain.
-pub fn resolve_auth_secrets(collections: &mut [Collection]) {
+/// Returns the number of refs that were read back.
+pub fn resolve_auth_secrets(collections: &mut [Collection]) -> usize {
+    let mut resolved = 0;
     for collection in collections.iter_mut() {
         if let Some(ref mut auth) = collection.auth {
-            resolve_auth(auth);
+            resolved += resolve_auth(auth);
         }
-        resolve_items_auth(&mut collection.items);
+        resolved += resolve_items_auth(&mut collection.items);
     }
+    resolved
 }
 
 // ---------- Resolve environment secrets ----------
 
 /// Resolve secret variable refs from the OS keychain.
-pub fn resolve_env_secrets(environments: &mut [Environment]) {
+/// Returns the number of refs that were read back.
+pub fn resolve_env_secrets(environments: &mut [Environment]) -> usize {
+    let mut resolved = 0;
     for env in environments.iter_mut() {
         for var in env.variables.iter_mut() {
             if let Some(ref ref_key) = var.secret_ref {
@@ -409,6 +465,7 @@ pub fn resolve_env_secrets(environments: &mut [Environment]) {
                     Ok(entry) => match entry.get_password() {
                         Ok(value) => {
                             var.value = value;
+                            resolved += 1;
                         }
                         Err(keyring::Error::NoEntry) => {
                             // Secret was deleted from keychain; leave value empty
@@ -424,6 +481,7 @@ pub fn resolve_env_secrets(environments: &mut [Environment]) {
             }
         }
     }
+    resolved
 }
 
 // ---------- Store secrets in keychain ----------
@@ -700,6 +758,72 @@ mod tests {
         };
         let secrets = extract_auth(&mut auth, "req-1");
         assert!(secrets.is_empty());
+    }
+
+    #[test]
+    fn is_variable_placeholder_detects_templates_only() {
+        assert!(is_variable_placeholder("{{token}}"));
+        assert!(is_variable_placeholder("Bearer {{token}}"));
+        assert!(is_variable_placeholder("{{a}}-{{b}}"));
+        assert!(!is_variable_placeholder("secret123"));
+        assert!(!is_variable_placeholder("{{unterminated"));
+        assert!(!is_variable_placeholder("}}{{"));
+        assert!(!is_variable_placeholder(""));
+    }
+
+    #[test]
+    fn extract_auth_variable_placeholder_stays_on_disk() {
+        let mut auth = AuthState {
+            auth_type: AuthType::Bearer,
+            token: Some("{{token}}".to_string()),
+            ..Default::default()
+        };
+        let secrets = extract_auth(&mut auth, "req-1");
+        assert!(secrets.is_empty());
+        assert_eq!(auth.token.as_deref(), Some("{{token}}"));
+        assert!(auth.token_ref.is_none());
+    }
+
+    #[test]
+    fn extract_auth_mixed_placeholder_is_not_extracted() {
+        let mut auth = AuthState {
+            auth_type: AuthType::Bearer,
+            token: Some("Bearer {{token}}".to_string()),
+            ..Default::default()
+        };
+        let secrets = extract_auth(&mut auth, "req-1");
+        assert!(secrets.is_empty());
+        assert_eq!(auth.token.as_deref(), Some("Bearer {{token}}"));
+    }
+
+    #[test]
+    fn extract_auth_placeholder_with_stale_ref_clears_ref() {
+        let mut auth = AuthState {
+            auth_type: AuthType::Bearer,
+            token: Some("{{token}}".to_string()),
+            token_ref: Some("auth.req-1.token".to_string()),
+            ..Default::default()
+        };
+        let secrets = extract_auth(&mut auth, "req-1");
+        assert!(secrets.is_empty());
+        assert_eq!(auth.token.as_deref(), Some("{{token}}"));
+        assert!(auth.token_ref.is_none());
+    }
+
+    #[test]
+    fn extract_env_secrets_skips_placeholder_values() {
+        let env_json = serde_json::json!({
+            "id": "env-1",
+            "name": "Dev",
+            "variables": [
+                { "key": "apiKey", "value": "{{sharedKey}}", "enabled": true, "isSecret": true, "secretRef": "env.env-1.apiKey" },
+            ],
+        });
+        let mut environments: Vec<Environment> = vec![serde_json::from_value(env_json).unwrap()];
+        let secrets = extract_env_secrets(&mut environments);
+        assert!(secrets.is_empty());
+        assert_eq!(environments[0].variables[0].value, "{{sharedKey}}");
+        assert!(environments[0].variables[0].secret_ref.is_none());
     }
 
     #[test]

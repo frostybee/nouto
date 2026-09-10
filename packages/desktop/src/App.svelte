@@ -755,10 +755,12 @@
         case 'secretsResolved': {
           // Discard stale results from a previous load_data call
           if ((message.data?.generation ?? 0) !== loadGeneration) break;
-          // Background secret resolution completed: update collections and environments
-          const resolvedCollections = message.data?.collections || [];
-          collections = DraftsCollectionService.ensureDraftsCollection(resolvedCollections);
-          initCollections(collections);
+          // Background secret resolution completed. Rust omits whichever side had
+          // nothing to resolve; only replace what it actually sent.
+          if (message.data?.collections) {
+            collections = DraftsCollectionService.ensureDraftsCollection(message.data.collections);
+            initCollections(collections);
+          }
           if (message.data?.environments) {
             loadEnvironments(message.data.environments);
           }

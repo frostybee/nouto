@@ -285,30 +285,40 @@ pub async fn load_data(
         )
         .await;
 
-        // Resolve collection auth secrets from OS keychain
+        // Only data that actually changed is sent back. The snapshot predates any
+        // save the frontend made after initialData, so re-emitting untouched data
+        // would overwrite newer state (e.g. the first-run sample collection).
         let resolved_collections =
-            match serde_json::from_value::<Vec<Collection>>(collections_raw_bg.clone()) {
+            match serde_json::from_value::<Vec<Collection>>(collections_raw_bg) {
                 Ok(mut typed_collections) => {
-                    secret_extraction::resolve_auth_secrets(&mut typed_collections);
-                    serde_json::to_value(&typed_collections).unwrap_or(collections_raw_bg)
+                    let count = secret_extraction::resolve_auth_secrets(&mut typed_collections);
+                    if count > 0 {
+                        serde_json::to_value(&typed_collections).ok()
+                    } else {
+                        None
+                    }
                 }
-                Err(_) => collections_raw_bg,
+                Err(_) => None,
             };
 
-        // Resolve environment secrets from OS keychain
-        let resolved_environments = {
-            let mut env_data = environments_raw_bg.clone();
-            if let Some(envs_value) = env_data.get("environments") {
-                if let Ok(mut typed_envs) =
-                    serde_json::from_value::<Vec<Environment>>(envs_value.clone())
-                {
-                    secret_extraction::resolve_env_secrets(&mut typed_envs);
-                    env_data["environments"] =
-                        serde_json::to_value(&typed_envs).unwrap_or(envs_value.clone());
+        let resolved_environments = environments_raw_bg
+            .get("environments")
+            .and_then(|envs_value| {
+                serde_json::from_value::<Vec<Environment>>(envs_value.clone()).ok()
+            })
+            .and_then(|mut typed_envs| {
+                let count = secret_extraction::resolve_env_secrets(&mut typed_envs);
+                if count == 0 {
+                    return None;
                 }
-            }
-            env_data
-        };
+                let mut env_data = environments_raw_bg.clone();
+                env_data["environments"] = serde_json::to_value(&typed_envs).ok()?;
+                Some(env_data)
+            });
+
+        if resolved_collections.is_none() && resolved_environments.is_none() {
+            return;
+        }
 
         // Emit resolved data as updates (include generation so frontend can discard stale results)
         let _ = app_clone.emit(

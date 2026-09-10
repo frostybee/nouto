@@ -82,7 +82,7 @@ async-stream = "0.3"
 rquickjs = { version = "0.9", features = ["full-async", "parallel"] }
 
 # OS keychain (Windows Credential Manager, macOS Keychain, libsecret)
-keyring = { version = "3", features = ["sync-secret-service"] }
+keyring = { version = "3", features = ["windows-native", "apple-native", "sync-secret-service"] }
 
 # Data file parsing (Phase 14)
 csv = "1.3"
