@@ -248,7 +248,7 @@
     align-items: center;
     gap: 0.615rem;
     width: 100%;
-    max-width: 40rem;
+    max-width: 22rem;
     height: 2.154rem;
     padding: 0 0.769rem;
     background: var(--hf-input-background);

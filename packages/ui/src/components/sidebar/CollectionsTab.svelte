@@ -577,7 +577,6 @@
     padding: 0.615rem;
     border-bottom: 1px solid var(--hf-panel-border);
     position: relative;
-    overflow: hidden;
   }
 
   .search-wrapper {
@@ -872,7 +871,8 @@
   .sort-menu {
     position: absolute;
     top: 100%;
-    right: 0;
+    left: 50%;
+    transform: translateX(-50%);
     z-index: 100;
     min-width: 13.077rem;
     margin-top: 0.308rem;
@@ -921,7 +921,8 @@
   .import-menu {
     position: absolute;
     top: 100%;
-    right: 0;
+    left: 50%;
+    transform: translateX(-50%);
     z-index: 100;
     min-width: 10.769rem;
     margin-top: 0.308rem;

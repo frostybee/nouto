@@ -2540,7 +2540,7 @@
             onclick={() => switchView('main')}
             aria-label="Requests"
           >
-            <span class="codicon codicon-request"></span>
+            <span class="codicon codicon-send"></span>
           </button>
         </Tooltip>
         <Tooltip text="Runner" position="right">
