@@ -2,6 +2,19 @@
 
 All notable changes to the Nouto VS Code extension will be documented in this file.
 
+## [1.6.1] - 2026-09-22
+
+### Changed
+
+- **Unified upper chrome**: the action bar, tab strip, and URL row are consolidated into a single compact toolbar with a request breadcrumb showing the collection path
+
+### Fixed
+
+- Sort and import dropdown menus in the Collections sidebar no longer render behind the panel
+- Sort and import dropdown menus are now centered under their trigger buttons instead of right-aligned
+- Variable autocomplete namespace labels now use the badge foreground color for better contrast
+- OpenAPI editor-title buttons (Preview, Generate Collection, Open in Browser) no longer appear over webview panels
+
 ## [1.6.0] - 2026-09-05
 
 ### Added
