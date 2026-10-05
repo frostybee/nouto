@@ -28,6 +28,7 @@ import { SpecialPanelHandler, type ISpecialPanelContext } from './sidebar/Specia
 import { EnvironmentsPanelHandler, type IEnvironmentsPanelContext, type ICookieJarHandler } from './sidebar/EnvironmentsPanelHandler';
 import { GlobalSettingsPanelHandler, type IGlobalSettingsPanelContext } from './sidebar/GlobalSettingsPanelHandler';
 import { UIService } from '../services/UIService';
+import type { EnvironmentStatusBar } from '../services/EnvironmentStatusBar';
 
 export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.Disposable {
   public static readonly viewType = 'nouto.sidebar';
@@ -48,6 +49,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
   private _environments: EnvironmentsData = { environments: [], activeId: null };
   private _dataLoaded: Promise<void>;
   private _panelManager?: RequestPanelManager;
+  private _envStatusBar?: EnvironmentStatusBar;
 
   // Auxiliary panels (mock, benchmark, etc.) that receive environment broadcasts
   private _auxPanels = new Set<vscode.WebviewPanel>();
@@ -218,7 +220,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
         await this._storageService.saveEnvironments(this._environments);
       }
     }
-    this._updateViewDescription();
+    this._updateEnvironmentIndicators();
   }
 
   /**
@@ -285,6 +287,16 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
     this._panelManager = panelManager;
   }
 
+  public setEnvironmentStatusBar(statusBar: EnvironmentStatusBar): void {
+    this._envStatusBar = statusBar;
+    statusBar.update(this._environments);
+    statusBar.setSidebarVisible(this._view?.visible ?? false);
+  }
+
+  public setActiveEnvironment(id: string | null): Promise<void> {
+    return this._envHandler.setActiveEnvironment(id);
+  }
+
   /** Save collections with watcher suppression to prevent self-triggered reloads. */
   private async _suppressedSave(): Promise<void> {
     const save = async () => { await this._storageService.saveCollections(this._collections); };
@@ -329,7 +341,10 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
     _token: vscode.CancellationToken
   ): void {
     this._view = webviewView;
-    this._updateViewDescription();
+    this._updateEnvironmentIndicators();
+    this._envStatusBar?.setSidebarVisible(webviewView.visible);
+    webviewView.onDidChangeVisibility(() => this._envStatusBar?.setSidebarVisible(webviewView.visible));
+    webviewView.onDidDispose(() => this._envStatusBar?.setSidebarVisible(false));
 
     webviewView.webview.options = {
       enableScripts: true,
@@ -817,8 +832,9 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
     this._panelManager?.broadcastCollections(this._collections);
   }
 
-  /** Shows the active environment next to the view title. */
-  private _updateViewDescription(): void {
+  /** Shows the active environment next to the view title and in the status bar. */
+  private _updateEnvironmentIndicators(): void {
+    this._envStatusBar?.update(this._environments);
     if (!this._view) return;
     const { environments, activeId } = this._environments;
     const active = activeId ? environments.find(e => e.id === activeId) : undefined;
@@ -826,7 +842,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
   }
 
   private _notifyEnvironmentsUpdated(): void {
-    this._updateViewDescription();
+    this._updateEnvironmentIndicators();
     this._view?.webview.postMessage({
       type: 'environmentsUpdated',
       data: this._environments,

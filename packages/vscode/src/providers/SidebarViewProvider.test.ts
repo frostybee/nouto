@@ -228,7 +228,7 @@ describe('SidebarViewProvider', () => {
     });
   });
 
-  describe('view description', () => {
+  describe('environment indicators', () => {
     function resolveView(): any {
       const mockView: any = {
         webview: {
@@ -239,9 +239,16 @@ describe('SidebarViewProvider', () => {
           asWebviewUri: jest.fn((uri: any) => uri.fsPath),
           cspSource: 'csp',
         },
+        visible: true,
+        onDidChangeVisibility: jest.fn(),
+        onDidDispose: jest.fn(),
       };
       provider.resolveWebviewView(mockView, {} as any, {} as any);
       return mockView;
+    }
+
+    function fakeStatusBar(): any {
+      return { update: jest.fn(), setSidebarVisible: jest.fn() };
     }
 
     const prod = { id: 'e1', name: 'Production', variables: [] };
@@ -270,6 +277,43 @@ describe('SidebarViewProvider', () => {
       const view = resolveView();
       expect(view.description).toBe('Production');
     });
+
+    it('gives the status bar the environments and the sidebar visibility', () => {
+      provider.updateEnvironments({ environments: [prod], activeId: 'e1' } as any);
+      resolveView();
+      const bar = fakeStatusBar();
+      provider.setEnvironmentStatusBar(bar);
+      expect(bar.update).toHaveBeenLastCalledWith(expect.objectContaining({ activeId: 'e1' }));
+      expect(bar.setSidebarVisible).toHaveBeenLastCalledWith(true);
+    });
+
+    it('updates the status bar when environments change', () => {
+      const bar = fakeStatusBar();
+      provider.setEnvironmentStatusBar(bar);
+      provider.updateEnvironments({ environments: [prod], activeId: null } as any);
+      expect(bar.update).toHaveBeenLastCalledWith(expect.objectContaining({ activeId: null }));
+    });
+
+    it('forwards the view visibility to the status bar', () => {
+      const bar = fakeStatusBar();
+      provider.setEnvironmentStatusBar(bar);
+      expect(bar.setSidebarVisible).toHaveBeenLastCalledWith(false);
+
+      const view = resolveView();
+      expect(bar.setSidebarVisible).toHaveBeenLastCalledWith(true);
+
+      view.visible = false;
+      view.onDidChangeVisibility.mock.calls[0][0]();
+      expect(bar.setSidebarVisible).toHaveBeenLastCalledWith(false);
+    });
+
+    it('delegates setActiveEnvironment to the environment handler', async () => {
+      const { EnvironmentHandler } = jest.requireMock('./sidebar/EnvironmentHandler');
+      const results = EnvironmentHandler.mock.results;
+      const handler = results[results.length - 1].value;
+      await provider.setActiveEnvironment('e1');
+      expect(handler.setActiveEnvironment).toHaveBeenCalledWith('e1');
+    });
   });
 
   describe('setPanelManager', () => {
@@ -289,7 +333,7 @@ describe('SidebarViewProvider', () => {
         asWebviewUri: jest.fn((uri: any) => uri.fsPath),
         cspSource: 'csp',
       };
-      const mockView: any = { webview: mockWebview };
+      const mockView: any = { webview: mockWebview, visible: true, onDidChangeVisibility: jest.fn(), onDidDispose: jest.fn() };
 
       provider.resolveWebviewView(mockView, {} as any, {} as any);
 
@@ -308,7 +352,7 @@ describe('SidebarViewProvider', () => {
         asWebviewUri: jest.fn((uri: any) => uri.fsPath),
         cspSource: 'csp',
       };
-      const mockView: any = { webview: mockWebview };
+      const mockView: any = { webview: mockWebview, visible: true, onDidChangeVisibility: jest.fn(), onDidDispose: jest.fn() };
 
       provider.resolveWebviewView(mockView, {} as any, {} as any);
       expect(provider.uiService).toBeDefined();

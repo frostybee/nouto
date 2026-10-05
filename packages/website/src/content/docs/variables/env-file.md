@@ -9,7 +9,7 @@ Link a `.env` file to use the variables your application already reads, without 
 
 ## Link the file
 
-1. Open the Environments panel. In VS Code, click **Environments** in the API Testing view's title bar. In the desktop app, click **Environments** in the left rail.
+1. Open the Environments panel. In VS Code, run **Nouto: Environments** from the Command Palette, or choose **Manage Environments...** in the [environment picker](/variables/environments#activate-an-environment). In the desktop app, click **Environments** in the left rail.
 2. Select **Environments**.
 3. In the **.env File** section above the environment list, click **Link .env file**.
 4. Select your `.env` file.

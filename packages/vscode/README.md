@@ -39,7 +39,7 @@ Two storage modes: **global** (VS Code global storage) or **workspace** (`.nouto
 
 ### Environment Variables
 
-`{{variableName}}` substitution in URLs, headers, params, and bodies. Scope resolves from request to folder to collection to global. Secrets stored in VS Code SecretStorage.
+`{{variableName}}` substitution in URLs, headers, params, and bodies. Scope resolves from request to folder to collection to global. Secrets stored in VS Code SecretStorage. The status bar shows the active environment; click it to switch.
 
 Dynamic variables: `{{$uuid.v4}}`, `{{$timestamp.unix}}`, `{{$random.int, 0, 100}}`, 60+ `{{$faker.*}}` generators for realistic mock data, `{{$prompt.keyName}}` for send-time input dialogs, and `{{$file.read, /path}}` for file content. Chain responses with `{{$response.body.token}}`. Import from `.env` files with live reload.
 

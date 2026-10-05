@@ -11,7 +11,7 @@ An environment is a named set of variables, such as `Local`, `Staging`, or `Prod
 
 You manage environments and global variables in the Environments panel:
 
-- In VS Code, click **Environments** in the API Testing view's title bar, or run **Nouto: Environments** from the Command Palette. VS Code shows the title bar icons when you hover over or focus the view.
+- In VS Code, open the environment picker and choose **Manage Environments...**, or run **Nouto: Environments** from the Command Palette. See [Activate an environment](#activate-an-environment) for the ways to open the picker.
 - In the desktop app, click **Environments** in the left rail.
 
 The panel has three sections: **Global Variables**, **Environments**, and **Cookie Jar**. For cookie jars, see [Cookie jars](/tools/cookie-jars).
@@ -39,15 +39,23 @@ Each environment in the list also has buttons to **Duplicate**, **Export**, and 
 
 ## Activate an environment
 
-Only one environment is active at a time. To activate one, use any of these controls:
+Only one environment is active at a time.
+
+In VS Code, switch environments with the environment picker. Open it in any of these ways:
+
+- Click the environment name in the status bar. Nouto shows it while the Nouto sidebar or a Nouto editor tab is visible. To hide it, right-click the status bar and clear **Nouto Environment**.
+- Click **Select Environment** (the `{x}` icon) in the API Testing view's title bar. VS Code shows the title bar icons when you hover over or focus the view.
+- Run **Nouto: Select Environment** from the Command Palette.
+
+Select an environment, or **No Environment** to send requests without one. The picker marks the active environment **Active**. **Manage Environments...** at the bottom of the list opens the Environments panel.
+
+You can also activate an environment in these places:
 
 - In the Environments panel, click **Set active** (the circle icon) next to the environment. Click it again to deactivate the environment.
 - In VS Code, click **More actions** (`...`) next to **Send** in the request editor, and select the environment under **Environment**.
 - In the desktop app, select the environment from the environment dropdown in the top toolbar.
 
-The active environment has a check mark in the Environments panel. To send requests without an environment, select **No Environment**.
-
-In VS Code, the API Testing view's title bar shows the name of the active environment, or **No environment** when none is active.
+The active environment has a check mark in the Environments panel. In VS Code, the status bar and the API Testing view's title bar also show its name. The title bar shows **No environment** when environments exist but none is active.
 
 ## Use variables in a request
 

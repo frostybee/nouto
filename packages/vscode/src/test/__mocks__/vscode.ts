@@ -89,9 +89,14 @@ export const workspace = {
 const didChangeActiveTextEditor = createEmitter<any>();
 const didChangeTextEditorSelection = createEmitter<any>();
 const didChangeTabs = createEmitter<any>();
+const didChangeTabGroups = createEmitter<any>();
 
 export class TabInputText {
   constructor(readonly uri: { toString(): string }) {}
+}
+
+export class TabInputWebview {
+  constructor(readonly viewType: string) {}
 }
 
 export interface FakeTreeView {
@@ -144,9 +149,22 @@ export const window = {
   }),
   createWebviewPanel: jest.fn(),
   setStatusBarMessage: jest.fn().mockReturnValue({ dispose: jest.fn() }),
+  createStatusBarItem: jest.fn((id?: string, alignment?: number, priority?: number) => ({
+    id,
+    alignment,
+    priority,
+    name: undefined as string | undefined,
+    text: '',
+    tooltip: undefined as string | undefined,
+    command: undefined as string | undefined,
+    show: jest.fn(),
+    hide: jest.fn(),
+    dispose: jest.fn(),
+  })),
   tabGroups: {
-    all: [] as Array<{ tabs: Array<{ input: unknown }> }>,
+    all: [] as Array<{ tabs: Array<{ input: unknown }>; activeTab?: { input: unknown } }>,
     onDidChangeTabs: jest.fn((listener: (event: any) => void) => didChangeTabs.event(listener)),
+    onDidChangeTabGroups: jest.fn((listener: (event: any) => void) => didChangeTabGroups.event(listener)),
   },
   // Runs the task immediately, mirroring VS Code resolving the returned promise.
   withProgress: jest.fn((_options: any, task: (...args: any[]) => any) =>
@@ -538,6 +556,12 @@ export function __setOpenTabs(uris: Array<{ toString(): string }>): void {
   didChangeTabs.fire({ opened: [], closed: [], changed: [] });
 }
 
+/** Replaces the mock tab groups, one group per active tab input, and fires onDidChangeTabGroups. */
+export function __setActiveTabs(inputs: unknown[]): void {
+  window.tabGroups.all = inputs.map((input) => ({ tabs: [{ input }], activeTab: { input } }));
+  didChangeTabGroups.fire({ opened: [], closed: [], changed: [] });
+}
+
 /** Minimal WebviewPanel double: records posted messages and runs dispose handlers. */
 export function __createFakeWebviewPanel(viewType = 'nouto.openApiPreviewPanel') {
   const disposeHandlers: Array<() => void> = [];
@@ -630,6 +654,11 @@ export enum ConfigurationTarget {
 export enum QuickPickItemKind {
   Separator = -1,
   Default = 0,
+}
+
+export enum StatusBarAlignment {
+  Left = 1,
+  Right = 2,
 }
 
 export const RelativePattern = jest.fn().mockImplementation((base: string, pattern: string) => ({

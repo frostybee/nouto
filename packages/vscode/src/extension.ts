@@ -13,6 +13,7 @@ import { OpenApiPreviewPanelManager } from './providers/OpenApiPreviewPanelManag
 import { OpenApiCodeLensProvider } from './providers/OpenApiCodeLensProvider';
 import { OpenApiOutlineProvider } from './providers/OpenApiOutlineProvider';
 import { createOpenApiActionService } from './services/OpenApiActionService';
+import { EnvironmentStatusBar } from './services/EnvironmentStatusBar';
 import { OpenApiDocsSnapshotManager } from './services/openapi';
 import { VscodeFileResolver } from './services/openapi/vscodeFileResolver';
 import {
@@ -54,6 +55,11 @@ export async function activate(context: vscode.ExtensionContext) {
 
   // Give sidebar provider access to panel manager (for creating quick requests with URLs)
   sidebarProvider.setPanelManager(panelManager);
+
+  // Active environment in the status bar, opening the environment picker
+  const environmentStatusBar = new EnvironmentStatusBar();
+  sidebarProvider.setEnvironmentStatusBar(environmentStatusBar);
+  context.subscriptions.push(environmentStatusBar);
 
   // Register panel serializer for persistence across VS Code reload
   const serializer = vscode.window.registerWebviewPanelSerializer(

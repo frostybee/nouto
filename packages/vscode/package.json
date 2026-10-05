@@ -505,6 +505,12 @@
         "icon": "$(globe)"
       },
       {
+        "command": "nouto.selectEnvironment",
+        "title": "Select Environment",
+        "category": "Nouto",
+        "icon": "$(symbol-variable)"
+      },
+      {
         "command": "nouto.openAbout",
         "title": "About",
         "category": "Nouto",
@@ -657,7 +663,7 @@
           "group": "z_settings@1"
         },
         {
-          "command": "nouto.openEnvironments",
+          "command": "nouto.selectEnvironment",
           "when": "view == nouto.sidebar",
           "group": "navigation@1"
         },

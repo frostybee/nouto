@@ -6,11 +6,12 @@ All notable changes to the Nouto VS Code extension will be documented in this fi
 
 ### Added
 
+- An environment picker to switch the active environment. Open it from the status bar item that shows the active environment, the `{x}` icon in the API Testing view's title bar, or **Nouto: Select Environment**. Its **Manage Environments...** entry opens the Environments panel.
 - The **Nouto: Cookie Jars** command opens the Environments panel on the Cookie Jar tab.
 
 ### Changed
 
-- Environments, Cookie Jars, Mock Server, and Settings moved from the vertical rail on the sidebar's left edge to icons in the API Testing view's title bar, so collections and history use the full sidebar width. The title bar also shows the name of the active environment. About is still available from the view's `...` menu and from Settings.
+- The environment picker, Cookie Jars, Mock Server, and Settings moved from the vertical rail on the sidebar's left edge to icons in the API Testing view's title bar, so collections and history use the full sidebar width. The title bar also shows the name of the active environment. About is still available from the view's `...` menu and from Settings.
 - The collection and folder context menus group the request types under a New Request submenu, and the collection menu groups the Postman, Nouto, and OpenAPI exports under an Export submenu. When the sidebar is too narrow to show a submenu beside the menu, the submenu opens in place with a back row.
 
 ### Fixed

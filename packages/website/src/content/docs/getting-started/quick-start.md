@@ -26,7 +26,7 @@ The request now appears under `My API` in the sidebar. When you change a saved r
 
 ## Use an environment variable
 
-1. Open the Environments panel. In VS Code, click the **Environments** icon in the API Testing view's title bar. On desktop, click **Environments** in the left rail.
+1. Open the Environments panel. In VS Code, run **Nouto: Environments** from the Command Palette, or choose **Manage Environments...** in the [environment picker](/variables/environments#activate-an-environment). On desktop, click **Environments** in the left rail.
 2. Click **New environment**, then change the environment name to `Development`.
 3. Add a variable named `baseUrl` with the value `https://jsonplaceholder.typicode.com`.
 4. Click **Set active** next to `Development`.
