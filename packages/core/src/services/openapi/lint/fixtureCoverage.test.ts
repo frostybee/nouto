@@ -60,10 +60,10 @@ describe('lint fixture coverage', () => {
     it('docs quote the current rule and quick-fix counts', () => {
       const features = readFileSync(join(DOCS, 'index.md'), 'utf8');
       const groups = new Set(LINT_RULES_CATALOG.map((entry) => entry.group)).size;
-      const words = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve'];
-      expect(linting).toContain(`ships ${ALL_LINT_RULES.length} lint rules organized into ${words[groups]} groups`);
-      expect(features).toContain(`${ALL_LINT_RULES.length} lint rules across ${words[groups]} groups`);
-      expect(features).toContain(`${LINT_FIXABLE_CODES.size} of the lint rules`);
+      expect(linting).toContain(`has ${ALL_LINT_RULES.length} rules in ${groups} groups`);
+      expect(linting).toContain(`${LINT_FIXABLE_CODES.size} rules do`);
+      expect(features).toContain(`${ALL_LINT_RULES.length} rules in ${groups} groups`);
+      expect(features).toContain(`${LINT_FIXABLE_CODES.size} of them with a one-click quick fix`);
     });
 
     it('linting.md marks fixability consistently with LINT_FIXABLE_CODES', () => {

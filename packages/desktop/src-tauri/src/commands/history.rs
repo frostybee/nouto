@@ -240,7 +240,7 @@ pub async fn get_history_stats(app: AppHandle) -> Result<(), AppError> {
     // Top endpoints by count (top 10)
     let mut ep_vec: Vec<((String, String), (usize, f64, usize))> =
         endpoint_map.into_iter().collect();
-    ep_vec.sort_by(|a, b| b.1 .0.cmp(&a.1 .0));
+    ep_vec.sort_by_key(|a| std::cmp::Reverse(a.1 .0));
     let top_endpoints: Vec<serde_json::Value> = ep_vec
         .iter()
         .take(10)

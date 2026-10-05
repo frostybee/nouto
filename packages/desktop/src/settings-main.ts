@@ -2,7 +2,12 @@ import { mount } from 'svelte';
 import SettingsPage from '@nouto/ui/components/shared/SettingsPage.svelte';
 import './app.css';
 import { initTheme, setOnAppearanceChanged, currentTheme } from '@nouto/ui/stores/theme.svelte';
-import { loadSettings, setAppVersion, setIconUrl, type UserSettings } from '@nouto/ui/stores/settings.svelte';
+import {
+  loadSettings,
+  setAppVersion,
+  setIconUrl,
+  type UserSettings,
+} from '@nouto/ui/stores/settings.svelte';
 import { listen, emitTo } from '@tauri-apps/api/event';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { getMessageBus } from './lib/tauri';
@@ -47,7 +52,9 @@ listen<string>('focusSection', (event) => {
 
 messageBus.send({ type: 'getSettings' });
 
-getVersion().then((v) => setAppVersion(v)).catch(() => {});
+getVersion()
+  .then((v) => setAppVersion(v))
+  .catch(() => {});
 setIconUrl(noutoIconUrl);
 
 window.addEventListener('storage', (e) => {

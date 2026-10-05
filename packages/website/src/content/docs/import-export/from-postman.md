@@ -29,9 +29,7 @@ Nouto imports Postman Collection v2.0 and v2.1 files and Postman environment fil
 
 1. In Postman, open the `...` menu of the collection and select **Export**.
 2. Choose **Collection v2.1** and save the file.
-3. Import the file into Nouto:
-   - In VS Code, run **Nouto: Import Postman Collection** from the Command Palette.
-   - In the desktop app, click **Import / Export** in the Collections toolbar and select **Import Collection**.
+3. In the Nouto sidebar, click **Import / Export** (the cloud icon) in the Collections toolbar and select **Import Collection**. Nouto detects the Postman format from the file. In VS Code, you can also run **Nouto: Import Postman Collection** from the Command Palette.
 4. Select the exported JSON file.
 
 The collection appears in the sidebar. In VS Code, if the collection has variables, Nouto asks whether to save them as an environment. Select **Yes** to create an environment named after the collection.

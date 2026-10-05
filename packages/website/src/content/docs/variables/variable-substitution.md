@@ -124,3 +124,24 @@ When the value takes effect depends on how you send the request:
 - When you send a single request, Nouto substitutes its variables before the pre-request script runs. A value set in the pre-request script applies from the next send. To change the current request from a pre-request script, modify `nt.request` instead. See the [script API](/testing/script-api).
 - In the [Collection Runner](/testing/collection-runner), a value set in a pre-request script applies to the same request.
 - A value set in a post-response script applies to every request sent after it.
+
+## Pass a login token to another request
+
+A post-response script on the login request saves the token, and every other request reads it with a variable. This works across editor tabs in VS Code, unlike `{{$response.body.token}}`.
+
+Before you start, activate an environment. `nt.setVar()` saves to the active environment, and Nouto discards the value when no environment is active. See [Activate an environment](/variables/environments#activate-an-environment).
+
+1. Open the login request, select the **Scripts** tab, and select **Post-response Script**.
+2. Enter this script, replacing `token` with the name of the field your API returns:
+
+   ```js
+   nt.setVar('authToken', nt.response.json().token);
+   ```
+
+3. Send the login request. Nouto saves the token as `authToken` in the active environment.
+4. Open the request that needs the token, select the **Auth** tab, and select **Bearer Token** from the **Type** dropdown.
+5. Enter `{{authToken}}` in the **Token** field and send the request.
+
+Nouto sends `Authorization: Bearer` followed by the saved token. When the token expires, send the login request again. Every request that uses `{{authToken}}` picks up the new token on its next send.
+
+For a quick test without a script, enter `{{$response.body.token}}` in the **Token** field instead. It reads the most recent response, which in VS Code is the last response received in the same editor tab. See [Response values](#response-values).

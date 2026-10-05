@@ -214,7 +214,7 @@ pub async fn list_crash_reports(app: AppHandle) -> Result<Vec<String>, AppError>
             .unwrap_or(0);
         reports.push((name, mtime));
     }
-    reports.sort_by(|a, b| b.1.cmp(&a.1));
+    reports.sort_by_key(|a| std::cmp::Reverse(a.1));
 
     let _ = app;
     Ok(reports.into_iter().map(|(name, _)| name).collect())

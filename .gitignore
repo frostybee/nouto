@@ -22,6 +22,7 @@ dist/
 dist-spike/
 out/
 src/webview/dist/
+*.tsbuildinfo
 .fastembed_cache/
 
 # test coverage

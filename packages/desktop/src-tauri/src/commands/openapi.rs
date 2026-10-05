@@ -413,11 +413,9 @@ fn fold_nullable(value: &mut Value) {
                             Value::Array(vec![Value::String(t), Value::String("null".into())]),
                         );
                     }
-                    Some(Value::Array(mut types)) => {
-                        if !types.iter().any(|t| t == "null") {
-                            types.push(Value::String("null".into()));
-                            map.insert("type".into(), Value::Array(types));
-                        }
+                    Some(Value::Array(mut types)) if !types.iter().any(|t| t == "null") => {
+                        types.push(Value::String("null".into()));
+                        map.insert("type".into(), Value::Array(types));
                     }
                     _ => {}
                 }

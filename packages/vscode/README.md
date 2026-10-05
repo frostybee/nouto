@@ -53,7 +53,7 @@ Dynamic variables: `{{$uuid.v4}}`, `{{$timestamp.unix}}`, `{{$random.int, 0, 100
 
 ### Testing and Automation
 
-Pre-request and post-response JavaScript scripts with `nt.sendRequest()`, `nt.setVariable()`, and `nt.test()`. Scripts inherit from parent collections.
+Pre-request and post-response JavaScript scripts with `nt.sendRequest()`, `nt.setVar()`, and `nt.test()`. Scripts inherit from parent collections.
 
 No code assertion editor covering status codes, headers, body, JSONPath, response time, and JSON Schema. The collection runner supports iterations, CSV/JSON data files, stop on failure, and exports as JUnit XML, JSON, CSV, or HTML. The benchmarking tool reports percentiles from p50 through p99, concurrency, and requests per second.
 

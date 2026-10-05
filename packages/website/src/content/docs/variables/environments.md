@@ -47,6 +47,8 @@ Only one environment is active at a time. To activate one, use any of these cont
 
 The active environment has a check mark in the Environments panel. To send requests without an environment, select **No Environment**.
 
+In VS Code, hover **Environments** in the sidebar toolbar to see the name of the active environment. A dot on the icon means you have environments but none of them is active.
+
 ## Use variables in a request
 
 Reference a variable by name inside double braces in the URL, query parameters, headers, body, or auth fields:
@@ -59,6 +61,20 @@ Authorization: Bearer {{apiKey}}
 Type `{{` in the URL bar, a key-value table, or the body editor to see the available variables. Autocomplete lists variables from the active environment, the current collection and folder, global variables, and the linked `.env` file. Secret values show as `******`.
 
 For the complete list of fields and the placeholders for responses and cookies, see [Variable substitution](/variables/variable-substitution).
+
+## Check how variables resolve
+
+When the URL contains a placeholder, an icon after the URL shows whether Nouto can fill it in:
+
+| Icon | Meaning |
+|------|---------|
+| Green check | Every variable in the URL has a value. |
+| Orange warning | At least one variable has no value in the active environment, collection or folder variables, global variables, or `.env` file. |
+| Blue lightning bolt | The URL uses dynamic, response, or cookie placeholders, such as `{{$uuid.v4}}` or `{{Login.$response.body.id}}`, and every other variable has a value. |
+
+Hover the icon to list the placeholders by status, for example `Resolved: baseUrl | Unresolved: apiKey`. The tooltip shows names, not values.
+
+To see the values, click **Copy resolved URL** (the copy icon at the end of the URL bar) and paste the result. Nouto copies the URL with its query parameters and replaces each placeholder that has a value. Dynamic placeholders generate a new value on every substitution, so the copied value can differ from the one Nouto sends.
 
 ## Disable a variable
 

@@ -16,9 +16,24 @@ To start without an existing file, run one of these commands from the Command Pa
 - **Nouto: New OpenAPI Specification** opens an untitled OpenAPI 3.1 YAML document with a sample server and path.
 - **Nouto: Open Example OpenAPI Specification** opens the Swagger Petstore example as OpenAPI 3.0 or 3.2.
 
-While an OpenAPI file is active, the editor title bar shows three buttons: **Open OpenAPI Preview**, **Generate Collection from OpenAPI**, and **Open OpenAPI Documentation in Browser**. A **Nouto: Try It** CodeLens above each operation opens that operation as an unsaved request.
+While an OpenAPI file is active, the editor title bar shows three buttons: **Open OpenAPI Preview**, **Generate Collection from OpenAPI**, and **Open OpenAPI Documentation in Browser**. A **Nouto: Try It** CodeLens above each operation opens that operation as an unsaved request. See [Try an operation in VS Code](#try-an-operation-in-vs-code).
 
 The **OpenAPI Outline** view in the Nouto sidebar shows the structure of the active spec. See [Outline navigator](/openapi/outline).
+
+## Try an operation in VS Code
+
+Click **Nouto: Try It** above an operation's method key, such as `get:`. Nouto opens the operation as an unsaved request in the editor column beside the spec. It doesn't send the request: review it, then click **Send**.
+
+Nouto builds the request from the spec text in the editor, including unsaved changes:
+
+- The URL is the first server URL followed by the operation's path. Nouto takes the servers from the operation, then from the path item, then from the document, and replaces server variables with their `default` values.
+- Path parameters such as `{id}` stay in the URL. Fill in their values on the **Path** tab. Nouto prefills a value when the parameter has an `example` or a schema `default`.
+- Query parameters, headers, the request body, and auth come from the operation. When the operation lists several security alternatives, Nouto applies the first one.
+- Cookie parameters are skipped.
+
+When part of the operation doesn't convert cleanly, Nouto shows a warning that lists each problem. For example, a spec with no servers gives a URL that contains only the path, and a server URL without a scheme needs a base URL before the request can run.
+
+Webhooks have no **Try It** lens. To try operations from the rendered documentation instead, see [Send requests from the documentation](/openapi/preview#send-requests-from-the-documentation).
 
 ## Open a spec in the desktop app
 
