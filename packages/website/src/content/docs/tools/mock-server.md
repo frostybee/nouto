@@ -9,7 +9,7 @@ The mock server answers HTTP requests on a local port with responses you define.
 
 ## Open the mock server
 
-In VS Code, click **Mock Server** in the sidebar's action bar, or run **Nouto: Open Mock Server** from the Command Palette.
+In VS Code, click **Mock Server** in the toolbar at the top of the Nouto sidebar, or run **Nouto: Open Mock Server** from the Command Palette.
 
 In the desktop app, click **Mock Server** in the left rail.
 

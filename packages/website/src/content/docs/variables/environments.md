@@ -11,7 +11,7 @@ An environment is a named set of variables, such as `Local`, `Staging`, or `Prod
 
 You manage environments and global variables in the Environments panel:
 
-- In VS Code, click **Environments** in the action bar of the Nouto sidebar, or run **Nouto: Environments** from the Command Palette.
+- In VS Code, click **Environments** in the toolbar at the top of the Nouto sidebar, or run **Nouto: Environments** from the Command Palette.
 - In the desktop app, click **Environments** in the left rail.
 
 The panel has three sections: **Global Variables**, **Environments**, and **Cookie Jar**. For cookie jars, see [Cookie jars](/tools/cookie-jars).

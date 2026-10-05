@@ -11,6 +11,8 @@
   import { initHistory, setHistoryStats, setHistoryStatsLoading } from './stores/history.svelte';
   import { ui, setSidebarTab, type SidebarTab } from './stores/ui.svelte';
   import Tooltip from './components/shared/Tooltip.svelte';
+  import SidebarToolbar from './components/sidebar/SidebarToolbar.svelte';
+  import type { ActionPanel } from './components/sidebar/SidebarToolbar.svelte';
   import NotificationStack from './components/shared/NotificationStack.svelte';
   import InputBoxModal from './components/shared/InputBoxModal.svelte';
   import QuickPickModal from './components/shared/QuickPickModal.svelte';
@@ -45,13 +47,11 @@
 
   let activeTab = $derived(ui.sidebarTab);
   let isLoading = $state(true);
-  let activeActionPanel = $state<string | null>(null);
+  let activeActionPanel = $state<ActionPanel | null>(null);
 
-  // Icon bar badge state
+  // Toolbar badge state
   const hasNoEnv = $derived(environments().length > 0 && !activeEnvironment());
-  const envTooltip = $derived(activeEnvironment() ? `Environment: ${activeEnvironment()!.name}` : 'Environments');
   const cookieCount = $derived(activeCookieJar()?.cookieCount ?? 0);
-  const cookieTooltip = $derived(cookieCount > 0 ? `Cookie Jars (${cookieCount} cookies)` : 'Cookie Jars');
 
   // Auto-scroll during drag near edges
   // NOTE: .tab-content itself never scrolls. The actual scrollable element is
@@ -223,11 +223,7 @@
         break;
       case 'actionPanelClosed': {
         const p = message.data?.panel;
-        if (
-          p === activeActionPanel ||
-          (p === 'settings' && activeActionPanel === 'about') ||
-          (p === 'environments' && activeActionPanel === 'cookieJar')
-        ) {
+        if (p === activeActionPanel || (p === 'environments' && activeActionPanel === 'cookieJar')) {
           activeActionPanel = null;
         }
         break;
@@ -266,13 +262,24 @@
     busPostMessage(message);
   }
 
-  function handleActionBarClick(panelKey: string, action: () => void) {
-    if (activeActionPanel === panelKey) {
+  function openActionPanel(panel: ActionPanel) {
+    if (activeActionPanel === panel) {
       activeActionPanel = null;
       return;
     }
-    activeActionPanel = panelKey;
-    action();
+    activeActionPanel = panel;
+    switch (panel) {
+      case 'environments':
+      case 'cookieJar':
+        postMessage({ type: 'openEnvironmentsPanel', data: { tab: panel } });
+        break;
+      case 'mockServer':
+        postMessage({ type: 'openMockServer' });
+        break;
+      case 'settings':
+        postMessage({ type: 'openSettings' });
+        break;
+    }
   }
 
   let newRequestDropdownOpen = $state(false);
@@ -369,41 +376,15 @@
 {/if}
 
 <div class="sidebar">
-  <div class="action-bar">
-    <Tooltip text={envTooltip}>
-      <button class="action-bar-btn" class:active={activeActionPanel === 'environments'} onclick={() => handleActionBarClick('environments', () => postMessage({ type: 'openEnvironmentsPanel', data: { tab: 'environments' } }))} aria-label="Environments">
-        <span class="codicon codicon-symbol-variable"></span>
-        {#if hasNoEnv}
-          <span class="action-badge action-badge-warning"></span>
-        {/if}
-      </button>
-    </Tooltip>
-    <Tooltip text={cookieTooltip}>
-      <button class="action-bar-btn" class:active={activeActionPanel === 'cookieJar'} onclick={() => handleActionBarClick('cookieJar', () => postMessage({ type: 'openEnvironmentsPanel', data: { tab: 'cookieJar' } }))} aria-label="Cookie Jars">
-        <span class="codicon codicon-globe"></span>
-        {#if cookieCount > 0}
-          <span class="action-badge action-badge-info">{cookieCount > 9 ? '9+' : cookieCount}</span>
-        {/if}
-      </button>
-    </Tooltip>
-    <Tooltip text="Mock Server">
-      <button class="action-bar-btn" class:active={activeActionPanel === 'mockServer'} onclick={() => handleActionBarClick('mockServer', () => postMessage({ type: 'openMockServer' }))} aria-label="Mock Server">
-        <span class="codicon codicon-server"></span>
-      </button>
-    </Tooltip>
-    <Tooltip text="Settings">
-      <button class="action-bar-btn" class:active={activeActionPanel === 'settings'} onclick={() => handleActionBarClick('settings', () => postMessage({ type: 'openSettings' }))} aria-label="Settings">
-        <span class="codicon codicon-gear"></span>
-      </button>
-    </Tooltip>
-    <Tooltip text="About">
-      <button class="action-bar-btn" class:active={activeActionPanel === 'about'} onclick={() => handleActionBarClick('about', () => postMessage({ type: 'openSettings', data: { section: 'about' } }))} aria-label="About">
-        <span class="codicon codicon-info"></span>
-      </button>
-    </Tooltip>
-  </div>
-
   <div class="sidebar-main">
+  <SidebarToolbar
+    activePanel={activeActionPanel}
+    activeEnvironmentName={activeEnvironment()?.name}
+    {hasNoEnv}
+    {cookieCount}
+    onselect={openActionPanel}
+  />
+
   <div class="new-request-bar">
     <div class="new-request-dropdown">
       <Tooltip text="New Request (Ctrl+N)">
@@ -557,89 +538,6 @@
     z-index: 992;
   }
 
-  .action-bar {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.154rem;
-    padding: 4.462rem 0.308rem 0.615rem;
-    flex-shrink: 0;
-    border-right: 1px solid var(--hf-panel-border);
-  }
-
-  .action-bar-btn {
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 2.154rem;
-    height: 2.154rem;
-    background: transparent;
-    border: none;
-    border-radius: 0.308rem;
-    color: var(--hf-foreground);
-    cursor: pointer;
-    opacity: var(--hf-icon-opacity);
-    transition: opacity 0.15s, background 0.15s;
-    position: relative;
-  }
-
-  .action-bar-btn:hover {
-    opacity: var(--hf-icon-opacity-hover);
-    background: var(--hf-list-hoverBackground);
-  }
-
-  .action-bar-btn.active {
-    opacity: var(--hf-icon-opacity-active);
-  }
-
-  .action-badge {
-    position: absolute;
-    border: 1px solid var(--hf-sideBar-background, var(--hf-editor-background));
-    pointer-events: none;
-  }
-
-  .action-badge-warning {
-    top: 0.154rem;
-    right: 0.154rem;
-    width: 7px;
-    height: 0.538rem;
-    border-radius: 50%;
-    background: var(--hf-notificationsWarningIcon-foreground, #cca700);
-  }
-
-  .action-badge-info {
-    top: 0;
-    right: 0;
-    min-width: 1.077rem;
-    height: 1.077rem;
-    border-radius: 0.538rem;
-    padding: 0 0.231rem;
-    background: var(--hf-badge-background, #4d7bd4);
-    color: var(--hf-badge-foreground, #fff);
-    font-size: 0.615rem;
-    font-weight: 700;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    line-height: 1;
-  }
-
-  .action-bar-btn.active::before {
-    content: '';
-    position: absolute;
-    left: -0.308rem;
-    top: 0.308rem;
-    bottom: 0.308rem;
-    width: 2px;
-    border-radius: 0.077rem;
-    background: var(--hf-focusBorder, var(--hf-button-background));
-  }
-
-  .action-bar-btn .codicon {
-    font-size: 1.231rem;
-  }
-
   .sidebar-main {
     display: flex;
     flex-direction: column;
@@ -652,7 +550,7 @@
     display: flex;
     align-items: center;
     gap: 0.462rem;
-    padding: 0.769rem 0.769rem 0.462rem;
+    padding: 0.462rem 0.769rem;
     flex-shrink: 0;
   }
 
