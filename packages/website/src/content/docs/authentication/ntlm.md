@@ -1,57 +1,42 @@
 ---
-title: NTLM Authentication
-description: Configure NTLM (Windows-integrated) authentication in Nouto for corporate intranets, IIS servers, and Windows-based APIs.
+title: NTLM authentication
+description: Configure NTLM (Windows) authentication in Nouto for IIS, SharePoint on-premises, and other servers that use Windows authentication.
 sidebar:
   order: 6
 ---
 
-NTLM (NT LAN Manager) is a Windows challenge-response authentication protocol used in corporate intranets, IIS applications, SharePoint, and other Windows-based services. Nouto handles the multi-step NTLM handshake automatically.
+NTLM (NT LAN Manager) is a Windows challenge-response authentication protocol. Use it for servers that respond to an unauthenticated request with `WWW-Authenticate: NTLM`, such as IIS sites configured for Windows authentication and SharePoint on-premises. Nouto runs the NTLM handshake for you on every send.
 
-## Setup
+## Set up NTLM auth
 
-1. Open a request and click the **Auth** tab.
-2. Select **NTLM** from the type dropdown.
-3. Fill in the fields:
-   - **Username**: your Windows username
-   - **Password**: your Windows password
-   - **Domain**: your Windows domain (e.g., `CORP`, `EXAMPLE`); leave blank if not required
+1. Open a request and select the **Auth** tab.
+2. Select **NTLM** from the **Type** dropdown.
+3. Enter the **Username** and **Password** of the Windows account.
+4. If the server requires a domain, enter it in **Domain**, for example `CORPORATE`.
+5. If the server requires a workstation name, enter it in **Workstation**.
 
-## How It Works
+**Domain** and **Workstation** are optional. **Username** and **Password** resolve `{{variable}}` references at send time. **Domain** and **Workstation** are sent as typed.
 
-NTLM uses a three-way handshake. Nouto manages this automatically when you click **Send**:
+## NTLM handshake
 
-1. Nouto sends the initial request without credentials.
-2. The server responds with `401 Unauthorized` and an NTLM challenge.
-3. Nouto computes a response using your credentials and the server's challenge, then resends the request with the NTLM token in the `Authorization` header.
-4. The server validates the response and returns the actual result.
+When you click **Send**, Nouto runs the three-message NTLM handshake:
 
-You only see the final response.
+1. Nouto sends the request with an NTLM negotiate message in the `Authorization` header.
+2. The server responds with `401 Unauthorized` and an NTLM challenge in the `WWW-Authenticate` header.
+3. Nouto computes a response from your credentials and the challenge, and sends the request again with it in the `Authorization` header.
 
-## Variable Support
+The response panel shows the server's response to the final request. Nouto never sends the password itself.
 
-All three fields accept `{{variable}}` syntax:
+:::note
+In the VS Code extension, NTLM requests don't go through the proxy configured in Nouto, and the **Timing** tab doesn't break the request time down into phases.
+:::
 
-| Field | Example |
-|-------|---------|
-| Username | `{{NTLM_USERNAME}}` |
-| Password | `{{NTLM_PASSWORD}}` |
-| Domain | `{{NTLM_DOMAIN}}` |
+## Troubleshooting NTLM
 
-## When to Use NTLM
+### `401 Unauthorized` after the handshake
 
-NTLM is the right choice when you are connecting to:
+The server rejected the credentials. Check the username, password, and domain. Some servers expect the domain inside the username as `DOMAIN\username` with **Domain** left empty, which is the format the **Username** placeholder shows. If one format fails, try the other.
 
-- IIS web applications configured for Windows authentication
-- SharePoint on-premises
-- Internal corporate APIs behind a Windows auth gateway
-- Any service that responds to unauthenticated requests with a `WWW-Authenticate: NTLM` header
+### Connection reset or no response
 
-For modern APIs outside of Windows environments, prefer Basic, Bearer, or OAuth 2.0 authentication.
-
-## Troubleshooting
-
-**401 Unauthorized after handshake**: The username, password, or domain is incorrect. Verify each field and check whether the domain prefix is required by the server.
-
-**Connection reset or no response**: Some proxies strip NTLM headers. If you are behind a corporate proxy, check whether the proxy supports NTLM pass-through.
-
-**Domain format**: Some servers expect the domain and username as `DOMAIN\username` in the username field with the domain left blank. Try both formats if authentication fails.
+A proxy between Nouto and the server can strip the NTLM headers or break the connection the handshake depends on. If you're behind a corporate proxy, check whether it supports NTLM pass-through.

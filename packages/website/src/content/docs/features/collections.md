@@ -1,56 +1,65 @@
 ---
 title: Collections
-description: Organize requests into nested collections with folders, shared auth, headers, and variables.
+description: Organize Nouto requests into collections and nested folders, and share auth, headers, variables, and scripts across them.
 ---
 
-Collections let you group related requests and share configuration across them. Every request can inherit authentication, headers, and variables from its parent folder or collection, so you configure credentials once and all requests pick them up automatically.
+A collection groups related requests, and folders inside it can nest to any depth. Collections and folders can carry their own auth, headers, variables, scripts, and tests, so you set them up once instead of on every request.
 
-## Creating a Collection
+## Create a collection
 
-Click **New Collection** in the sidebar, or right-click the sidebar background and select **New Collection**. Enter a name and press Enter.
+Click **New Collection** (the `+` icon) in the Collections toolbar of the sidebar. Enter a name, optionally pick a color and an icon, and click **Create**.
 
-## Adding Requests and Folders
+## Add requests and folders
 
-Right-click a collection or folder to open the context menu:
+Right-click a collection or folder and choose one of these:
 
-- **New Request**: create a new unsaved request inside the collection or folder
-- **New Folder**: add a subfolder to group related requests
-- **Import**: import requests from Postman, Insomnia, Hoppscotch, Thunder Client, Bruno, OpenAPI, HAR, cURL, or Nouto native files
+- **New Request** opens a submenu where you pick the request type: HTTP, GraphQL, GraphQL Subscription, WebSocket, SSE, or gRPC.
+- **New Folder** adds a subfolder.
 
-## Saving a Request
+## Save a request to a collection
 
-Press `Ctrl+S` while editing any request to save it to a collection. If the request has not been saved before, a dialog asks which collection and folder to place it in.
+A request that isn't in a collection yet shows a **Save** button next to **Send**. Click it, then pick a collection or folder from the list. You can search the list or create a new collection from it.
 
-## Organizing
+After a request is in a collection, press `Ctrl+S` to save your changes. To discard unsaved changes, click **Revert to Saved** next to the save icon.
 
-- **Drag and drop** to reorder requests and folders in the sidebar
-- **Rename**: double-click a name, or right-click and select Rename
-- **Delete**: right-click and select Delete
+## Organize the sidebar
 
-## Folder Configuration
+- Drag requests, folders, and collections to reorder them or move them between folders.
+- To rename a request, right-click it and select **Rename**.
+- To rename a collection or folder, or change its color and icon, right-click it and select **Edit...**.
+- To copy an item, right-click it and select **Duplicate**.
+- To pin a request to the top of the sidebar, right-click it and select **Pin to top**.
+- To delete an item, right-click it and select **Delete**.
 
-Folders can define shared settings that apply to all requests inside them. Right-click a folder and open its settings to configure:
+Deleted collections, folders, and requests move to the **Trash** tab, where you can restore them or delete them permanently. See [Trash & recovery](/tools/trash-recovery).
 
-- **Auth**: a shared auth method (Bearer, Basic, OAuth 2.0, etc.) that child requests inherit
-- **Headers**: headers merged into every request in the folder
-- **Variables**: key-value pairs that override environment variables for requests in the folder
+## Shared settings for collections and folders
 
-Collections support the same configuration at the collection level, one level above folders.
+Right-click a collection or folder and select **Settings...** to open its settings. The settings have these tabs:
 
-## Auth Inheritance
+| Tab | Effect on the requests inside |
+|-----|-------------------------------|
+| **Auth** | Auth that requests can inherit. See [Inherit auth](#inherit-auth). |
+| **Headers** | Headers added to every request. When the same header name appears at several levels, the deepest level wins: a folder header replaces a collection header, and a request header replaces both. |
+| **Variables** | Variables available to every request. A folder variable replaces a collection variable with the same name. |
+| **Scripts** | Pre-request and post-response scripts that run for every request. Collection scripts run first, then folder scripts from the outermost folder in, then the request's own script. |
+| **Tests** | Assertions applied to every request, in addition to the request's own assertions |
+| **Notes** | Markdown notes about the collection or folder |
 
-Requests default to inheriting auth from their nearest configured ancestor. Each request and folder can choose to **Inherit**, set its **Own** auth, or send **None**. This lets you set a single Bearer token on a collection and have every request use it, while individual requests can override when needed. See [Auth Inheritance](/authentication/inheritance) for details.
+Collection and folder variables take precedence over global variables and `.env` file values, but the active environment takes precedence over them. See [Variable substitution](/variables/variable-substitution).
 
-## Collection Runner
+## Inherit auth
 
-Right-click a collection or folder and select **Run All** to open the Collection Runner. It executes all requests in order, shows real-time progress, and produces a results table with pass/fail status per assertion. Supports data-driven testing with CSV and JSON files, and exports results to JUnit XML for CI/CD pipelines. See [Collection Runner](/testing/collection-runner) for details.
+A request uses its own auth by default. To use the auth configured on its collection or folder instead, open the request's **Auth** tab and select **Inherit**. Nouto walks up from the request's folder to the collection and uses the first auth it finds. The **No Auth** option sends the request without auth, even if a parent has auth configured.
 
-## Import and Export
+For example, set a Bearer token on the collection once and select **Inherit** on each request that needs it. See [Auth inheritance](/authentication/inheritance).
 
-Right-click a collection and select **Export** to save it as Nouto native format, Postman v2.1, or HAR. To import, use the sidebar import button or the Command Palette.
+## Run a collection
 
-See [Exporting](/import-export/exporting) and [From Postman](/import-export/from-postman) for details.
+Right-click a collection or folder and select **Run All** to open the Collection Runner. It sends the requests in order and reports assertion results for each one. The runner supports data-driven runs with CSV or JSON files and exports results as JSON, CSV, JUnit XML, or HTML. See [Collection runner](/testing/collection-runner).
 
-## Notes and recovery
+## Import and export
 
-Collections and folders can also store Markdown notes in their settings. Deleted collections, folders, and saved requests move to **Trash**, where you can restore them before permanently deleting them. See [Notes](/building-requests/notes) and [Trash & Recovery](/tools/trash-recovery).
+To import, click the **Import / Export** button in the Collections toolbar and select **Import Collection**. Nouto detects the file format. See [From Postman](/import-export/from-postman) and [From cURL, OpenAPI, HAR & more](/import-export/from-other) for supported sources.
+
+To export a collection, right-click it, select **Export**, and pick **Postman Collection**, **Nouto Collection**, or **OpenAPI Spec**. See [Exporting](/import-export/exporting).

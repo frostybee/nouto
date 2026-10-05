@@ -1,50 +1,52 @@
 ---
-title: Backup & Restore
-description: Back up your entire Nouto workspace to a single file and restore it on any machine.
+title: Backup and restore
+description: Back up your Nouto collections, environments, history, and settings to one file, and restore them on the same machine or another one.
 sidebar:
   order: 7
 ---
 
-Nouto can export your entire workspace (collections, environments, cookies, history, and more) to a single `.nouto-backup` file. Restore it on the same machine or a different one to recover your full workspace state.
+A backup saves your Nouto data to one file, so you can move to a new machine, reinstall, or keep a copy before a large change. Restoring a backup replaces your current data with the data in the file.
 
-## Creating a Backup
+:::caution
+Backups don't include secrets stored in your OS keychain, such as secret variable values, passwords, and tokens. Re-enter them after you restore. See [Secrets](/variables/secrets).
+:::
 
-1. Open the Command Palette and run **Backup Workspace**.
-2. Select which data types to include (all 9 are checked by default).
-3. Choose a save location.
-4. Nouto writes a `.nouto-backup` file.
+## Create a backup
 
-## Data Types
+Open **Settings**, go to the **Storage** section, and click **Export Backup**. In VS Code, you can also run **Nouto: Export Backup** from the Command Palette or the `...` menu at the top of the Nouto sidebar.
 
-| Data type | What it includes |
-|-----------|-----------------|
-| **Collections** | All collections with folders, requests, auth, headers, variables, scripts, assertions, notes |
-| **Environments** | All environments, global variables, active environment |
-| **Cookies** | All cookie jars with cookies |
-| **History** | Request history entries (up to 10,000 in VS Code, 2,000 in Desktop) |
-| **Drafts** | Unsaved request drafts |
-| **Trash** | Soft-deleted items |
-| **Runner History** | Collection runner results |
-| **Mock Server** | Routes and port configuration |
-| **Settings** | Themes, shortcuts, UI preferences |
+In VS Code, Nouto then asks which data to include. Every item is selected by default:
 
-## Restoring a Backup
+| Item | Contents |
+|------|----------|
+| Collections | Collections with their folders, requests, auth, headers, variables, scripts, assertions, and notes |
+| Environments | Environments, global variables, and the active environment |
+| Cookies | Cookie jars and their cookies |
+| History | Request history |
+| Drafts | Unsaved request drafts |
+| Trash | Deleted items waiting in Trash |
+| Runner history | Collection runner results |
+| Mock server routes | Mock server routes and port |
+| Settings | Settings from the Nouto Settings page |
 
-1. Open the Command Palette and run **Restore Workspace**.
-2. Select the `.nouto-backup` file.
-3. Nouto shows a confirmation dialog listing what will be restored.
+Choose where to save the file. VS Code writes a `.nouto-backup` file.
 
-### Pre-Restore Safety Snapshot
+The desktop app doesn't ask which data to include. It writes a `.zip` file with collections, environments, cookies, history, Trash, runner history, and settings.
 
-Before restoring, Nouto automatically takes a snapshot of your current workspace state. If the restore produces unexpected results, you can revert to the snapshot.
+## Restore a backup
 
-## Cross-Platform
+1. Open **Settings**, go to the **Storage** section, and click **Restore from Backup**. In VS Code, you can also run **Nouto: Restore from Backup**.
+2. Select the backup file.
+3. In VS Code, review the summary of what the backup contains and click **Restore**. The desktop app restores without a confirmation step.
 
-Backup files are compatible across VS Code and the Desktop app. Back up from VS Code and restore on Desktop, or vice versa.
+Nouto replaces your current data with each section in the backup. Sections that the backup doesn't contain stay as they are.
 
-## When to Use Backup
+### Undo a restore
 
-- Moving to a new machine
-- Reinstalling VS Code or the Desktop app
-- Sharing a complete workspace setup with a colleague
-- Periodic safety backups before major changes
+Before it restores, Nouto saves your current data to `pre-restore-snapshot.nouto-backup` in its storage directory. To go back, restore that file with **Restore from Backup**. Each restore overwrites the previous snapshot, so copy the file somewhere else if you need to keep it.
+
+## Move data between VS Code and the desktop app
+
+The desktop app restores VS Code backups. It skips the drafts and mock server routes in them.
+
+VS Code can't restore a desktop backup. It reads only `.nouto-backup` and `.json` files, and the desktop app writes `.zip` files. To move collections from the desktop app to VS Code, export them in the Nouto format and import them. See [Exporting](/import-export/exporting).

@@ -1,33 +1,45 @@
 ---
-title: Generate Types
-description: Generate TypeScript, Zod, Rust, Go, Python, and JSON Schema definitions from JSON loaded in the explorer.
+title: Generate types
+description: Generate TypeScript, Zod, Rust, Go, Python, and JSON Schema definitions from the JSON loaded in the JSON Explorer.
 sidebar:
   order: 3
 ---
 
-Click **Generate Types** in the explorer toolbar to turn the loaded JSON into type definitions. The panel infers the shape of the data, including nested objects and array element types, and renders the result for the language you pick.
+The JSON Explorer can turn the loaded JSON into type definitions that you paste into your code. It infers the shape of the data, including nested objects and array items, and renders it in the language you pick. Type generation works in the JSON Explorer extension and in the [JSON Explorer](/response/json-explorer) inside Nouto.
 
-## Supported outputs
+## Generate type definitions
 
-| Output | Produces |
-|--------|----------|
-| TypeScript | `interface` declarations, with `type` aliases for arrays and primitives |
-| Zod | A `z.object` schema plus an inferred TypeScript type |
-| Rust | `pub struct` definitions |
-| Go | `type ... struct` definitions |
-| Python | `@dataclass` class definitions |
-| JSON Schema | A JSON Schema document |
+1. Optional: select a node in the tree to generate types for that node only. The panel shows `Generating from:` and the path of the selected node. With no node selected, or with the root selected, the panel uses the whole document.
+2. Click **Generate types** (the interface icon) in the explorer toolbar. The **Type Generator** panel opens with TypeScript output.
+3. Click a language button at the top of the panel. The output updates immediately.
+4. Click the copy button in the panel header to copy the output to the clipboard.
 
-Switch languages with the buttons at the top of the panel; the output regenerates immediately.
+The panel follows your selection while it is open, so you can click different nodes to generate types for each one.
 
-## Scoping the output
+## Output by language
 
-With no node selected, types are generated for the whole document. Select a node in the tree first to generate types for just that subtree, which is useful for pulling a single nested object out of a large response.
+| Language | Output |
+|----------|--------|
+| TypeScript | An `interface` for each object. A `type` alias for arrays and primitive values at the root. |
+| Zod | An `import { z } from 'zod'` line, an exported schema for each field that holds an object, a `rootSchema`, and `type Root = z.infer<typeof rootSchema>`. |
+| Rust | A `pub struct` for each object with `#[derive(Debug, Serialize, Deserialize)]`. Field names are converted to snake_case, with `#[serde(rename = "...")]` when the JSON key differs. |
+| Go | A `struct` for each object with PascalCase field names and `json:"key"` tags. |
+| Python | A `@dataclass` class for each object, with field names converted to snake_case. |
+| JSON Schema | A schema with `type`, `properties`, `items`, and a `required` list. |
 
-## Copying the result
+The output contains only the definitions. Add the imports your project needs, such as `use serde::{Deserialize, Serialize};` for Rust or `from dataclasses import dataclass` for Python.
 
-Use the copy button in the panel header to copy the generated output to the clipboard, then paste it into your project.
+## How types are inferred
+
+The generator works from the values in the loaded JSON, so the output describes this sample of the data:
+
+- The root type is named `Root`. Nested types take the PascalCase form of their key, and array item types add `Item`, for example `OrdersItem`.
+- The type of an array's items comes from the first item only. Make sure the first item is representative, or select a more representative node.
+- An empty array becomes an array of an unknown type, such as `any[]` in TypeScript or `Vec<serde_json::Value>` in Rust.
+- A `null` value becomes a nullable or untyped field, such as `any | null` in TypeScript or `Option<serde_json::Value>` in Rust.
+- Whole numbers and decimals map to different types where the language has them, for example `i64` and `f64` in Rust, or `integer` and `number` in JSON Schema.
+- The JSON Schema `required` list includes every key whose value is not `null`.
 
 :::tip
-Looking for counts and type distribution rather than definitions? See the [Statistics](/response/json-explorer#statistics) panel.
+For counts and type distribution rather than definitions, open the [Statistics](/response/json-explorer#statistics) panel.
 :::

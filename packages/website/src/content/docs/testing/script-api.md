@@ -1,218 +1,266 @@
 ---
-title: Script API Reference
-description: Complete reference for the nt API object available in Nouto pre-request and post-response scripts.
+title: Script API reference
+description: Reference for the nt object, Chai assertions, and console in Nouto pre-request and post-response scripts, including the differences between VS Code and the desktop app.
 sidebar:
   order: 2
 ---
 
-The `nt` object is available globally in all scripts. This page documents every property and method.
+Every script runs with a global `nt` object, the Chai helpers `expect` and `assert`, and a `console` object. To learn how to add scripts to a request, see [Scripts](/testing/scripts).
+
+Nouto runs scripts in two engines. The VS Code extension and the CLI use a Node.js `vm` sandbox. The desktop app uses QuickJS. Most members behave the same in both. Where they differ, the entry says so, and [Platform differences](#platform-differences) lists every difference in one place.
 
 ## Request (`nt.request`)
 
-Available in both pre-request (read-write) and post-response (read-only) scripts.
+`nt.request` describes the request. In a pre-request script, changes to it apply to the request that Nouto sends. In a post-response script, it describes the request that was sent, and changes have no effect.
 
-| Property / Method | Type | Pre-request | Post-response | Description |
-|-------------------|------|:-----------:|:-------------:|-------------|
-| `nt.request.url` | `string` | read/write | read-only | Full request URL |
-| `nt.request.method` | `string` | read/write | read-only | HTTP method (`GET`, `POST`, etc.) |
-| `nt.request.headers` | `object` | read/write | read-only | Headers as a plain object |
-| `nt.request.body` | `any` | read/write | read-only | Request body |
-| `nt.request.setHeader(name, value)` | `void` | yes | no | Add or overwrite a request header |
-| `nt.request.removeHeader(name)` | `void` | yes | no | Remove a request header |
+| Member | Type | Description |
+|--------|------|-------------|
+| `nt.request.url` | `string` | Request URL. Assign a new value to change it. |
+| `nt.request.method` | `string` | HTTP method, such as `GET` or `POST`. Assign a new value to change it. |
+| `nt.request.headers` | `object` | Enabled request headers as a plain object |
+| `nt.request.body` | `any` | Request body. Assign a new value to change it. Not available in the desktop app. |
+| `nt.request.setHeader(name, value)` | `void` | Adds a header, or replaces the value of an existing one |
+| `nt.request.removeHeader(name)` | `void` | Deletes a header from `nt.request.headers` |
 
-```javascript
-// Pre-request: add a header
+:::caution
+`removeHeader()` doesn't remove a header that the request already has. It only undoes a `setHeader()` call made earlier in the same script.
+:::
+
+This pre-request script adds a correlation ID header:
+
+```js
 nt.request.setHeader('X-Correlation-ID', nt.uuid());
-
-// Pre-request: modify the URL
-nt.request.url = nt.request.url + '?debug=true';
 ```
 
 ## Response (`nt.response`)
 
-Available in post-response scripts only.
+`nt.response` is available in post-response scripts. In pre-request scripts it's `undefined`.
 
-| Property / Method | Type | Description |
-|-------------------|------|-------------|
+| Member | Type | Description |
+|--------|------|-------------|
 | `nt.response.status` | `number` | HTTP status code |
-| `nt.response.statusText` | `string` | Status text (e.g., `"OK"`) |
+| `nt.response.statusText` | `string` | Status text, for example `OK` |
 | `nt.response.headers` | `object` | Response headers as a plain object |
-| `nt.response.body` | `string` | Raw response body |
-| `nt.response.duration` | `number` | Request duration in milliseconds |
-| `nt.response.json()` | `any` | Parse body as JSON and return the object |
-| `nt.response.text()` | `string` | Return body as a string |
-| `nt.response.header(name)` | `string \| undefined` | Case-insensitive header lookup |
+| `nt.response.body` | `any` | Response body as received. Use `json()` or `text()` when you need a specific type. |
+| `nt.response.duration` | `number` | Response time in milliseconds |
+| `nt.response.json()` | `any` | Parses the body as JSON. Throws if the body isn't valid JSON. |
+| `nt.response.text()` | `string` | Returns the body as a string |
+| `nt.response.header(name)` | `string \| undefined` | Returns a header value. The name is case-insensitive. |
 
-```javascript
+```js
 const body = nt.response.json();
-console.log('Status:', nt.response.status);
-console.log('Content-Type:', nt.response.header('content-type'));
+console.log('Users returned: ' + body.users.length);
+console.log('Content-Type: ' + nt.response.header('content-type'));
 ```
 
 ## Variables
 
-| Method | Description |
-|--------|-------------|
-| `nt.getVar(name)` | Read a variable from the active environment, globals, or `.env` file |
-| `nt.setVar(name, value)` | Set a variable in the active environment |
-| `nt.setVar(name, value, 'global')` | Set a global variable |
-| `nt.env.get(key)` | Read from the active environment |
-| `nt.env.set(key, value)` | Write to the active environment |
-| `nt.globals.get(key)` | Read a global variable |
-| `nt.globals.set(key, value)` | Write a global variable |
+Scripts read and write the variables of the active environment and the global variables. They don't see collection variables, folder variables, or `.env` file variables.
 
-```javascript
+| Member | Description |
+|--------|-------------|
+| `nt.getVar(name)` | Returns the value from the active environment, or from the global variables when the environment doesn't define it. Returns `undefined` when neither defines it. |
+| `nt.setVar(name, value)` | Sets a variable in the active environment |
+| `nt.setVar(name, value, 'global')` | Sets a global variable |
+| `nt.env.get(key)` | Same as `nt.getVar(key)` |
+| `nt.env.set(key, value)` | Same as `nt.setVar(key, value)` |
+| `nt.globals.get(key)` | Same as `nt.getVar(key)`. When the active environment defines the same key, it returns the environment value. |
+| `nt.globals.set(key, value)` | Same as `nt.setVar(key, value, 'global')` |
+
+Pass strings as values. Convert numbers and objects with `String()` or `JSON.stringify()` first.
+
+A value that a script sets is available to the scripts that run after it for the same request. When you send a request from the request editor, Nouto then saves the value to the active environment or to the global variables. In a collection run, the value carries over to the requests that run after it.
+
+:::caution
+Select an active environment before you call `nt.setVar(name, value)`. Without one, Nouto discards environment variables that scripts set. Global variables are saved either way.
+:::
+
+```js
 const token = nt.getVar('authToken');
-nt.setVar('lastResponseId', nt.response.json().id);
+nt.setVar('lastUserId', String(nt.response.json().id));
 nt.setVar('sharedToken', token, 'global');
 ```
 
 ## Tests
 
-| Method | Description |
-|--------|-------------|
-| `nt.test(name, fn)` | Register a named test. The function should throw on failure. |
+`nt.test(name, fn)` runs `fn` right away. If `fn` returns, Nouto records a passed test. If `fn` throws, Nouto records a failed test with the error message.
 
-Tests registered with `nt.test()` appear in the Scripts response tab alongside Chai assertion results. You can also use `expect` (Chai) and `assert` (Chai) directly.
+Pass a synchronous function. Nouto doesn't wait for a returned promise, so a failure inside an `async` function isn't recorded.
 
-```javascript
+Inside `fn`, throw an error yourself or use the Chai helpers `expect` and `assert`:
+
+```js
 nt.test('Status is 201', () => {
   if (nt.response.status !== 201) {
     throw new Error('Expected 201, got ' + nt.response.status);
   }
 });
 
-// Using Chai
-expect(nt.response.status).to.equal(201);
-assert.strictEqual(nt.response.json().active, true);
+nt.test('User is active', () => {
+  expect(nt.response.status).to.equal(201);
+  assert.strictEqual(nt.response.json().active, true);
+});
 ```
 
-## Flow Control
+In VS Code and the CLI, `expect` and `assert` are [Chai](https://www.chaijs.com/api/). The desktop app provides a smaller set, listed under [Platform differences](#platform-differences).
 
-| Method | Description |
-|--------|-------------|
-| `nt.setNextRequest(nameOrId)` | Jump to a specific request by name in the Collection Runner |
-| `nt.setNextRequest(null)` | Stop the Collection Runner after the current request |
+The response panel lists the results of post-response tests on the **Scripts** tab. In the Collection Runner, a failed test in either script marks the request as failed.
 
-```javascript
-// Skip to cleanup if the login failed
+## Flow control
+
+`nt.setNextRequest(nameOrId)` sets the request that the Collection Runner runs next. Pass the request's name or its ID. If no request in the run matches, the runner continues with the next request in order. Outside the Collection Runner, the call has no effect.
+
+```js
+// Post-response: skip to the cleanup request if login failed
 if (nt.response.status !== 200) {
   nt.setNextRequest('Cleanup');
 }
 ```
 
+See [Flow control](/testing/collection-runner/#flow-control) for how the runner handles jumps and loops.
+
+## Run information (`nt.info`)
+
+`nt.info` describes the current run.
+
+| Member | Type | Description |
+|--------|------|-------------|
+| `nt.info.requestName` | `string` | Name of the current request |
+| `nt.info.collectionName` | `string` | Name of the collection. Set only in Collection Runner runs in VS Code and the CLI. |
+| `nt.info.currentIteration` | `number` | Zero-based index of the current iteration. `0` when you send a single request. |
+| `nt.info.totalIterations` | `number` | Number of iterations in the run. `1` when you send a single request. |
+
 ## Utilities
 
-### UUID
+The utility members return values directly in both engines.
 
-```javascript
-nt.uuid()  // → "f47ac10b-58cc-4372-a567-0e02b2c3d479"
+| Member | Returns |
+|--------|---------|
+| `nt.uuid()` | A random UUID v4 |
+| `nt.hash.md5(str)` | MD5 hash of `str` as a hex string |
+| `nt.hash.sha256(str)` | SHA-256 hash of `str` as a hex string |
+| `nt.base64.encode(str)` | `str` encoded as Base64 |
+| `nt.base64.decode(str)` | `str` decoded from Base64 |
+| `nt.random.int(min, max)` | A random integer from `min` to `max`, inclusive |
+| `nt.random.float(min, max)` | A random number from `min` up to, but not including, `max` |
+| `nt.random.string(length)` | A random string of `length` letters and digits |
+| `nt.random.boolean()` | `true` or `false` |
+| `nt.timestamp.unix()` | Current time in seconds since the Unix epoch |
+| `nt.timestamp.unixMs()` | Current time in milliseconds since the Unix epoch |
+| `nt.timestamp.iso()` | Current time as an ISO 8601 string |
+| `nt.getProcessEnv(name)` | Value of an environment variable of the process that runs Nouto: the VS Code extension host or the CLI. Not available in the desktop app. |
+
+```js
+nt.hash.md5('hello');          // "5d41402abc4b2a76b9719d911017c592"
+nt.hash.sha256('hello');       // "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"
+nt.base64.encode('user:pass'); // "dXNlcjpwYXNz"
+nt.base64.decode('dXNlcjpwYXNz'); // "user:pass"
 ```
 
-### Hashing
+## Delays and HTTP calls
 
-```javascript
-nt.hash.md5('hello')     // → "5d41402abc4b2a76b9719d911017c592"
-nt.hash.sha256('hello')  // → "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"
-```
+`nt.delay(ms)` pauses the script:
 
-### Base64
+- In VS Code and the CLI, it returns a promise. Use `await nt.delay(500)`.
+- In the desktop app, it blocks for `ms` milliseconds and returns nothing. Delays longer than 25,000 ms are cut to 25,000 ms. Call it without `await`.
 
-```javascript
-nt.base64.encode('user:pass')    // → "dXNlcjpwYXNz"
-nt.base64.decode('dXNlcjpwYXNz') // → "user:pass"
-```
+`nt.sendRequest(config)` sends an HTTP request from a script. It's available only in the desktop app. In VS Code and the CLI, calling it throws `nt.sendRequest() is not available in this context`.
 
-### Random
+In the desktop app, `nt.sendRequest()` returns the response directly. It accepts these `config` fields:
 
-```javascript
-nt.random.int(1, 100)       // random integer between 1 and 100
-nt.random.float(0.0, 1.0)   // random float
-nt.random.string(16)        // random alphanumeric string of length 16
-nt.random.boolean()         // true or false
-```
+| Field | Type | Description |
+|-------|------|-------------|
+| `url` | `string` | Request URL. Required. |
+| `method` | `string` | HTTP method. Defaults to `GET`. |
+| `headers` | `object` | Request headers |
+| `body` | `string` or `object` | Request body. Nouto sends an object as JSON text but doesn't add a `Content-Type` header, so set one yourself. |
+| `auth` | `object` | `{ type: 'bearer', token }` or `{ type: 'basic', username, password }` |
+| `timeout` | `number` | Timeout in milliseconds. Defaults to `30000`. |
+| `ssl` | `object` | `{ rejectUnauthorized: false }` skips certificate verification. Use it only for test servers with self-signed certificates. |
+| `proxy` | `object` | `{ protocol, host, port, username, password }` |
 
-### Timestamps
+The returned object has `status`, `statusText`, `headers`, `body` (a string), `duration`, `json()`, and `text()`. Its `json()` returns `null` when the body isn't valid JSON. When the request fails, for example on a connection error, `nt.sendRequest()` doesn't throw. It returns an object with only an `error` message.
 
-```javascript
-nt.timestamp.unix()    // → 1704067200   (seconds since epoch)
-nt.timestamp.unixMs()  // → 1704067200000 (milliseconds since epoch)
-nt.timestamp.iso()     // → "2024-01-01T00:00:00.000Z"
-```
+This desktop pre-request script fetches an access token before the main request:
 
-## Async Helpers
-
-| Method | Description |
-|--------|-------------|
-| `nt.delay(ms)` | Returns a Promise that resolves after `ms` milliseconds |
-| `nt.sendRequest(config)` | Send an HTTP request and return the response |
-
-`nt.sendRequest` config:
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `url` | `string` | Yes | Request URL |
-| `method` | `string` | No | HTTP method (default: `GET`) |
-| `headers` | `object` | No | Request headers |
-| `body` | `any` | No | Request body |
-
-```javascript
-// Fetch a token before the main request
-const tokenResponse = await nt.sendRequest({
+```js
+const res = nt.sendRequest({
   url: 'https://auth.example.com/token',
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: {
     client_id: nt.getVar('CLIENT_ID'),
     client_secret: nt.getVar('CLIENT_SECRET'),
-    grant_type: 'client_credentials'
-  }
+    grant_type: 'client_credentials',
+  },
 });
-nt.setVar('accessToken', tokenResponse.json().access_token);
+
+if (res.error) {
+  throw new Error('Token request failed: ' + res.error);
+}
+nt.setVar('accessToken', res.json().access_token);
 ```
 
-## Cookies
+## Cookies (`nt.cookies`)
+
+`nt.cookies` reads and changes the cookies in the active cookie jar. In VS Code and the CLI, its methods return promises, so use `await`. In the desktop app, they return results directly.
 
 | Method | Description |
 |--------|-------------|
-| `await nt.cookies.getAll()` | Get all cookies across all jars |
-| `await nt.cookies.getCookiesForUrl(url)` | Get cookies matching a URL |
-| `await nt.cookies.setCookie(cookie)` | Add or update a cookie |
-| `await nt.cookies.deleteCookie(domain, name)` | Delete a specific cookie |
-| `await nt.cookies.clearAll()` | Clear all cookies |
+| `nt.cookies.getAll()` | All cookies in the active jar |
+| `nt.cookies.get(name)` | The first cookie with this name |
+| `nt.cookies.getByUrl(url)` | Cookies that match the URL |
+| `nt.cookies.set(cookie)` | Adds or replaces a cookie |
+| `nt.cookies.delete(domain, name)` | Deletes a cookie |
+| `nt.cookies.clear()` | Deletes every cookie in the active jar |
 
-Cookie object shape:
-
-```typescript
-{
-  name: string
-  value: string
-  domain?: string
-  path?: string
-  expires?: number      // Unix timestamp
-  httpOnly?: boolean
-  secure?: boolean
-  sameSite?: string
-}
-```
+See [Cookie script API](/tools/cookie-script-api) for the cookie object, matching rules, and examples.
 
 ## Console
 
-| Method | Output level |
-|--------|-------------|
-| `console.log(...)` | Log (default) |
-| `console.info(...)` | Info (blue) |
-| `console.warn(...)` | Warning (yellow) |
-| `console.error(...)` | Error (red) |
+| Method | Level |
+|--------|-------|
+| `console.log(...)` | `log` |
+| `console.info(...)` | `info` |
+| `console.warn(...)` | `warn` |
+| `console.error(...)` | `error` |
 
-All arguments are serialized to strings. Objects are JSON-stringified. Output appears in the Scripts response tab.
+Output appears on the response panel's **Scripts** tab, labeled with its level. In the Collection Runner, it appears under **Script Logs** in the request's expanded row.
 
-## Sandbox Restrictions
+In VS Code and the CLI, Nouto converts arguments that aren't strings with `JSON.stringify()`. In the desktop app, pass only strings, for example `console.log('Status: ' + nt.response.status)`.
 
-Scripts run in a Node.js `vm` context with the following disabled:
+## Sandbox and limits
 
-- `require`, `module`, `exports`, `__filename`, `__dirname`
-- `process`, `global`, `globalThis`
-- `setTimeout`, `setInterval`, `setImmediate` and their `clear*` counterparts
-- Code generation from strings (`eval`, `new Function`)
-- 5-second execution timeout per script
+Scripts can't load modules or reach the file system.
+
+In VS Code and the CLI:
+
+- `require`, `module`, `exports`, `__filename`, `__dirname`, `process`, and `global` are `undefined`.
+- `setTimeout`, `setInterval`, `setImmediate`, and their `clear` functions are `undefined`. Use `nt.delay()` instead.
+- `eval()` and `new Function()` throw, because code generation from strings is disabled.
+- The synchronous part of a script can run for 5 seconds. The whole script, including awaited work, can run for 30 seconds before it fails with `Script timed out after 30s`.
+
+In the desktop app:
+
+- Scripts have no Node.js or browser APIs, such as `require`, `process`, `fetch`, or timers.
+- A script can run for 30 seconds and use 32 MB of memory.
+
+## Platform differences
+
+This table lists every behavior that differs between the VS Code extension or CLI and the desktop app.
+
+| Feature | VS Code and CLI | Desktop app |
+|---------|-----------------|-------------|
+| `await` | Allowed at the top level of a script | Not supported. A top-level `await` is a syntax error. Write scripts as synchronous code. |
+| `nt.cookies.*` | Returns promises | Returns results directly |
+| `nt.delay(ms)` | Returns a promise | Blocks, up to 25,000 ms |
+| `nt.sendRequest()` | Not available | Available |
+| `nt.getProcessEnv()` | Available | Not available |
+| `nt.request.body` | Available | Not available |
+| `nt.request.headers` in post-response scripts | Available | Not available |
+| `console` arguments | Any value | Strings only |
+| `nt.getVar()` after `nt.setVar()` in the same script | Returns the new value | Returns the value from before the script ran |
+| `nt.timestamp.iso()` format | Milliseconds and a `Z` suffix, for example `2024-01-01T00:00:00.000Z` | Up to nine fractional digits and a `+00:00` offset |
+| `expect` | Full Chai `expect` | `equal`, `equals`, `eql`, `include`, `contains`, `above`, `below`, `least`, `most`, `lengthOf`, `length`, `property`, `match`, `oneOf`, and the `ok`, `true`, `false`, `null`, `undefined`, and `empty` properties, with `.not`. Type checks with `a()` and `an()` aren't available. |
+| `assert` | Full Chai `assert` | `ok`, `fail`, `equal`, `notEqual`, `strictEqual`, `notStrictEqual`, `deepEqual`, `notDeepEqual`, `isTrue`, `isFalse`, `isNull`, `isNotNull`, `isUndefined`, `isDefined`, `isArray`, `isString`, `isNumber`, `isObject`, `isBoolean`, `isAbove`, `isBelow`, `isAtLeast`, `isAtMost`, `include`, `notInclude`, `lengthOf`, `match`, `property`, `typeOf` |
+| Time limit | 5 seconds of synchronous work, 30 seconds in total | 30 seconds in total |

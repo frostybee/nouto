@@ -1,68 +1,75 @@
 ---
 title: AWS Signature v4
-description: Sign requests to AWS services using AWS Signature Version 4 in Nouto.
+description: Sign requests to AWS services with AWS Signature Version 4 (SigV4) in Nouto.
 sidebar:
   order: 5
 ---
 
-AWS Signature Version 4 (SigV4) is required to authenticate requests to AWS services such as S3, DynamoDB, Lambda, API Gateway, and others. Nouto computes and attaches the signature automatically when you provide your credentials.
+AWS services such as S3, DynamoDB, Lambda, and API Gateway authenticate requests with AWS Signature Version 4 (SigV4). The AWS Sig V4 auth type computes the signature from your credentials and the request, and adds the signing headers when you send.
 
-## Setup
+## Set up SigV4 signing
 
-1. Open a request and click the **Auth** tab.
-2. Select **AWS Signature v4** from the type dropdown.
-3. Fill in the required fields:
-   - **Access Key ID**: your AWS access key ID
-   - **Secret Access Key**: your AWS secret access key
-   - **AWS Region**: the region your service is in (e.g., `us-east-1`, `eu-west-2`)
-   - **Service Name**: the AWS service identifier (e.g., `s3`, `execute-api`, `dynamodb`)
-4. Optionally enter a **Session Token** if you are using temporary credentials from AWS STS.
+1. Open a request and select the **Auth** tab.
+2. Select **AWS Sig V4** from the **Type** dropdown.
+3. Enter the **Access Key** and **Secret Key**.
+4. Select the **Region**. The dropdown lists common regions and defaults to `us-east-1`. For a region that isn't listed, select **Custom...** and type it.
+5. Select the **Service**. The dropdown lists common services and defaults to `s3`. For a service that isn't listed, select **Custom...** and type its signing name.
+6. If you use temporary credentials, enter the **Session Token**.
 
-## How It Works
+Nouto signs the request only when **Access Key** and **Secret Key** have values.
 
-SigV4 creates a signed hash of the request, including the method, URL, headers, and body. Nouto computes the signature and adds it to the `Authorization` header before sending:
+## Headers Nouto adds
 
+Nouto hashes the method, URL, signed headers, and body, signs the result with your secret key, and adds these headers:
+
+| Header | Value |
+|--------|-------|
+| `Authorization` | The `AWS4-HMAC-SHA256` credential, signed header list, and signature |
+| `x-amz-date` | The signing time |
+| `x-amz-content-sha256` | The SHA-256 hash of the request body |
+| `x-amz-security-token` | The session token. Added only when **Session Token** has a value. |
+
+The `Authorization` header looks like this:
+
+```http
+Authorization: AWS4-HMAC-SHA256 Credential=AKIAIOSFODNN7EXAMPLE/20240101/us-east-1/s3/aws4_request, SignedHeaders=host;x-amz-content-sha256;x-amz-date, Signature=...
 ```
-Authorization: AWS4-HMAC-SHA256 Credential=AKIAIOSFODNN7EXAMPLE/20240101/us-east-1/s3/aws4_request, SignedHeaders=host;x-amz-date, Signature=...
-```
 
-An `x-amz-date` header is also added with the current timestamp. If you provide a session token, Nouto adds the `x-amz-security-token` header as well.
+:::caution
+In the VS Code extension, Nouto signs the request before pre-request scripts run. A script that changes the URL, headers, or body invalidates the signature. The desktop app signs after pre-request scripts run.
+:::
 
-## Service Names
+## Service signing names
 
-AWS uses short identifiers for each service. Common values:
+The **Service** value is the service's signing name, which isn't always its display name:
 
-| Service | Service Name |
-|---------|-------------|
+| Service | Signing name |
+|---------|--------------|
 | Amazon S3 | `s3` |
 | Amazon DynamoDB | `dynamodb` |
-| API Gateway (REST) | `execute-api` |
-| Lambda | `lambda` |
-| CloudWatch | `monitoring` |
-| SQS | `sqs` |
-| SNS | `sns` |
-| Secrets Manager | `secretsmanager` |
+| Amazon API Gateway | `execute-api` |
+| AWS Lambda | `lambda` |
+| Amazon CloudWatch | `monitoring` |
+| Amazon SQS | `sqs` |
+| Amazon SNS | `sns` |
+| AWS Secrets Manager | `secretsmanager` |
 
-Check the [AWS documentation](https://docs.aws.amazon.com/general/latest/gr/aws-service-information.html) for the service identifier of any service not listed here.
+For CloudWatch, select **Custom...** and type `monitoring`. For other services, find the signing name in the [AWS service endpoints reference](https://docs.aws.amazon.com/general/latest/gr/aws-service-information.html).
 
-## Variable Support
+## Temporary credentials
 
-All fields accept `{{variable}}` syntax:
+IAM roles, IAM Identity Center (AWS SSO), and `aws sts assume-role` issue temporary credentials: an access key, a secret key, and a session token. Enter all three. Temporary credentials expire, so replace them in Nouto when you get new ones.
 
-| Field | Example |
-|-------|---------|
-| Access Key ID | `{{AWS_ACCESS_KEY_ID}}` |
-| Secret Access Key | `{{AWS_SECRET_ACCESS_KEY}}` |
-| Region | `{{AWS_REGION}}` |
-| Service | `{{AWS_SERVICE}}` |
-| Session Token | `{{AWS_SESSION_TOKEN}}` |
+## Field values and variables
 
-Store credentials in environment variables. Never hard-code AWS credentials directly in requests.
+The AWS Sig V4 fields don't resolve `{{variable}}` references. Nouto signs with the values exactly as typed.
 
-## Temporary Credentials (AWS STS)
+**Secret Key** is masked, and **Access Key** and **Session Token** show their values. In the desktop app, the access key, secret key, and session token are stored in the operating system keychain. In the VS Code extension, they are saved as plain text with the collection.
 
-When using IAM roles, AWS SSO, or `aws sts assume-role`, you receive a temporary Access Key ID, Secret Access Key, and Session Token. Enter all three fields. Temporary credentials expire, so refresh them in your environment variables when they rotate.
+## Signature and permission errors
 
-## IAM Permissions
+The AWS error code in the response tells you whether the problem is the signature or the permissions:
 
-The credentials you use must have IAM permissions for the specific API action you are calling. A `403 Forbidden` response from AWS usually means a missing permission, not a signing error. A `400 Bad Request` with a signature-mismatch error indicates a configuration issue (wrong region, wrong service name, or mismatched credentials).
+- `SignatureDoesNotMatch` or `InvalidSignatureException` means AWS computed a different signature. Check the **Region**, the **Service** signing name, and the **Secret Key**.
+- `ExpiredToken` or `ExpiredTokenException` means the temporary credentials have expired. Enter new ones.
+- `AccessDenied` or `AccessDeniedException` means the signature is valid but the credentials lack IAM permission for the action.

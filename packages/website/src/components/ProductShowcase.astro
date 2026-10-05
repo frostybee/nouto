@@ -24,7 +24,7 @@ const defaultProducts: Product[] = [
     id: 'vscode',
     label: 'VS Code extension',
     frame: 'vscode',
-    windowTitle: 'users.json — Nouto',
+    windowTitle: 'users.json - Nouto',
     caption: 'Requests, collections, and environments inside the editor you already use.',
     ctaLabel: 'Install from Marketplace',
     href: 'https://marketplace.visualstudio.com/items?itemName=frostybee-dev.nouto',
@@ -34,8 +34,8 @@ const defaultProducts: Product[] = [
     id: 'json-explorer',
     label: 'JSON Explorer',
     frame: 'vscode',
-    windowTitle: 'response.json — JSON Explorer',
-    caption: 'Tree and table views, query filter, compare, and type generation for any JSON file.',
+    windowTitle: 'response.json - JSON Explorer',
+    caption: 'Tree and table views, query filter, compare, and type generation for JSON, JSONL, and NDJSON files.',
     ctaLabel: 'Install from Marketplace',
     href: 'https://marketplace.visualstudio.com/items?itemName=frostybee-dev.nouto-json-explorer',
     external: true,
@@ -45,7 +45,7 @@ const defaultProducts: Product[] = [
     label: 'Desktop app',
     frame: 'desktop',
     windowTitle: 'Nouto',
-    caption: 'Standalone Tauri app for Windows, macOS, and Linux. Same collections, same plain JSON.',
+    caption: 'Standalone app for Windows, macOS, and Linux. Open a project folder to share its .nouto/ collection files with the VS Code extension.',
     ctaLabel: 'Download',
     href: 'https://github.com/frostybee/nouto/releases',
     external: true,
@@ -55,7 +55,7 @@ const defaultProducts: Product[] = [
     label: 'CLI',
     frame: 'terminal',
     windowTitle: 'terminal',
-    caption: 'Run collections, benchmarks, imports, exports, and codegen from a shell or CI.',
+    caption: 'Run collections, benchmarks, imports, exports, and code generation from a shell or CI. The CLI is not on npm yet, so build it from the repository.',
     ctaLabel: 'Read the CLI guide',
     href: '/cli/',
   },
@@ -120,14 +120,12 @@ const activeIndex = Math.max(0, products.findIndex((p) => p.id === activeId));
           {p.src ? (
             <img src={p.src} alt={p.alt ?? p.label} loading="lazy" />
           ) : p.frame === 'terminal' ? (
-            <pre class="sketch sketch-terminal" aria-hidden="true">{`$ nouto run ./collections/users.json --env staging
+            <pre class="sketch sketch-terminal" aria-hidden="true">{`$ nouto run users.json -e envs.json -n staging
 
-  ✔ GET   /users            200   118 ms
-  ✔ POST  /users            201    96 ms
-  ✖ GET   /users/42         404    41 ms
-      expected status 200, got 404
-
-  2 passed, 1 failed   0.26 s
+  [1/3]  GET   List users     200   118ms  PASS
+  [2/3]  POST  Create user    201    96ms  PASS
+  [3/3]  GET   Get user 42    404    41ms  FAIL
+         - Expected "200" but got "404"
 $ `}</pre>
           ) : (
             <div class="sketch sketch-app" aria-hidden="true">

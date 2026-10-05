@@ -1,190 +1,126 @@
 ---
-title: Variable Substitution
-description: Complete reference for all variable types supported in Nouto, including environment variables, dynamic variables, response references, and more.
+title: Variable substitution
+description: How Nouto resolves {{variable}} placeholders, which request fields support them, which source wins when names collide, and how to reference responses, cookies, and script values.
 sidebar:
   order: 1
 ---
 
-Variables are resolved at request time. Use `{{...}}` syntax in any request field. This page covers all variable types and where they can be used.
+A variable is a `{{name}}` placeholder that Nouto replaces with a value when you send a request. This page explains where placeholders work, the order in which Nouto looks up a name, and the placeholders that read from responses, cookies, and scripts. To create environments and global variables, see [Environments and global variables](/variables/environments).
 
-## Where Variables Work
+## Placeholder types
 
-Variables are substituted in all of the following fields before a request is sent:
+Every placeholder uses double braces. The text inside determines where the value comes from:
 
-- **URL**: `{{baseUrl}}/users/{{userId}}`
-- **Query parameters**: keys and values
-- **Headers**: keys and values
-- **Body**: JSON, text, form data, URL-encoded, GraphQL query and variables
-- **Authentication**: all credential fields (token, username, password, API key, OAuth URLs)
+| Placeholder | Value source |
+|-------------|--------------|
+| `{{name}}` | The active environment, collection or folder variables, global variables, or a linked `.env` file. See [Resolution order](#resolution-order). |
+| `{{$namespace.method}}` | A generated value such as a UUID, timestamp, or hash. See [Dynamic variables](/variables/dynamic-variables). |
+| `{{$prompt.name}}` | A value you type in a dialog when you send. See [Dynamic variables](/variables/dynamic-variables#prompt-for-a-value-at-send-time). |
+| `{{$file.read, path}}` | The content of a file. See [Dynamic variables](/variables/dynamic-variables#read-a-file-at-send-time). |
+| `{{$response.path}}` | The most recent response. See [Response values](#response-values). |
+| `{{RequestName.$response.path}}` | The response of a specific request. See [Response values from a named request](#response-values-from-a-named-request). |
+| `{{$cookie.name}}` | A cookie in the active cookie jar. See [Cookie values](#cookie-values). |
 
-## Variable Types
+If Nouto can't resolve a placeholder, it sends the placeholder text unchanged, braces included.
 
-| Type | Syntax | Source |
-|------|--------|--------|
-| Environment / Global / `.env` | `{{name}}` | Variables tab and linked file |
-| Dynamic (built-in) | `{{$namespace.method}}` | Generated at request time |
-| Response chaining | `{{$response.body.*}}` | Previous response data |
-| Cookie | `{{$cookie.name}}` | Active cookie jar |
-| Mock data (Faker) | `{{$faker.email}}` | Realistic fake data via Faker |
-| Prompt | `{{$prompt.keyName}}` | Prompts for a value at send time |
-| File read | `{{$file.read, path}}` | Reads file content at send time |
-| Named response | `{{RequestName.$response.*}}` | Specific request in a runner run |
+## Fields that support variables
 
-## Resolution Priority
+Nouto substitutes variables in these parts of an HTTP request:
 
-When the same variable name exists in multiple sources:
+- The URL, including path parameter values
+- Query parameter names and values
+- Header names and values, including headers inherited from the collection or folder
+- The body, including form fields and GraphQL variables
+- On the **Auth** tab: the username, password, token, API key name, and API key value
 
-| Priority | Source |
-|----------|--------|
-| 1 (highest) | Active environment |
-| 2 | Global variables |
-| 3 | Linked `.env` file |
+For WebSocket and Server-Sent Events connections, Nouto substitutes variables in the URL and headers. For gRPC, it substitutes variables in the address, metadata, and message body.
 
-Dynamic and response variables always resolve against live data and are not affected by this priority chain.
+## Resolution order
 
-## Dynamic Variables
+When the same name is defined in more than one place, Nouto uses the value from the source highest in this list:
 
-Dynamic variables generate a fresh value each time a request is sent. They use a `$namespace.method` format, with optional comma-separated arguments.
+1. The active environment
+2. Variables on the request's folder, then its parent folders, then the collection. A child folder's value overrides its parent's.
+3. Global variables
+4. The linked `.env` file
 
-### UUID
+For example, if the global variables define `baseUrl` as `https://api.example.com` and the active environment defines it as `http://localhost:3000`, requests go to `http://localhost:3000`.
 
-| Variable | Description | Example output |
-|----------|-------------|----------------|
-| `{{$uuid.v4}}` | Random UUID version 4 | `550e8400-e29b-41d4-a716-446655440000` |
-| `{{$uuid.v7}}` | Time-ordered UUID version 7 | `018e7b2c-4a3d-7f6e-8a9b-0c1d2e3f4a5b` |
+Nouto skips variables whose checkbox is cleared. Collection and folder variables apply only to requests saved in that collection. See [Collections](/features/collections) to define them.
 
-### Timestamps
+## Variable names
 
-| Variable | Description | Example output |
-|----------|-------------|----------------|
-| `{{$timestamp.unix}}` | Current time as Unix seconds | `1706886400` |
-| `{{$timestamp.millis}}` | Current time in milliseconds | `1706886400000` |
-| `{{$timestamp.iso}}` | ISO 8601 timestamp | `2024-02-02T12:00:00.000Z` |
-| `{{$timestamp.offset, amount, unit}}` | Offset from now (`s`, `m`, `h`, `d`) | `{{$timestamp.offset, 30, m}}` |
-| `{{$timestamp.format, FORMAT}}` | Custom format (see tokens below) | `{{$timestamp.format, YYYY-MM-DD}}` |
+Use letters, digits, and underscores in variable names, for example `base_url` or `apiKey2`. The variable editor accepts names with dots and hyphens, such as `api-key`, but Nouto doesn't substitute placeholders with those names. Names are case-sensitive: `{{Token}}` and `{{token}}` are different variables.
 
-Format tokens: `YYYY` (year), `MM` (month), `DD` (day), `HH` (hour), `mm` (minute), `ss` (second).
+## Variables inside variable values
 
-### Random Values
+A variable's value can contain other placeholders. For example, define `host` as `api.example.com` and `baseUrl` as `https://{{host}}/v2`. A request to `{{baseUrl}}/users` then goes to `https://api.example.com/v2/users`.
 
-| Variable | Description | Example output |
-|----------|-------------|----------------|
-| `{{$random.int}}` | Random integer 0–1000 | `742` |
-| `{{$random.int, min, max}}` | Random integer in range | `{{$random.int, 1, 100}}` → `57` |
-| `{{$random.number, min, max}}` | Random float in range | `{{$random.number, 0.5, 9.5}}` → `4.73` |
-| `{{$random.string}}` | 16-character alphanumeric string | `aB3kR9mPqX2wNv7L` |
-| `{{$random.string, length}}` | String of given length (1–256) | `{{$random.string, 32}}` |
-| `{{$random.bool}}` | `true` or `false` | `true` |
-| `{{$random.enum, a, b, c}}` | Random pick from the list | `b` |
-| `{{$random.name}}` | Random full name | `Jennifer Garcia` |
-| `{{$random.email}}` | Random email address | `jennifer.garcia482@example.com` |
+Nouto resolves up to five levels of nested references. A value can also contain a dynamic variable, such as `{{$uuid.v4}}`, which generates a new value on each send.
 
-### Hashing
+## Response values
 
-| Variable | Description |
-|----------|-------------|
-| `{{$hash.md5, input}}` | MD5 hash (hex) |
-| `{{$hash.sha1, input}}` | SHA-1 hash (hex) |
-| `{{$hash.sha256, input}}` | SHA-256 hash (hex) |
-| `{{$hash.sha512, input}}` | SHA-512 hash (hex) |
-| `{{$hmac.sha256, input, key}}` | HMAC-SHA256 (hex) |
-| `{{$hmac.sha512, input, key}}` | HMAC-SHA512 (hex) |
-| `{{$hmac.md5, input, key}}` | HMAC-MD5 (hex) |
-| `{{$hmac.sha1, input, key}}` | HMAC-SHA1 (hex) |
+Use `{{$response.path}}` to insert a value from the most recent response, for example a token returned by a login request:
 
-### Encoding and Decoding
+| Placeholder | Value |
+|-------------|-------|
+| `{{$response.body}}` | The entire response body. A JSON body is inserted as JSON text. |
+| `{{$response.body.token}}` | The `token` field of a JSON body |
+| `{{$response.body.data[0].id}}` | A nested field, using dot notation and array indexes |
+| `{{$response.headers.content-type}}` | A response header. Write the header name in lowercase. |
+| `{{$response.status}}` | The status code, for example `200` |
+| `{{$response.statusText}}` | The status text, for example `OK` |
+| `{{$response.duration}}` | The response time in milliseconds |
+| `{{$response.size}}` | The response size in bytes |
 
-| Variable | Description |
-|----------|-------------|
-| `{{$encode.base64, input}}` | Base64 encode |
-| `{{$encode.base64url, input}}` | Base64url encode |
-| `{{$encode.url, input}}` | URL percent-encode |
-| `{{$encode.html, input}}` | HTML entity encode |
-| `{{$decode.base64, input}}` | Base64 decode |
-| `{{$decode.url, input}}` | URL percent-decode |
+Which response counts as most recent depends on where you send from:
 
-### String Operations
+- In the VS Code extension, each request opens in its own editor tab. `$response` reads the last response received in the same tab.
+- In the desktop app, `$response` reads the last response received in any tab.
+- In the [Collection Runner](/testing/collection-runner), `$response` reads the response of the previous request in the run. The runner supports the `body`, `status`, and `headers` paths.
 
-| Variable | Description |
-|----------|-------------|
-| `{{$regex.match, input, pattern, flags}}` | First regex match |
-| `{{$regex.replace, input, pattern, replacement, flags}}` | Regex replace |
-| `{{$json.escape, input}}` | Escape a string for embedding in JSON |
-| `{{$json.minify, input}}` | Minify a JSON string |
+To pass a value from one request to another reliably, save it to a variable in a post-response script with `nt.setVar()`. See [Variables set by scripts](#variables-set-by-scripts).
 
-### Mock Data (Faker)
+## Response values from a named request
 
-Generate realistic fake data. More than 60 functions are available. Type `{{$faker.` in any field to browse.
+Prefix `$response` with a request name to read the response of that request:
 
-| Variable | Description | Example output |
-|----------|-------------|----------------|
-| `{{$faker.email}}` | Random email address | `sarah.j@example.com` |
-| `{{$faker.fullName}}` | Random full name | `Sarah Johnson` |
-| `{{$faker.phone}}` | Random phone number | `+1-555-0123` |
-| `{{$faker.uuid}}` | Random UUID | `550e8400-...` |
-| `{{$faker.city}}` | Random city name | `San Francisco` |
-| `{{$faker.company}}` | Random company name | `Acme Corp` |
-| `{{$faker.url}}` | Random URL | `https://example.com` |
-| `{{$faker.sentence}}` | Random sentence | `The quick brown fox...` |
-
-### Prompt at Send Time
-
-| Variable | Description |
-|----------|-------------|
-| `{{$prompt.keyName}}` | Shows a dialog prompting for "keyName" before sending. Value is used once and not saved. |
-
-### File Read
-
-| Variable | Description |
-|----------|-------------|
-| `{{$file.read, /path/to/file}}` | Reads the file at send time and substitutes its text content inline. |
-
-## Response Variables
-
-Reference data from the most recently completed response:
-
-| Variable | Description | Example output |
-|----------|-------------|----------------|
-| `{{$response.body.field}}` | JSON body field | Value of `field` |
-| `{{$response.body.data[0].id}}` | Nested field with array index | `42` |
-| `{{$response.body}}` | Entire response body | `{"token":"..."}` |
-| `{{$response.headers.content-type}}` | Response header (case-insensitive) | `application/json` |
-| `{{$response.status}}` | HTTP status code | `200` |
-| `{{$response.statusText}}` | Status text | `OK` |
-| `{{$response.duration}}` | Response time in milliseconds | `152` |
-| `{{$response.size}}` | Response size in bytes | `1024` |
-
-## Named Response Variables (Collection Runner)
-
-In the Collection Runner, reference a specific request's response by name:
-
-```
+```text
 {{Login.$response.body.token}}
 {{Login.$response.status}}
 {{CreateUser.$response.body.id}}
 ```
 
-Names are case-sensitive and must match the request name exactly. If the named request has not run yet, the placeholder is left unresolved.
+The name must match the saved request's name exactly, including case. Named references support the `body`, `headers`, `status`, and `statusText` paths. If the named request hasn't run yet, Nouto sends the placeholder unchanged.
 
-## Cookie Variables
+Named references are built for the [Collection Runner](/testing/collection-runner), where every request in the run is available. Outside the runner, Nouto finds the named request only if it was sent earlier in the same session. In the VS Code extension, it must also have been sent from the same editor tab.
 
-Reference a cookie value by name:
+## Cookie values
 
+Use `{{$cookie.name}}` to insert the value of a cookie from the active [cookie jar](/tools/cookie-jars):
+
+```http
+X-CSRF-Token: {{$cookie.csrftoken}}
 ```
-{{$cookie.sessionId}}
-{{$cookie.csrfToken}}
-```
 
-The cookie is looked up in the active cookie jar, matched by domain and path against the request URL.
+Nouto uses the first cookie with that name in the jar. It doesn't match the cookie's domain or path against the request URL, so use distinct cookie names or a separate jar per API. The Collection Runner doesn't resolve `$cookie` placeholders.
 
-## Script-Set Variables
+## Variables set by scripts
 
-Scripts can write variables using `nt.setVar()`. Values set in a pre-request script are available for substitution in that same request. Values set in a post-response script are available in all subsequent requests in a collection run.
+Scripts save values with `nt.setVar()`. By default the value goes to the active environment. Pass `'global'` as the third argument to save a global variable instead:
 
-```javascript
-// Pre-request: set a variable for use in this request
-nt.setVar('requestId', nt.uuid());
-
-// Post-response: extract a token for subsequent requests
+```js
+// Post-response script: save the token for later requests
 nt.setVar('authToken', nt.response.json().token);
+
+// Save a global variable
+nt.setVar('tenantId', nt.response.json().tenant, 'global');
 ```
+
+If no environment is active, Nouto discards values saved without the `'global'` argument.
+
+When the value takes effect depends on how you send the request:
+
+- When you send a single request, Nouto substitutes its variables before the pre-request script runs. A value set in the pre-request script applies from the next send. To change the current request from a pre-request script, modify `nt.request` instead. See the [script API](/testing/script-api).
+- In the [Collection Runner](/testing/collection-runner), a value set in a pre-request script applies to the same request.
+- A value set in a post-response script applies to every request sent after it.

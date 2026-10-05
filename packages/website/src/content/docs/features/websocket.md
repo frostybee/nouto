@@ -1,86 +1,119 @@
 ---
 title: WebSocket
-description: Connect to WebSocket servers and send and receive messages in real time.
+description: Connect to a WebSocket server, send text or binary messages, and record and replay sessions.
 ---
 
-Nouto includes a dedicated WebSocket mode for testing real-time APIs. Connect to any WebSocket endpoint, send text or JSON messages, and monitor incoming events in a live message log.
+A WebSocket request opens a persistent connection, sends text or binary messages, and shows every sent and received message in a live log. You can record a session and replay its sent messages later.
 
-## Opening a WebSocket Request
+## Create a WebSocket request
 
-Create a new request and select **WebSocket** from the protocol selector in the URL bar. The request editor changes to WebSocket mode.
+Click the arrow next to **New Request** in the sidebar and select **New WebSocket**. To add the request to a collection or folder, right-click it and select **New Request** > **WebSocket**.
 
-## Connecting
+A WebSocket request has no Headers, Auth, or Body tabs. The editor shows the WebSocket panel: a toolbar, the message log, and a message composer.
 
-Enter the WebSocket URL (e.g., `wss://ws.example.com/chat`) and click **Connect**. The status indicator shows **Connecting**, then turns green when the handshake is complete.
+## Connect
 
-Headers from the **Headers** tab are sent as part of the initial upgrade request. Use them for API keys, session tokens, or any other header your server requires.
+1. Enter the server URL, for example `wss://echo.websocket.org`. `{{variables}}` in the URL are resolved from the active environment.
+2. Click **Connect** in the panel toolbar.
 
-## Sending Messages
+The status indicator shows `connecting` (orange), then `connected` (green). If the connection fails, the status changes to `error` (red) and the toolbar shows the error message.
 
-Type a message in the input field at the bottom of the panel. Select **Text** or **JSON** from the format toggle:
+Nouto adds cookies from the active [cookie jar](/tools/cookie-jars) that match the URL to the upgrade request.
 
-- **Text**: sends the message as a plain string
-- **JSON**: validates and formats the content as JSON before sending
+### Connection settings
 
-Press `Ctrl+Enter` or click **Send** to transmit.
+Click the gear icon in the panel toolbar to set these options before you connect:
+
+| Setting | Description |
+|---------|-------------|
+| **Protocols** | Comma-separated subprotocols sent in the `Sec-WebSocket-Protocol` header, for example `graphql-ws, chat` |
+| **Auto-reconnect** | Reconnect automatically after the connection closes. Off by default. |
+| **Interval (ms)** | Wait time before each reconnect attempt, from 500 to 60000. Defaults to 3000. |
+
+Auto-reconnect behaves differently on each platform:
+
+- In VS Code, Nouto reconnects each time the server closes the connection, with no attempt limit. It doesn't reconnect after a connection error.
+- In the desktop app, Nouto reconnects after a failed attempt or a closed connection, up to 10 times in a row. The interval is capped at 30 seconds.
+
+:::note
+The **Connect** button in the URL bar and the `Ctrl+Enter` shortcut connect without subprotocols or auto-reconnect. Use **Connect** in the panel toolbar when you've changed the connection settings.
+:::
+
+## Send messages
+
+Select the message type in the composer at the bottom of the panel:
+
+- **Text** sends the message as a text frame.
+- **Binary** sends a binary frame. Enter the payload as a base64 string. Nouto decodes it before sending.
+
+Type the message and press `Enter`, or click **Send**. Press `Shift+Enter` to add a line break.
 
 ```json
 {
   "type": "subscribe",
-  "channel": "orders",
-  "token": "{{authToken}}"
+  "channel": "orders"
 }
 ```
 
-Variable substitution (`{{variable}}`) works in message content.
+Nouto sends message text exactly as you type it. `{{variables}}` in a message aren't resolved.
 
-## Message Log
+## Read the message log
 
-Incoming and outgoing messages appear in the log in chronological order. Each entry shows:
+The log lists sent and received messages in order. Each row shows:
 
-- Direction (sent or received) with a color indicator
-- Timestamp
-- Message size
-- Content (expandable for long messages)
+- The time, to the millisecond
+- An arrow for the direction: up (green) for sent, down (blue) for received
+- A `TEXT` or `BIN` badge. Received binary messages appear as base64.
+- The message content
+- The message size
 
-Click any message to expand it. JSON messages are pretty-printed automatically.
+Messages longer than 200 characters are truncated. Click a long message to expand it. An expanded JSON message is pretty-printed.
 
-## Disconnecting
+The log keeps the 1,000 most recent messages. Click the **Clear messages** icon in the toolbar to empty it.
 
-Click **Disconnect** to close the connection cleanly. The status indicator returns to gray.
+## Disconnect
 
-## Authentication
+Click **Disconnect** in the panel toolbar or the URL bar. The status returns to `disconnected` and the message log stays until you clear it.
 
-For protocols that use token-based auth over WebSocket, you can pass the token in a header (e.g., `Authorization: Bearer {{token}}`), as a query parameter in the URL (e.g., `wss://ws.example.com?token={{token}}`), or as the first message after connecting.
+## Authenticate a WebSocket connection
 
-## Session Recording
+Because WebSocket requests have no Auth or Headers tab, use one of these methods:
 
-Nouto can record a WebSocket session, capturing all sent and received messages with their exact timing, and replay it later.
+- Put the token in the URL query string, for example `wss://ws.example.com/socket?token={{token}}`.
+- Send the token in a message after the connection opens, if your server's protocol expects it.
+- Store a session cookie in the active cookie jar. Nouto sends matching cookies with the upgrade request.
 
-### Recording
+## Record and replay sessions
 
-Click the **record button** (circle icon) in the WebSocket toolbar to start recording. While recording, a pulsing dot indicator appears. All messages sent and received are captured with timestamps.
+A session is a recording of the messages sent and received over one connection, with their timing. Replay sends the recorded outgoing messages to the server again.
 
-To stop recording, click the button again. A dialog appears prompting you for an optional **session name**. If you leave it blank, the session is named automatically. The session is added to the Saved Sessions list.
+### Record a session
 
-### Saved Sessions
+1. Connect to the server. The **Record** button appears in the toolbar only while you're connected.
+2. Click **Record**. A pulsing dot shows that recording is on.
+3. Send and receive messages as usual.
+4. Click **Stop**. The Sessions drawer opens with a name field.
+5. Enter a name and click **Save**, or click **Skip** to use a default name of `Session` followed by the date and time.
 
-Click the **Sessions drawer** toggle to open the list of saved sessions. Each entry shows the session name and message count.
+Nouto saves the session when you click either button. VS Code stores sessions in `.nouto/ws-sessions/` in the first workspace folder. The desktop app stores them in its app data folder. In VS Code, sessions are saved only when a workspace folder is open.
 
-Click a session to **load** it. The loaded session appears in the replay bar below the toolbar.
+### Load a session
 
-To **delete** a session, hover over it in the drawer and click the delete icon.
+Click the **Sessions** icon in the toolbar to open the drawer. The **Saved Sessions** list shows each session's name, message count, duration, date, and URL.
 
-### Replaying
+- Click **Load** to load a session into the replay bar.
+- Click **Delete** to remove a saved session.
+- Click **Load from file** to load a session from a JSON file. Click **Save** in the replay bar to add it to the saved sessions.
 
-With a session loaded and a WebSocket connection active, click **Replay** in the replay bar. Sent messages are replayed to the server at their original timing, preserving the original inter-message delays.
+### Replay a session
 
-- A **progress bar** shows replay progress (e.g., `3/12`).
-- Use the **speed multiplier** to replay faster or slower than the original timing.
-- Click **Cancel** to stop the replay at any point.
+1. Connect to the server.
+2. Load a session.
+3. Choose a speed in the replay bar: `0.5x`, `1x`, or `2x`.
+4. Click **Play**.
 
-### Export and Import
+Nouto clears the message log, then sends the session's sent messages with their original delays adjusted for the chosen speed. Received messages in the recording aren't replayed. The progress bar and counter, for example `3/12`, track the replay. Click **Cancel** to stop it.
 
-To share or back up a session, use **Export session** from the Sessions drawer. The session is saved as a `.json` file.
+### Export a session
 
-To restore a session on another machine or after reinstalling, click **Import session** and select the exported file. The session is added to the Saved Sessions list.
+Load the session, then click **Export** in the replay bar and choose where to save the JSON file. Use **Load from file** to open it on another machine.

@@ -189,13 +189,18 @@
       ];
     }
     return [
-      { label: 'New HTTP Request', icon: 'codicon-globe', action: () => handleCreateTypedRequest(REQUEST_KIND.HTTP) },
-      { label: 'New GraphQL Request', icon: 'codicon-symbol-structure', action: () => handleCreateTypedRequest(REQUEST_KIND.GRAPHQL) },
-      { label: 'New GraphQL Subscription', icon: 'codicon-radio-tower', action: () => handleCreateTypedRequest(REQUEST_KIND.GRAPHQL_SUBSCRIPTION) },
-      { label: 'New WebSocket', icon: 'codicon-plug', action: () => handleCreateTypedRequest(REQUEST_KIND.WEBSOCKET) },
-      { label: 'New SSE Connection', icon: 'codicon-broadcast', action: () => handleCreateTypedRequest(REQUEST_KIND.SSE) },
-      { label: 'New gRPC Call', icon: 'codicon-server', action: () => handleCreateTypedRequest(REQUEST_KIND.GRPC) },
-      { divider: true },
+      {
+        label: 'New Request',
+        icon: 'codicon-add',
+        children: [
+          { label: 'HTTP', icon: 'codicon-globe', action: () => handleCreateTypedRequest(REQUEST_KIND.HTTP) },
+          { label: 'GraphQL', icon: 'codicon-symbol-structure', action: () => handleCreateTypedRequest(REQUEST_KIND.GRAPHQL) },
+          { label: 'GraphQL Subscription', icon: 'codicon-radio-tower', action: () => handleCreateTypedRequest(REQUEST_KIND.GRAPHQL_SUBSCRIPTION) },
+          { label: 'WebSocket', icon: 'codicon-plug', action: () => handleCreateTypedRequest(REQUEST_KIND.WEBSOCKET) },
+          { label: 'SSE', icon: 'codicon-broadcast', action: () => handleCreateTypedRequest(REQUEST_KIND.SSE) },
+          { label: 'gRPC', icon: 'codicon-server', action: () => handleCreateTypedRequest(REQUEST_KIND.GRPC) },
+        ],
+      },
       { label: 'New Folder', icon: 'codicon-new-folder', action: handleAddFolder },
       { divider: true },
       { label: 'Run All', icon: 'codicon-play', action: handleRunAll },
@@ -203,9 +208,15 @@
       { label: 'Settings...', icon: 'codicon-settings-gear', action: handleOpenSettings },
       { label: 'Edit...', icon: 'codicon-edit', action: handleEdit },
       { label: 'Duplicate', icon: 'codicon-copy', action: handleDuplicate },
-      { label: 'Export to Postman', icon: 'codicon-export', action: handleExport },
-      { label: 'Export as Nouto', icon: 'codicon-export', action: handleExportNative },
-      { label: 'Generate OpenAPI', icon: 'codicon-file-code', action: handleGenerateOpenApi },
+      {
+        label: 'Export',
+        icon: 'codicon-export',
+        children: [
+          { label: 'Postman Collection', icon: 'codicon-export', action: handleExport },
+          { label: 'Nouto Collection', icon: 'codicon-json', action: handleExportNative },
+          { label: 'OpenAPI Spec', icon: 'codicon-file-code', action: handleGenerateOpenApi },
+        ],
+      },
       { divider: true },
       { label: 'Delete', icon: 'codicon-trash', danger: true, action: handleDelete },
     ];

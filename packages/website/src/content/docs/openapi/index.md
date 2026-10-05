@@ -1,51 +1,66 @@
 ---
-title: OpenAPI Editor
-description: Monaco-based editor for OpenAPI specs with YAML/JSON support, per-tab undo, and theme sync.
+title: OpenAPI editor
+description: Edit OpenAPI 3.0, 3.1, and 3.2 specifications in YAML or JSON with completions, linting, quick fixes, an outline, and a documentation preview.
 sidebar:
   order: 0
 ---
 
-The OpenAPI editor uses the Monaco engine (the same editor that powers VS Code) to provide a full editing experience for OpenAPI specification documents in YAML or JSON format.
+Nouto edits OpenAPI 3.0, 3.1, and 3.2 specifications written in YAML or JSON. As you type, it validates the document, suggests valid properties, offers quick fixes, and updates a rendered documentation preview. The VS Code extension and the desktop app share the same validation, linting, completion, and outline logic. They differ in how you open, save, and lay out specs.
 
-## Opening a Spec
+## Open a spec in VS Code
 
-Open any `.yaml`, `.yml`, or `.json` file that contains an OpenAPI specification. Nouto detects the `openapi` version field and activates the editor features automatically.
+The extension adds OpenAPI support to the standard VS Code text editor. It treats a file as an OpenAPI spec when the file uses the YAML, JSON, or JSON with Comments language mode and its root `openapi` field holds a 3.x version. Other files, including Swagger 2.0 documents, get no OpenAPI features.
 
-## Editing
+To start without an existing file, run one of these commands from the Command Palette:
 
-The editor provides:
+- **Nouto: New OpenAPI Specification** opens an untitled OpenAPI 3.1 YAML document with a sample server and path.
+- **Nouto: Open Example OpenAPI Specification** opens the Swagger Petstore example as OpenAPI 3.0 or 3.2.
 
-- YAML and JSON syntax highlighting
-- Per-tab undo and redo stacks; each open spec gets its own history
-- View state preservation across tab switches (cursor position, scroll offset, code folding)
-- Inline diagnostic markers for errors and warnings as you type
+While an OpenAPI file is active, the editor title bar shows three buttons: **Open OpenAPI Preview**, **Generate Collection from OpenAPI**, and **Open OpenAPI Documentation in Browser**. A **Nouto: Try It** CodeLens above each operation opens that operation as an unsaved request.
 
-## Saving
+The **OpenAPI Outline** view in the Nouto sidebar shows the structure of the active spec. See [Outline navigator](/openapi/outline).
 
-Press `Ctrl+S` (Windows/Linux) or `Cmd+S` (macOS) to save the current spec.
+## Open a spec in the desktop app
 
-## Appearance
+Click the **OpenAPI** button in the left rail. With no spec open, the view offers **New Spec**, **Open File…**, **Open Example**, and up to 10 recently opened files. **Open File…** accepts `.yaml`, `.yml`, and `.json` files. A file without an `openapi: 3.x` field still opens, with a warning that it does not look like an OpenAPI 3.x document.
 
-The editor theme syncs from the app theme automatically and refreshes when you switch themes. Font size and font family follow the app font settings.
+Each spec opens in its own tab, and each tab keeps its own undo history, cursor position, scroll offset, and folded regions. A dot marks a tab with unsaved changes. Closing that tab asks you to confirm before the changes are discarded.
 
-## Supported OpenAPI Versions
+The toolbar above the editor has these buttons:
 
-The editor supports OpenAPI 3.0, 3.1, and 3.2 specifications. Version-specific features adapt automatically:
+| Button | Action |
+|--------|--------|
+| **Generate Collection** | Create a collection from the spec, as described in [Preview](/openapi/preview#toolbar) |
+| **Toggle Preview** | Show or hide the documentation preview beside the editor |
+| **Format Document** | Reformat the whole document with Prettier as one undo step |
+| **New Spec** | Open an untitled OpenAPI 3.1 document with a sample server and path |
+| **Open File** | Open a spec from disk |
+| **Open Example** | Open the Swagger Petstore example as OpenAPI 3.0 or 3.2 |
+| **Save** | Save the spec. The shortcut is `Ctrl+S` (`Cmd+S` on macOS) |
+| **Save As…** | Save the spec to a new file |
 
-- **3.0**: the baseline, with full support for paths, components, and security schemes
-- **3.1**: adds webhooks, JSON Schema alignment, and `pathItems` in components
-- **3.2**: the latest version, with full Swagger UI preview support
+The outline sits to the left of the editor. The editor colors follow the app theme and update when you switch themes. The editor font follows the app's editor font settings.
 
-IntelliSense completions filter by version, so you only see properties valid for the version declared in your spec.
+## Supported OpenAPI versions
 
-## What's Next
+Nouto reads the version from the root `openapi` field and adapts to it:
 
-The editor includes 65 lint rules across eleven groups, and 41 of the lint rules have a one-click quick fix.
+- Completions only offer properties that exist in the declared version. For example, `webhooks` appears from 3.1, and `$self` and `additionalOperations` appear from 3.2.
+- Meta-schema validation uses the official JSON Schema for the declared version.
+- The outline shows a **Webhooks** group for 3.1 and later.
 
-- [IntelliSense](/openapi/intellisense): completions, hover, go-to-definition
-- [Linting](/openapi/linting): configurable rules across security, correctness, completeness, and design groups
-- [Diagnostics & Quick Fixes](/openapi/diagnostics): validation and one-click fixes
-- [Preview](/openapi/preview): rendered API documentation
-- [Outline Navigator](/openapi/outline): sidebar tree navigation
-- [External References](/openapi/external-refs): cross-file `$ref` support
-- [Generate from Collections](/openapi/generate-from-collections): create a YAML OpenAPI specification from a collection
+Nouto treats a later 3.x version that it does not know yet, such as `3.3.0`, as 3.2. An information diagnostic reports the fallback, and Nouto skips meta-schema validation for that document so that fields added in the newer version are not flagged as errors.
+
+## Configure the editor
+
+Open **Settings** and select **OpenAPI**. The section has toggles for **Enable OpenAPI IntelliSense**, **Resolve external $refs**, **Enable OpenAPI linting**, and **Sort outline alphabetically**, followed by a severity control for each lint rule. IntelliSense, external `$ref` resolution, and linting are on by default. Alphabetical sorting is off. In VS Code, the **OpenAPI Settings** button in the OpenAPI Outline title bar opens this section directly.
+
+## Editor features
+
+- [IntelliSense](/openapi/intellisense): completions, hover documentation, and go to definition
+- [Linting](/openapi/linting): 65 rules in 11 groups, each with a configurable severity, 41 of them with a one-click quick fix
+- [Diagnostics and quick fixes](/openapi/diagnostics): structural checks, meta-schema validation, and the fixes for them
+- [Preview](/openapi/preview): rendered documentation with Swagger UI or RapiDoc
+- [Outline navigator](/openapi/outline): a tree of the spec's sections with add and delete actions
+- [External references](/openapi/external-refs): `$ref` values that point into other local files
+- [Generate from collections](/openapi/generate-from-collections): create an OpenAPI document from a collection or a HAR file

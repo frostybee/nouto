@@ -1,46 +1,40 @@
 ---
-title: Response Diff
-description: Compare two responses side by side in Nouto to spot changes between API versions, environments, or request variations.
+title: Response diff
+description: Compare a JSON response with the previous response side by side in Nouto's response panel, for example before and after switching environments.
 sidebar:
   order: 2
 ---
 
-The response diff view shows two responses side by side with structural highlighting for additions, deletions, and modifications. Use it to compare how an endpoint's output changes between requests.
+The response diff shows the current JSON response next to the previous one, with changed lines highlighted. Use it to see how an endpoint's output changes when you resend a request, edit it, or switch environments.
 
 :::tip
-Comparing two arbitrary JSON documents rather than two responses? Use [Compare](/response/json-explorer#compare) in the JSON Explorer, which diffs the open document against any JSON you paste in.
+To compare two arbitrary JSON documents instead of two responses, use [Compare](/json-explorer/compare) in the JSON Explorer.
 :::
 
-## Opening the Diff View
+## Open the diff
 
-After receiving a response, click **Compare** in the response toolbar. Nouto compares the current response against the previous response for the same request panel.
+1. Send a request that returns JSON.
+2. Send the request again. You can change the request or the active environment first.
+3. In the **Body** tab, click **Compare with previous response** (the diff icon) in the body toolbar. In a narrow response panel, open **More actions** and select **Compare**.
 
-The diff view opens in place of the body viewer, with the previous response on the left and the current response on the right.
+The button appears only for JSON responses viewed in the text view, and only when Nouto has a previous response to compare with.
 
-## Diff Highlighting
+## Read the diff
 
-| Color | Meaning |
-|-------|---------|
-| Green | Lines added in the current response |
-| Red | Lines removed (present in the previous, absent in the current) |
-| Yellow | Lines modified between the two responses |
+The diff replaces the body text. The previous response is in the **Previous** column on the left, and the current response is in the **Current** column on the right. Both sides keep JSON syntax highlighting.
 
-Both panels retain full syntax highlighting for their respective content, so JSON structure remains readable alongside the diff annotations.
+Lines that differ are highlighted on both sides, and the changed text inside each line is marked. Long lines wrap.
 
-## Navigating Changes
+If a [JSONPath filter](/response/response-viewer#jsonpath-filter) is active, the **Current** column shows the filtered result while the **Previous** column shows the whole previous body. Clear the filter before you compare full responses.
 
-The summary header shows the total count of added, removed, and changed lines. Use the **Next Change** and **Previous Change** buttons to jump between diff chunks.
+## Close the diff
 
-## Closing the Diff View
+Click **Compare with previous response** again, or click **Tree view**, to return to the normal body view.
 
-Click **Close** or click **Compare** again to return to the normal response body view.
+## Which response counts as previous
 
-## Common Use Cases
+Nouto keeps one previous response: the body that was on screen when the new response arrived. It isn't saved, so restarting Nouto discards it.
 
-**Environment comparison**: Send the same request against a staging URL and a production URL, then compare the responses to verify parity.
+Nouto doesn't keep the result of a failed request as the previous response. The desktop app also doesn't keep responses with a 4xx or 5xx status.
 
-**Regression testing**: Run a request before and after a code change to confirm the response structure or values changed as expected.
-
-**Debugging API changes**: Send the same request twice with a variation (different parameter, different body) and compare the outputs.
-
-**Monitoring drift**: Periodically resend a request and use diff to detect unexpected changes in a third-party API's response format.
+To compare two environments, send the request with one environment active, switch the active environment, and send it again.

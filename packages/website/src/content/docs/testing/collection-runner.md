@@ -1,118 +1,148 @@
 ---
-title: Collection Runner
-description: Run all requests in a collection or folder sequentially in Nouto, with data-driven iterations, assertion results, and CI/CD-compatible export.
+title: Collection runner
+description: Run the requests in a Nouto collection or folder in order, repeat the run for each row of a CSV or JSON data file, and export the results as JSON, CSV, JUnit XML, or HTML.
 sidebar:
   order: 3
 ---
 
-The Collection Runner executes every request in a collection or folder sequentially, shows real-time progress, and produces a detailed results table. Use it to run regression tests, data-driven test suites, or smoke test sequences against an environment.
+The Collection Runner sends the requests in a collection or folder one after another and reports which ones passed and which failed. Use it for smoke tests and regression checks against an environment. To run a collection from a terminal or a CI pipeline, use the [CLI](/cli/run).
 
-## Opening the Runner
+## Open the runner
 
-Right-click a collection or folder in the sidebar and select **Run All**. The runner opens in a dedicated panel.
+Right-click a collection or folder in the sidebar and select **Run All**. The Collection Runner opens with every request in the collection or folder listed, including requests in subfolders.
 
-## Configuration
+## Set up a run
 
-Before starting, configure the run options:
+Before you start, choose which requests to run and how:
 
-| Option | Description | Default |
-|--------|-------------|---------|
-| **Data file** | CSV or JSON file for data-driven iterations | None |
-| **Stop on first failure** | Halt execution when a request fails or returns status >= 400 | Off |
-| **Delay between requests** | Milliseconds to wait between requests | 0 ms |
-| **Per-request timeout** | Override the individual request timeout for all requests in the run | Request default |
+- To skip a request, clear its checkbox. **Select All** and **Deselect All** toggle every request.
+- To change the order, drag a request by its handle.
+- To use an environment other than the active one, pick it from the environment dropdown at the top. **No Environment** runs without one.
 
-## Running
+These options control the run:
 
-Click **Run Collection** to start. A progress bar shows the current and total request count along with the name of the active request. Click **Cancel** to stop mid-run.
+| Option | Effect | Default |
+|--------|--------|---------|
+| **Stop on first failure** | Stops the whole run, including any remaining iterations, at the first request that fails | Off |
+| **Delay between requests** | Milliseconds to wait between requests | `0` |
+| **Request timeout (0 = default 30s)** | Timeout in milliseconds for requests that don't set their own timeout. `0` uses 30 seconds. | `0` |
+| **Data Source (CSV/JSON)** | A data file that repeats the run once per row. See [Data-driven testing](#data-driven-testing). | None |
 
-## Results Table
+Click **Run N Requests** to start. While the run is in progress, a progress bar shows the current request's name and the count of requests done. Click **Cancel** to stop the run.
 
-Each completed request appears as a row:
+## Pass and fail rules
 
-| Column | Description |
-|--------|-------------|
-| # | Sequential index (includes iteration number for data-driven runs) |
-| Name | Request name |
-| Method | HTTP method |
-| Status | HTTP status code and text |
-| Duration | Response time in ms |
-| Assertions | Pass/fail badge (e.g., "3/4") |
-| Result | Pass, Fail, or Skipped |
+The runner marks a request as failed when any of these is true:
 
-The runner executes HTTP requests only. gRPC, WebSocket, SSE, and GraphQL subscription items saved in the collection are reported as Skipped rather than run, and do not count as passed or failed. They also do not trigger "stop on failure".
+- The request got no response, for example because of a connection error. The **Status** column shows **Error**.
+- The request has no enabled assertions, and the status code is 400 or higher.
+- An enabled assertion fails. When a request has assertions, the status code alone doesn't fail it.
+- An `nt.test()` check in one of its scripts fails.
 
-Failed requests show an expandable row with the error message or failed assertion details. Click any row to expand and see individual assertion and script test results.
+Assertions include the ones defined on the request's collection and folders.
 
-After the run completes, a summary bar shows total passed, failed, and skipped counts along with the total execution time.
+The runner sends HTTP requests only. It marks gRPC, WebSocket, SSE, and GraphQL subscription requests as **Skipped**. Skipped requests don't count as passed or failed, and they don't trigger **Stop on first failure**.
 
-## Data-Driven Testing
+:::caution
+The desktop app's runner doesn't evaluate assertions. There, a request fails only when it gets no response, when a script throws an error, or when an `nt.test()` check fails.
+:::
 
-Load a CSV or JSON data file to run the collection multiple times, once per row, with different variable values each iteration.
+## Results
 
-### CSV Files
+When requests finish, the runner shows a summary of passed, failed, and skipped requests and the total time. Use **All**, **Passed**, and **Failed** to filter the results table.
 
-The first row must be the header row. Each column name becomes a variable:
+The results table has these columns:
 
-```csv
+| Column | Contents |
+|--------|----------|
+| **#** | Position in the run |
+| **Iter** | Iteration number. Shown only in data-driven runs. |
+| **Name** | Request name |
+| **Method** | HTTP method |
+| **Status** | Status code and text, **Skipped**, or **Error** |
+| **Duration** | Response time |
+| **Result** | **Pass**, **Fail**, or **Skipped**, followed by the passed and total assertion count |
+
+An error message appears below a request's row. Click a row to see its URL, **Script Tests**, **Script Logs**, **Assertions**, and the first 500 characters of the response body.
+
+After the run, these buttons appear:
+
+- **Retry Failed (N)** runs only the requests that failed.
+- **Run Again** returns to the setup screen.
+- **Export JSON**, **Export CSV**, **Export JUnit XML**, and **Export HTML** save the results. See [Export results](#export-results).
+
+## Data-driven testing
+
+A data file runs the selected requests once per row, with different values each time. Each column of a CSV file, or each key of a JSON object, becomes a variable that requests reference as `{{name}}`.
+
+1. Under **Data Source (CSV/JSON)**, click **Select Data File** and pick a `.csv` or `.json` file. The runner shows the file name and its number of rows and columns.
+2. To use only the first rows, set **Limit rows (0 = all)**.
+3. Click **Run N Requests (M iterations)**.
+
+Give columns names that don't clash with your environment variables. To clear the data file, click the **Clear data file** button next to its name.
+
+### CSV files
+
+The first row holds the column names. Nouto skips empty lines.
+
+```csv title="users.csv"
 username,password,expectedStatus
 admin,secret123,200
 user1,pass456,200
 baduser,wrongpass,401
 ```
 
-### JSON Files
+### JSON files
 
-An array of objects. Each object's keys become variables:
+Use an array of objects. Nouto converts values that aren't strings to strings, and `null` to an empty string. A single object counts as one row.
 
-```json
+```json title="users.json"
 [
   { "userId": "1", "expectedName": "Alice" },
   { "userId": "2", "expectedName": "Bob" }
 ]
 ```
 
-In your requests, reference the columns with `{{username}}`, `{{userId}}`, etc. The runner substitutes the values for each iteration.
+In a script, `nt.info.currentIteration` holds the zero-based row index.
 
-## Flow Control
+## Flow control
 
-Use `nt.setNextRequest()` in a post-response script to skip ahead, jump to a specific request by name, or stop the run early:
+A script can change which request runs next with `nt.setNextRequest()`. Pass the name or ID of a request in the run:
 
-```javascript
-// Skip to a specific request
-nt.setNextRequest('Cleanup Request');
-
-// Stop the run after this request
-nt.setNextRequest(null);
+```js
+// Post-response: jump to the cleanup request when login fails
+if (nt.response.status !== 200) {
+  nt.setNextRequest('Cleanup Request');
+}
 ```
 
-## Variable Substitution
+If no request matches, the runner continues with the next request in order. Requests that a jump passes over count as skipped in the summary. When jumps make a request repeat, the runner stops the run to break the loop. In VS Code and the CLI, that happens when one request would run a third time in the same iteration.
 
-The runner performs full variable substitution on each request:
+## Variables in a run
 
-- Environment variables (`{{variableName}}`)
-- Global variables
-- Dynamic variables (`{{$uuid.v4}}`, `{{$timestamp.iso}}`, etc.)
-- Response chaining (`{{$response.body.token}}` uses the most recent response)
-- Set Variable assertions and `nt.setVar()` calls update the active environment between requests
+Before it sends each request, the runner resolves its `{{variable}}` references with the environment selected for the run. See [Variable substitution](/variables/variable-substitution).
+
+Values that scripts set with `nt.setVar()`, and values that **Set Variable** assertions save, are available to the requests that run after them. In VS Code and the CLI, a request can also read an earlier response from the same run by name, for example `{{Login.$response.body.token}}`.
 
 ## Authentication
 
-All auth types work in the runner. OAuth 2.0 uses whatever token is currently stored; the runner does not trigger new OAuth flows.
+The runner applies the request's own Basic, Bearer Token, API Key, and OAuth 2.0 settings. For OAuth 2.0, it uses the token already stored for the request. In VS Code and the CLI, the runner refreshes an expired token when a refresh token is available. The runner never starts a new authorization flow, so get a token in the request editor before the run.
 
-## Export Results
+## Export results
 
-After a run completes, export the results in four formats:
+After a run, export the results with one of the export buttons:
 
-| Format | Use for |
-|--------|---------|
-| **JSON** | Full structured data with per-request details, assertions, and script test results |
-| **CSV** | Tabular summary: name, method, URL, status, duration, pass/fail |
-| **JUnit XML** | CI/CD integration (Jenkins, GitHub Actions, GitLab CI, Azure DevOps) |
-| **HTML Report** | Self-contained report file with a summary header and expandable request details |
+| Format | Contents |
+|--------|----------|
+| JSON | The collection name, the summary, and every result, including assertion results, script test results, and response data |
+| CSV | One row per request with the columns `#`, `Name`, `Method`, `URL`, `Status`, `StatusText`, `Duration(ms)`, `Pass/Fail`, and `Error` |
+| JUnit XML | One `<testcase>` per request, for CI systems that read JUnit reports |
+| HTML | A standalone report with a summary, a results table, and failure details |
 
-The JUnit XML format maps each request to a `<testcase>`, with `<failure>` for assertion failures and `<error>` for transport errors (timeout, connection refused).
+In JUnit XML, a request that got an error becomes an `<error>` element, and a request that failed an assertion or an `nt.test()` check becomes a `<failure>` element. In data-driven runs, each test case name ends with the iteration, for example `Get user [Iteration 2]`.
 
-## Runner History
+## Run history
 
-Nouto keeps a history of the last 100 runs for 30 days. Access it from the runner panel to review results from previous executions without re-running the collection.
+The runner saves every finished run. To see past runs of the collection, click the history button in the runner header. The list shows each run's date, passed and failed counts, and duration. Click a run to see its results, or delete it with its trash button. **Clear All** deletes the collection's run history.
+
+In VS Code, Nouto keeps up to 100 runs and deletes runs older than 30 days.

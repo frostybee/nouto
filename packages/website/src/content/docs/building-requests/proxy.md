@@ -1,82 +1,87 @@
 ---
 title: Proxy
-description: Route Nouto requests through an HTTP, HTTPS, or SOCKS5 proxy, globally or per-request.
+description: Send Nouto requests through an HTTP, HTTPS, or SOCKS5 proxy, for all requests or for a single request.
 sidebar:
   order: 5
 ---
 
-Nouto supports routing requests through a proxy server. You can configure a global proxy that applies to all requests, or override it per-request to route specific requests through a different proxy.
+Nouto can send requests through a proxy server. Set a global proxy in Nouto's settings to cover every request, or set a proxy on one request's **Settings** tab.
 
-## Global Proxy
+## Set a global proxy
 
-A global proxy routes all requests by default.
+1. Open Nouto's settings with the gear icon (**Settings**) and select **Network**.
+2. Under **Proxy**, turn on **Enable Global Proxy**.
+3. Choose the **Protocol**: `HTTP`, `HTTPS`, or `SOCKS5`.
+4. Enter the proxy **Host** and **Port**.
+5. If the proxy requires authentication, enter the **Username** and **Password**.
+6. To connect to some hosts directly, list them in **No Proxy**. See [Bypass the proxy for some hosts](#bypass-the-proxy-for-some-hosts).
 
-1. Open **Settings** (the gear icon).
-2. Scroll to the **Proxy** section.
-3. Enable **Use proxy**.
-4. Set the **Protocol** (`HTTP`, `HTTPS`, or `SOCKS5`), **Host**, and **Port**.
-5. Optionally enter **Username** and **Password** if the proxy requires authentication.
-6. Optionally add hostnames to the **No proxy** list to bypass the proxy for those addresses.
+## Set a proxy for one request
 
-## Per-Request Proxy
+1. Open the request and select the **Settings** tab.
+2. Under **Proxy**, turn on **Enable proxy for this request**.
+3. Fill in the protocol, host, port, optional credentials, and **No proxy** list as for the global proxy.
 
-A per-request proxy overrides the global proxy for one specific request.
+The request's proxy replaces the global proxy for that request only:
 
-1. Open the request and go to the **Settings** tab.
-2. Enable **Use proxy for this request**.
-3. Configure protocol, host, port, credentials, and bypass list as needed.
+| Proxy settings | Result |
+|----------------|--------|
+| Request proxy enabled | The request uses its own proxy. |
+| Request proxy off, global proxy enabled | The request uses the global proxy. |
+| Neither enabled | The request connects directly. |
 
-Per-request settings always take priority. If neither is enabled, requests connect directly.
+## Protocols
 
-| Condition | Proxy used |
-|-----------|-----------|
-| Per-request proxy enabled | Per-request proxy |
-| Only global proxy enabled | Global proxy |
-| Neither enabled | Direct connection |
+The **Protocol** option sets how Nouto talks to the proxy server:
 
-## Supported Protocols
+| Protocol | Connection to the proxy |
+|----------|-------------------------|
+| `HTTP` | Plain HTTP. For `https://` targets, Nouto opens a tunnel through the proxy, so the request itself stays encrypted. |
+| `HTTPS` | TLS-encrypted connection to the proxy. |
+| `SOCKS5` | SOCKS version 5, for example an SSH tunnel opened with `ssh -D`. |
 
-| Protocol | Notes |
-|----------|-------|
-| HTTP | Standard HTTP proxy, most common |
-| HTTPS | TLS-encrypted proxy tunnel |
-| SOCKS5 | Useful for SSH tunnels and advanced routing |
+SOCKS4 isn't supported. Nouto has no setting for PAC files or automatic proxy detection, so enter the proxy details by hand. In the VS Code extension, requests that go through a proxy use HTTP/1.1.
 
-SOCKS4 is not supported. System proxy auto-detection and PAC files are not supported; configure the proxy manually.
+## Bypass the proxy for some hosts
 
-## No Proxy (Bypass List)
+The **No proxy** field takes a comma-separated list of hosts that Nouto connects to directly:
 
-The **No proxy** field accepts a comma-separated list of hostnames that connect directly, bypassing the proxy:
-
-```
-localhost, 127.0.0.1, *.internal.corp, 10.0.0.0/8
+```text
+localhost, 127.0.0.1, internal.corp
 ```
 
-Always add `localhost` and `127.0.0.1` to the bypass list when using a corporate proxy, so local development servers remain reachable.
+Nouto matches each entry against the request's host name:
 
-## Common Scenarios
+- A host name matches itself and all of its subdomains. `internal.corp` matches `internal.corp` and `api.internal.corp`.
+- An IP address matches only that exact address.
+- `*` on its own bypasses the proxy for every host.
 
-### Corporate Network
+Wildcard patterns such as `*.internal.corp` and IP ranges such as `10.0.0.0/8` don't match anything. Use the parent domain instead of a wildcard, and list IP addresses one by one.
 
-Your organization routes all outbound traffic through a corporate proxy:
+When you use a corporate proxy, add `localhost` and `127.0.0.1` so that local development servers stay reachable.
 
-1. Open Settings, enable global proxy.
-2. Set protocol to `HTTP`, host to `proxy.company.com`, port to `3128` (or as provided by IT).
-3. Add `localhost, 127.0.0.1` to No proxy.
+## Example: corporate proxy
 
-All requests now route through the corporate proxy. Local requests still connect directly.
+To send all requests through a proxy that your IT team gave you, for example `proxy.company.com` on port `3128`:
 
-### Debugging with Fiddler, Charles, or mitmproxy
+1. In **Settings > Network**, turn on **Enable Global Proxy**.
+2. Set **Protocol** to `HTTP`, **Host** to `proxy.company.com`, and **Port** to `3128`.
+3. Set **No Proxy** to `localhost, 127.0.0.1`.
 
-To inspect a specific request in an HTTP debugging tool:
+Requests to public hosts go through the proxy. Requests to your local servers connect directly.
 
-1. Open the request, go to **Settings** tab, enable the per-request proxy.
-2. Set protocol to `HTTP`, host to `127.0.0.1`, port to `8888` (Fiddler default) or `8080` (Charles/Burp default).
-3. Send the request. It appears in the proxy tool's traffic log.
+## Example: inspect one request in a debugging proxy
 
-Other requests that do not have a per-request proxy configured are unaffected.
+To capture a single request in Fiddler, Charles, mitmproxy, or Burp Suite:
 
-## Limitations
+1. Open the request, select the **Settings** tab, and turn on **Enable proxy for this request**.
+2. Set **Protocol** to `HTTP`, **Host** to `127.0.0.1`, and **Port** to the port the tool listens on. Fiddler and Charles listen on `8888` by default; mitmproxy and Burp Suite listen on `8080`.
+3. Send the request. It appears in the tool's traffic list.
 
-- When a proxy is active, HTTP/2 is downgraded to HTTP/1.1.
-- Proxy credentials are not encrypted at rest beyond the standard collection storage.
+Other requests keep their normal proxy settings. To inspect an `https://` request, the tool decrypts the traffic with its own certificate. Select that certificate in **CA Certificate** on the same **Settings** tab, or turn off **Verify SSL certificate** for the request. See [SSL certificates](/building-requests/ssl-certificates).
+
+## Proxy credentials and variables
+
+The proxy fields don't resolve `{{variables}}`. Nouto uses the text you enter as is.
+
+A per-request proxy password is saved with the request. In the desktop app, Nouto moves it into the operating system's keychain and keeps only a reference in the collection file. In the VS Code extension, it's saved as plain text in the collection data, so don't commit or share a collection that contains one. The global proxy is part of Nouto's settings, not of any collection.

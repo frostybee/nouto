@@ -1,73 +1,62 @@
 ---
-title: Auth Inheritance
-description: Configure authentication once at the collection or folder level and have requests inherit it automatically.
+title: Auth inheritance
+description: Configure authentication once on a collection or folder and have requests inside it use that auth.
 sidebar:
   order: 8
 ---
 
-Auth inheritance lets you set credentials once on a collection or folder instead of configuring them on every request individually. Requests can inherit from their parent, use their own credentials, or send no auth at all.
+Auth inheritance lets you configure credentials once on a collection or folder instead of on every request. Each request in a collection chooses whether to inherit that auth, use its own, or send none.
 
-## Inheritance Model
+## Inheritance modes
 
-Auth flows down the hierarchy:
-
-```
-Collection
-  └── Folder
-        └── Request
-```
-
-Each level can either inherit from its parent or override with its own configuration. A request at the bottom of the chain resolves auth by walking up to the nearest ancestor that has auth configured.
-
-## Auth Modes
-
-Each request and folder has an **Auth** mode selector with three options:
+When a request is saved in a collection, its **Auth** tab shows an **Authorization** selector with three modes:
 
 | Mode | Behavior |
 |------|----------|
-| **Inherit** | Use the auth configured on the nearest parent (folder or collection) |
-| **Own** | Use the auth configured directly on this request or folder |
-| **None** | Send no auth, even if the parent has auth configured |
+| **Inherit** | Uses the auth of the nearest folder or collection above the request that has auth configured. See [How Nouto finds inherited auth](#how-nouto-finds-inherited-auth). |
+| **No Auth** | Sends no auth, even when a folder or collection above has auth configured. |
+| **Own Auth** | Uses the auth configured on the request itself. This is the default. |
 
-## Setting Collection Auth
+Requests start in **Own Auth** mode, including requests you create in a collection and requests imported from other tools. Switch each request that should use shared credentials to **Inherit**.
 
-1. Right-click a collection in the sidebar and open its settings.
-2. Click the **Auth** tab.
-3. Select an auth type and fill in the credentials.
+With **Inherit** selected, the tab shows `Using auth from` and the collection name. With **No Auth** selected, it shows `No authentication will be sent`. The auth fields appear only in **Own Auth** mode.
 
-All requests and folders inside the collection default to **Inherit** mode and will use these credentials.
+## Set auth on a collection or folder
 
-## Setting Folder Auth
+1. In the sidebar, right-click the collection or folder and select **Settings...**.
+2. On the **Auth** tab, select a type from the **Type** dropdown and fill in the fields.
+3. Click **Save**.
 
-Folders can override the collection's auth for a subset of requests:
+Folders and collections don't have an inheritance mode of their own. Once you save auth on a folder, that folder provides auth to the inheriting requests inside it.
 
-1. Right-click a folder and open its settings.
-2. Click the **Auth** tab.
-3. Set the mode to **Own**, then configure the auth type and credentials.
+## How Nouto finds inherited auth
 
-Requests inside the folder inherit from the folder. The collection's auth is not used for requests in that folder.
+For a request in **Inherit** mode, Nouto checks the request's ancestors from the nearest folder upward:
 
-## Request-Level Override
+1. The first folder with saved auth settings provides the auth.
+2. If no folder above the request has saved auth settings, the collection's auth is used.
+3. If the collection has no auth either, the request sends no auth.
 
-Individual requests can also switch to **Own** mode to use different credentials than their parent, or to **None** to skip auth entirely for that request.
+:::caution
+Saving a folder's settings saves its **Auth** tab too, even when you only changed its headers or variables. A folder saved with **No Auth** selected provides "no auth" to the requests below it, so they don't reach the collection's auth. To pass the collection's auth through, select the same auth type and credentials on the folder.
+:::
 
-## Nested Folders
+## Inheritance example
 
-Inheritance works through any number of nesting levels. A request in a deeply nested folder walks up the chain until it finds an ancestor with **Own** mode configured, or reaches the collection root.
+In this collection, the collection has Bearer auth, Folder A has never had its settings saved, and Folder B has Basic auth saved:
 
+```text
+Collection (Bearer Token)
+  └── Folder A (settings never saved)
+        └── Request 0 (Inherit → collection's Bearer Token)
+        └── Folder B (Basic Auth saved)
+              └── Request 1 (Inherit → Folder B's Basic Auth)
+              └── Request 2 (Own Auth: API Key → its own key)
+              └── Request 3 (No Auth → no auth)
 ```
-Collection (Bearer token: collection-token)
-  └── Folder A (Inherit → uses collection token)
-        └── Folder B (Own: Basic auth)
-              └── Request 1 (Inherit → uses Folder B's Basic auth)
-              └── Request 2 (Own: API Key → uses its own key)
-              └── Request 3 (None → sends no auth)
-```
 
-## Variable Support in Inherited Auth
+## Postman collections
 
-Inherited credentials support `{{variable}}` syntax the same as request-level auth. Define the token once in an environment variable, reference it in the collection's auth configuration, and all inheriting requests use the resolved value automatically.
+When you import a Postman collection, Nouto keeps the auth configured on the collection. The desktop app also keeps the auth configured on folders. The VS Code extension doesn't import folder auth, so set it again in each folder's **Settings...**.
 
-## Postman Compatibility
-
-Postman collection auth and folder auth are preserved during import. Collections and folders with auth configured in Postman import as **Own** mode in Nouto. Requests that inherit from their parent in Postman import as **Inherit** mode.
+Postman requests that inherit auth from their parent are imported in **Own Auth** mode with **No Auth** selected. Switch them to **Inherit** after the import.

@@ -1,142 +1,168 @@
 ---
 title: gRPC
-description: Call gRPC services with server reflection or proto files, including unary, server streaming, client streaming, and bidirectional streaming.
+description: Call gRPC services with server reflection or .proto files, including unary, server streaming, client streaming, and bidirectional streaming calls.
 ---
 
-Nouto includes a dedicated gRPC mode with support for all four call types: unary, server streaming, client streaming, and bidirectional streaming. Load your API schema via server reflection or proto files, get JSON autocomplete based on your message types, and inspect every event in a live timeline.
+A gRPC request calls a method on a gRPC server. Nouto supports unary, server streaming, client streaming, and bidirectional streaming methods. It loads the service definitions through server reflection or from local `.proto` files and records every event of a call in a timeline.
 
-## Creating a gRPC Request
+## Create a gRPC request
 
-Create a new request and select **gRPC** from the protocol selector in the URL bar. Enter the server address in `host:port` format (e.g., `localhost:50051`). No `http://` or `grpc://` prefix is needed.
+Click the arrow next to **New Request** in the sidebar and select **New gRPC Call**. To add the request to a collection or folder, right-click it and select **New Request** > **gRPC**.
 
-## Schema Configuration
+Enter the server address in `host:port` format, for example `localhost:50051`, without a scheme. `{{variables}}` in the address are resolved from the active environment.
 
-Before selecting a service or method, load the server schema. Click **Configure** in the schema bar to open the configuration panel. Two modes are available:
+## Load the schema
 
-### Server Reflection
+Nouto needs the service definitions before you can pick a method. The schema bar shows **No Schema** until you load them.
 
-Nouto queries the server's reflection API to discover all available services and methods. This requires the server to have reflection enabled.
+1. Click **Configure** in the schema bar.
+2. Under **Proto Source**, select **Server Reflection** or **Proto Files**.
+3. Click **Load Schema**.
 
-Enter any metadata headers needed for the reflection request (authentication tokens, etc.) in the **Metadata** tab, then click **Load Schema**. Nouto tries the v1 reflection protocol first and falls back to v1alpha automatically.
+When loading succeeds, the bar shows **Schema Loaded** with the source: `Reflection` or the number of proto files. If loading fails, the bar shows **Error** with the message.
 
-### Proto Files
+### Server reflection
 
-Load the schema from local `.proto` files when reflection is not available.
+Select **Server Reflection** when the server has the gRPC reflection service enabled. Nouto lists the services through reflection v1 and falls back to v1alpha when the server doesn't implement v1.
 
-- Click **Add File** to pick one or more `.proto` files from disk.
-- If your protos import other protos, add the root import directories under **Import Directories**. Nouto scans each directory and lists the discovered `.proto` files. Click **Add All** to include all of them at once.
-- Click **Load Schema** to compile and cache the descriptor pool.
+The reflection call uses the address, the entries on the **Metadata** tab, and the settings on the **TLS** tab. `{{variables}}` aren't resolved for the reflection call, so use literal values in the address and metadata when you load the schema.
 
-Once loaded, the schema bar shows a green status indicator and the service and method selectors become active.
+### Proto files
 
-## Service and Method Selection
+Select **Proto Files** when the server doesn't support reflection.
 
-Use the **Service** and **Method** dropdowns to select which RPC to call. Each method is labeled with its call type:
+1. Click **Add Proto Files** and select one or more `.proto` files.
+2. If your files import other protos, such as `google/protobuf/timestamp.proto`, click **Add Import Directory** and select the root folder those imports are relative to. Nouto lists the `.proto` files it finds in the folder. Click the `+` next to a file to add it, or **Add all** to add every file.
+3. Click **Load Schema**.
+
+## Select a method
+
+Click the **Service / Method** dropdown and select a method. Methods are grouped by service, and streaming methods carry a badge:
 
 | Badge | Call type |
 |-------|-----------|
-| *(none)* | Unary |
+| None | Unary |
 | `server stream` | Server streaming |
 | `client stream` | Client streaming |
 | `bidi` | Bidirectional streaming |
 
-When you select a method, the message editor is pre-populated with a scaffolded JSON object matching the method's input type. All required fields are included with zero values so you can fill them in without consulting the proto definition.
+The input and output message types appear below the dropdown. If the **Message** editor is empty or contains `{}`, Nouto fills it with a JSON object that lists every field of the input message with a default value, for example `""` for strings, `0` for numbers, and `[]` for repeated fields.
 
-## Sending Messages
+## Write the message
 
-The **Message** tab contains a JSON editor for the request payload. The editor provides autocomplete based on the selected method's input schema. Press `Ctrl+Space` to trigger suggestions for field names and enum values.
+The **Message** tab holds the request message as JSON. The editor uses the input message type to suggest field names and enum values (press `Ctrl+Space`), show field descriptions on hover, and flag fields that don't match the schema. The toolbar has **Format**, **Minify**, copy, and **Wrap** buttons.
 
-JSON comments (`//` and `/* */`) are supported in the editor and stripped before the message is sent, so you can annotate fields for reference.
+`{{variables}}` in the message are resolved from the active environment for the first message and for each message sent on a stream.
 
-`{{variable}}` placeholders in the message body are resolved against the active environment before the message is sent, the same as for HTTP request bodies. This applies to the initial message and to each message sent on a streaming call.
+You can annotate the message with `//` and `/* */` comments. The editor flags them as JSON errors, but Nouto removes the comments before it encodes the message.
 
-Press **Invoke** (or **Send** for streaming) to call the method.
+## Add metadata
 
-## Metadata
+The **Metadata** tab holds key-value pairs that Nouto sends as gRPC metadata, the gRPC equivalent of HTTP headers. `{{variables}}` work in keys and values.
 
-The **Metadata** tab is a key-value editor for gRPC request metadata (the gRPC equivalent of HTTP headers). Use it to pass custom values to the server alongside the call.
+## Add authentication
 
-`{{variable}}` syntax works in both keys and values.
+Set up auth on the **Auth** tab. Nouto converts these auth types to metadata:
 
-## Authentication
+| Auth type | Metadata sent |
+|-----------|---------------|
+| Bearer Token | `authorization: Bearer <token>` |
+| Basic Auth | `authorization: Basic <base64 of username:password>` |
+| API Key | The key name and value, when **Add to** is set to **Header** |
+| OAuth 2.0 | `authorization: Bearer <access token>`, using the token already fetched on the Auth tab |
 
-Configure authentication in the **Auth** tab using any of the supported types: Bearer, Basic, API Key, or OAuth 2.0. Credentials are attached to the call as gRPC metadata headers automatically, so you do not need to add them manually to the Metadata tab.
+Nouto doesn't send the other auth types with gRPC calls. See [Authentication](/authentication/) for setup details.
 
-See [Authentication](/authentication/) for setup details.
+:::caution
+`{{variables}}` in auth fields aren't resolved for gRPC calls. To send a token from an environment variable, set the auth type to **No Auth** and add an `authorization` entry on the **Metadata** tab with a value such as `Bearer {{token}}`.
+:::
 
-## TLS and mTLS
+## Use TLS and mutual TLS
 
-The **TLS** tab controls transport security:
+Nouto connects in plaintext by default. To use TLS, open the **TLS** tab and select **Use TLS**. These fields appear:
 
 | Field | Description |
 |-------|-------------|
-| **Enable TLS** | Toggle to use TLS/mTLS instead of plaintext |
-| **CA Certificate** | Path to a custom CA certificate (`.pem`) for server verification |
-| **Client Certificate** | Path to the client certificate (`.pem`) for mutual TLS |
-| **Client Key** | Path to the client private key (`.pem`) |
-| **Passphrase** | Passphrase for an encrypted private key |
+| **CA Certificate** | Path to a CA certificate (`.pem` or `.crt`) used to verify the server |
+| **Client Certificate** | Path to the client certificate for mutual TLS |
+| **Client Key** | Path to the private key that matches the client certificate |
+| **Key Passphrase** | Passphrase for an encrypted private key |
 
-Leave CA Certificate blank to use the system's trusted certificate store.
+In VS Code, leave **CA Certificate** empty to verify the server against Node.js's default trusted CAs.
 
-## Timeout
+:::caution
+The desktop app doesn't load the operating system's trusted certificates for gRPC. Set **CA Certificate** whenever **Use TLS** is on in the desktop app, including for servers with publicly trusted certificates. In the desktop app, **Key Passphrase** works only with PKCS#8 encrypted keys (`-----BEGIN ENCRYPTED PRIVATE KEY-----`).
+:::
 
-Enter a timeout in milliseconds in the **Timeout** field. The call is cancelled with a `DEADLINE_EXCEEDED` status if the server has not responded within the limit. Leave it blank for no deadline.
+## Set a timeout
 
-## Streaming
+Enter a value in **Timeout (ms)** above the tabs to set a deadline for the call. Leave the field empty for no deadline. If the call doesn't finish in time, it fails with `DEADLINE_EXCEEDED` in VS Code and `CANCELLED` in the desktop app.
 
-For streaming call types, the button bar changes to reflect the current state:
+## Invoke a method
 
-- **Send**: transmit the current message to the server (available for client and bidirectional streaming while connected)
-- **Commit**: gracefully half-close the client side of the stream, signalling to the server that no more messages will be sent (available for client and bidirectional streaming)
-- **Disconnect**: forcefully cancel the stream
+The button in the URL bar depends on the call type:
 
-You can send multiple messages during a single connection. Edit the message body between sends to vary the payload.
+| Call type | Button |
+|-----------|--------|
+| Unary | **Invoke** |
+| Server streaming | **Stream** |
+| Client streaming and bidirectional streaming | **Start Stream** |
 
-## Response and Timeline
+The button stays disabled until you've entered an address and selected a method. You can also press `Ctrl+Enter`.
 
-The response panel has two tabs:
+### Control a streaming call
 
-### Response
+While a stream is open, the URL bar shows these buttons:
 
-Shows the last server message received, pretty-printed as JSON.
+- **Send** sends the current contents of the **Message** editor. Edit the message between sends to vary the payload.
+- **Commit** half-closes the client side of a client streaming or bidirectional stream, telling the server that no more messages are coming.
+- **Cancel** cancels the call.
 
-For streaming calls, a counter in the status bar shows the total number of messages received. Use the **Timeline** tab to inspect individual messages.
+## Read the response
 
-### Timeline
+The response panel has a status bar and two tabs.
 
-A chronological log of all events in the call:
+The status bar shows the gRPC status, for example `OK 0`, and the elapsed time in milliseconds. During a stream, it shows **Streaming** and the number of messages received. After you've made more than one call, a dropdown lets you switch between recent calls.
 
-| Event type | Description |
-|------------|-------------|
-| **Connecting** | Call initiated |
-| **Initial Metadata** | Response headers (metadata) received from the server |
-| **Client Message** | Message you sent |
-| **Server Message** | Message received from the server (expandable JSON) |
-| **Trailers** | Trailing metadata (status, grpc-status, custom keys) |
-| **Error** | Error details if the call failed |
-| **Complete** | Call finished cleanly |
+The **Response** tab shows the last message from the server as JSON. If the call fails, it shows the gRPC status name, code, and error message instead.
 
-Click any event to expand it. Server messages are pretty-printed JSON. Trailers and metadata are shown as key-value pairs.
+The **Timeline** tab lists every event of the call in order:
 
-## Assertions
+| Event | Description |
+|-------|-------------|
+| **Connecting to** | The call started. Shows the server address. |
+| **Received response metadata** | The server sent its initial metadata |
+| **Sent message** | Nouto sent a message |
+| **Received response** | The server sent a message |
+| **Received trailers** | The server sent its trailing metadata |
+| **Error** | The call failed. Shows the status name and code. |
+| **Connection complete** | The call finished |
 
-Open the **Assertions** tab to define automatic checks that run after each call. In addition to the standard assertion targets, gRPC calls support:
+Click an event to expand it. Messages appear as JSON, and metadata and trailers appear as key-value pairs.
 
-| Target | Description | Example value |
-|--------|-------------|---------------|
-| `grpcStatusMessage` | gRPC status code name | `OK`, `NOT_FOUND`, `PERMISSION_DENIED` |
-| `trailer` | Value of a trailing metadata key | Key: `grpc-message` |
-| `streamMessageCount` | Total server messages received | `5` |
-| `streamMessage` | JSONPath into a specific server message by index | `0.$.token` (first message, `.token` field) |
+## Add assertions
 
-Standard targets also available: `status` (HTTP-equivalent numeric status), `responseTime`, `body` (last server message), `header`, `jsonQuery`, `setVariable`.
+The **Assertions** tab checks the result after each call. gRPC requests support these targets in addition to the standard ones:
 
-For `streamMessage`, the value format is `<index>.<jsonpath>`. For example, `2.$.items[0].id` queries the `id` field of the first item from the third server message.
+| Target | Checks | Property example |
+|--------|--------|------------------|
+| **gRPC Status Name** | The status name, such as `OK`, `NOT_FOUND`, or `PERMISSION_DENIED` | None |
+| **gRPC Trailer** | The value of a trailing metadata key | `grpc-message` |
+| **Stream Msg Count** | The number of messages the server sent | None |
+| **Stream Message** | One server message, by zero-based index, optionally with a JSONPath | `0.$.token` |
+
+For gRPC calls, the standard targets read these values:
+
+- **Status Code** is the numeric gRPC status code, `0` for `OK`.
+- **Response Body** and **JSON Path** read the last server message.
+- **Header / Initial Metadata** reads the server's initial metadata.
+
+The **Stream Message** property has the form `<index>` or `<index>.<jsonpath>`. For example, `2.$.items[0].id` reads the `id` of the first item in the third server message.
 
 See [Assertions](/testing/assertions) for operators and examples.
 
-## History and Collections
+## History and collections
 
-Completed gRPC calls are saved to the request history automatically. Each history entry records the server address, service, method, and the full schema configuration (reflection settings or proto file paths). Re-opening a history entry restores everything so you can replay or modify the call without reconfiguring the schema.
+Save gRPC requests to collections and folders like any other request. See [Collections](/features/collections).
 
-gRPC requests can be saved to collections and organised into folders like any other request type. See [Collections](/features/collections).
+In VS Code, each completed call is added to the request history with the address, service, method, and schema source: reflection or the proto file paths. The desktop app doesn't record gRPC calls in history.

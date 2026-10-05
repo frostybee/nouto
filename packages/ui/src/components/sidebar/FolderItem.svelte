@@ -248,36 +248,41 @@
     }
     return [
       {
-        label: 'New HTTP Request',
-        icon: 'codicon-globe',
-        action: () => handleCreateTypedRequest(REQUEST_KIND.HTTP),
+        label: 'New Request',
+        icon: 'codicon-add',
+        children: [
+          {
+            label: 'HTTP',
+            icon: 'codicon-globe',
+            action: () => handleCreateTypedRequest(REQUEST_KIND.HTTP),
+          },
+          {
+            label: 'GraphQL',
+            icon: 'codicon-symbol-structure',
+            action: () => handleCreateTypedRequest(REQUEST_KIND.GRAPHQL),
+          },
+          {
+            label: 'GraphQL Subscription',
+            icon: 'codicon-radio-tower',
+            action: () => handleCreateTypedRequest(REQUEST_KIND.GRAPHQL_SUBSCRIPTION),
+          },
+          {
+            label: 'WebSocket',
+            icon: 'codicon-plug',
+            action: () => handleCreateTypedRequest(REQUEST_KIND.WEBSOCKET),
+          },
+          {
+            label: 'SSE',
+            icon: 'codicon-broadcast',
+            action: () => handleCreateTypedRequest(REQUEST_KIND.SSE),
+          },
+          {
+            label: 'gRPC',
+            icon: 'codicon-server',
+            action: () => handleCreateTypedRequest(REQUEST_KIND.GRPC),
+          },
+        ],
       },
-      {
-        label: 'New GraphQL Request',
-        icon: 'codicon-symbol-structure',
-        action: () => handleCreateTypedRequest(REQUEST_KIND.GRAPHQL),
-      },
-      {
-        label: 'New GraphQL Subscription',
-        icon: 'codicon-radio-tower',
-        action: () => handleCreateTypedRequest(REQUEST_KIND.GRAPHQL_SUBSCRIPTION),
-      },
-      {
-        label: 'New WebSocket',
-        icon: 'codicon-plug',
-        action: () => handleCreateTypedRequest(REQUEST_KIND.WEBSOCKET),
-      },
-      {
-        label: 'New SSE Connection',
-        icon: 'codicon-broadcast',
-        action: () => handleCreateTypedRequest(REQUEST_KIND.SSE),
-      },
-      {
-        label: 'New gRPC Call',
-        icon: 'codicon-server',
-        action: () => handleCreateTypedRequest(REQUEST_KIND.GRPC),
-      },
-      { divider: true, label: '' },
       {
         label: 'New Folder',
         icon: 'codicon-new-folder',

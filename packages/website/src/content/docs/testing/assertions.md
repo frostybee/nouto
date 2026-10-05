@@ -1,140 +1,137 @@
 ---
 title: Assertions
-description: Validate API responses automatically with Nouto's GUI assertion engine, without writing any code.
+description: Check status codes, headers, body values, and JSON Schema in Nouto responses without writing code, and save response values to variables.
 sidebar:
   order: 0
 ---
 
-Assertions let you define expected conditions on a response and evaluate them automatically after each request. The result appears inline in the request panel and in the response panel as a pass/fail list. No scripting required.
+An assertion is a check that Nouto runs against the response every time you send a request. Each assertion compares one part of the response, such as the status code or a JSONPath value, with an expected value. Results appear in the request editor, the response panel, and the Collection Runner. For checks that need code, use [scripts](/testing/scripts).
 
-## Accessing Assertions
+## Add an assertion
 
-Open a request and click the **Tests** tab. The tab shows a count badge when assertions are defined, for example "Tests (3)".
+1. Open a request and select the **Tests** tab. For a gRPC request, select the **Assertions** tab.
+2. Click **Add Test**. Nouto adds a row that checks **Status Code** `=` `200`. For a gRPC request, the new row checks **Status Code** `=` `0`.
+3. Choose the target, operator, and expected value.
+4. Send the request.
 
-Click **Add Test** to create a new assertion row.
+The tab label shows the number of assertions, for example `Tests (3)`.
 
-## Assertion Structure
-
-Each assertion has four fields:
+Each row has these fields:
 
 | Field | Description |
 |-------|-------------|
-| **Checkbox** | Enable or disable the assertion without deleting it |
-| **Target** | What to test (status, body, JSONPath, header, etc.) |
-| **Property** | Context-dependent input, such as a JSONPath expression or header name |
-| **Operator** | How to compare the actual value to the expected value |
-| **Expected** | The value to compare against |
+| Checkbox | Turns the assertion on or off without deleting it |
+| Target | The part of the response to check |
+| Property | A JSONPath expression, header name, or similar input. Shown only for targets that need one. |
+| Operator | How to compare the value with the expected value. Hidden for **JSON Schema** and **Set Variable**. |
+| Expected | The value to compare against. Hidden for operators that don't use one. |
+
+To delete a row, click its **Remove assertion** button.
 
 ## Targets
 
-| Target | Property field | Description |
-|--------|---------------|-------------|
-| **Status Code** | (none) | The HTTP response status code |
-| **Response Time** | (none) | Request duration in milliseconds |
-| **Response Size** | (none) | Response body size in bytes |
-| **Response Body** | (none) | Full response body as a string |
-| **JSON Path** | JSONPath expression (e.g., `$.data[0].name`) | A value extracted from the JSON response body |
-| **Header** | Header name (case-insensitive) | A response header value |
-| **Content-Type** | (none) | Value of the `Content-Type` header |
-| **JSON Schema** | (none) | Validates the response body against a JSON Schema you provide in the Expected field. |
-| **Set Variable** | JSONPath expression | Extracts a value and stores it as an environment variable. |
+| Target | Property | Value checked |
+|--------|----------|---------------|
+| **Status Code** | None | HTTP status code |
+| **Response Time** | None | Response time in milliseconds |
+| **Response Size** | None | Response body size in bytes |
+| **Response Body** | None | The whole body as text |
+| **JSON Path** | JSONPath expression, for example `$.data[0].name` | The matched value. When the path matches more than one value, Nouto compares them as a JSON array. |
+| **Header** | Header name, case-insensitive | The value of that response header |
+| **Content-Type** | None | The value of the `Content-Type` header |
+| **JSON Schema** | None | Validates the JSON body against a schema that you paste into the text area below the row |
+| **Set Variable** | JSONPath expression | Saves a value to a variable. See [Save a response value](#save-a-response-value). |
 
-## gRPC Targets
+### gRPC targets
 
-The following targets are available when the request protocol is **gRPC**:
+For gRPC requests, the **Header** target is labeled **Header / Initial Metadata**, and four more targets are available:
 
-| Target | Property field | Description |
-|--------|---------------|-------------|
-| **gRPC Status Name** | (none) | The gRPC status code name (e.g., `OK`, `NOT_FOUND`, `UNAVAILABLE`) |
-| **gRPC Trailer** | Trailer key | A value from the gRPC response trailers |
-| **Stream Msg Count** | (none) | Total number of messages received in a streaming call |
-| **Stream Message** | Index or index + JSONPath | A specific stream message by index, or a field within it. Use `0` for the first message, or `0.$.field` to extract a field with JSONPath. |
+| Target | Property | Value checked |
+|--------|----------|---------------|
+| **gRPC Status Name** | None | Status code name, for example `OK`, `NOT_FOUND`, or `UNAVAILABLE` |
+| **gRPC Trailer** | Trailer name, case-insensitive | The value of that response trailer |
+| **Stream Msg Count** | None | Number of messages received in a streaming call |
+| **Stream Message** | `0` for the first message, or `0.$.field` for a field in it | One message by its zero-based index, or a JSONPath value inside it. A message that isn't JSON is compared as text. |
 
 ## Operators
 
-| Operator | Symbol | Notes |
-|----------|--------|-------|
-| equals | `=` | Numeric-aware comparison |
-| not equals | `!=` | |
-| contains | `contains` | Substring match |
-| not contains | `!contains` | |
-| starts with | `startsWith` | |
-| ends with | `endsWith` | |
-| greater than | `>` | Numeric |
-| less than | `<` | Numeric |
-| greater than or equal | `>=` | Numeric |
-| less than or equal | `<=` | Numeric |
-| exists | `exists` | Value is not null or undefined (no Expected input) |
-| not exists | `!exists` | Value is null or undefined (no Expected input) |
-| is type | `isType` | JSON type check: `string`, `number`, `boolean`, `array`, `object`, `null` |
-| is JSON | `isJSON` | The value is parseable JSON (no Expected input) |
-| count | `count` | Array length or object key count |
-| matches | `regex` | JavaScript regular expression |
-| any item equals | `anyItemEquals` | At least one array item equals the expected value |
-| any item contains | `anyItemContains` | At least one array item contains the expected string |
-| any item starts with | `anyItemStartsWith` | At least one array item starts with the expected string |
-| any item ends with | `anyItemEndsWith` | At least one array item ends with the expected string |
+The operator list shows these labels:
 
-## Set Variable
+| Operator | Passes when |
+|----------|-------------|
+| `=` | The value equals the expected value. When both are numbers, Nouto compares them as numbers, so `200` equals `200.0`. Otherwise the text must match exactly. |
+| `!=` | The value doesn't equal the expected value |
+| `contains` | The value contains the expected text. Case-sensitive. |
+| `!contains` | The value doesn't contain the expected text, or the value is missing |
+| `>`, `<`, `>=`, `<=` | The numeric comparison holds. Fails when either side isn't a number. |
+| `exists` | The target has a value. Takes no expected value. |
+| `!exists` | The target has no value. Takes no expected value. |
+| `isType` | The value's JSON type matches the expected type: `string`, `number`, `boolean`, `array`, `object`, or `null`. A string that looks like a number, such as `"42"`, counts as `number`. |
+| `isJSON` | The value parses as JSON. Takes no expected value. |
+| `count` | The array length, or the number of keys in an object, equals the expected number |
+| `regex` | The value matches the expected JavaScript regular expression. Enter the pattern without slashes or flags. |
+| `any[] =` | At least one array item equals the expected text |
+| `any[] contains` | At least one array item contains the expected text |
+| `any[] starts` | At least one array item starts with the expected text |
+| `any[] ends` | At least one array item ends with the expected text |
 
-**Set Variable** is a special target that extracts a value from the response and stores it in an environment variable. It does not produce a pass/fail result.
+The `any[]` operators treat a value that isn't an array as an array with one item.
 
-- **Property**: JSONPath expression pointing to the value to extract (e.g., `$.data.token`)
-- **Variable Name**: the environment variable name to set (e.g., `authToken`)
+## Save a response value
 
-After the request runs, the extracted value is available as `{{authToken}}` in subsequent requests. In the Collection Runner, Set Variable assertions run in order, so you can chain requests: extract a login token in one request and use it in the next.
+The **Set Variable** target copies a value from the JSON response into a variable, so later requests can use it.
 
+1. Select **Set Variable** as the target.
+2. In **Property**, enter the JSONPath of the value, for example `$.token`.
+3. In **Variable name**, enter the variable to set, for example `authToken`.
+
+When the response arrives, Nouto saves the first value that the path matches to the active environment. The row passes when Nouto finds a value. It fails, with `Could not extract value for variable`, when the path matches nothing.
+
+:::caution
+Select an active environment before you rely on **Set Variable**. Without one, Nouto discards the value.
+:::
+
+Later requests read the value as `{{authToken}}`, for example in an `Authorization: Bearer {{authToken}}` header. In the Collection Runner, the value is available to the requests that run after this one.
+
+## Collection and folder assertions
+
+To check every request in a collection or folder, right-click it in the sidebar, select **Settings...**, open the **Tests** tab, and click **Add Assertion**. Nouto runs these assertions together with each request's own assertions.
 
 ## Results
 
-### In the Request Panel
+In the request editor, each row shows a pass or fail icon after the response arrives. A failed row shows the failure message and the actual value after `Got:`. The **Test Assertions** header shows a count such as `3/5 passed`.
 
-After sending a request, each assertion row shows a green checkmark or red cross. Failed assertions expand to show the actual value received. The Tests tab header shows a summary like "3/5 passed".
+The response panel adds a **Tests** tab, labeled with the count, for example `Tests 3/5`. It shows a summary such as `3/5 tests passed (2 failed)`, followed by each assertion's message and, for failures, the actual value.
 
-### In the Response Panel
-
-A **Tests** tab appears in the response section alongside Body, Headers, and Cookies. It shows:
-
-- A summary bar: "X/Y tests passed"
-- A per-assertion list with pass/fail icons and the actual value for failures
-
-### In the Collection Runner
-
-The runner results table shows an assertion badge per request (e.g., "3/4"). Click a row to expand and see individual assertion details for that request.
+In the [Collection Runner](/testing/collection-runner), the **Result** column shows the passed and total assertion count next to **Pass** or **Fail**. Click a row to see each assertion.
 
 ## Examples
 
-### Validate status and speed
+These examples show one assertion per table row.
 
-```
-Status Code  =        200
-Response Time <       500
-```
+Check the status and response time:
 
-### Check a JSON field exists and has the right type
+| Target | Property | Operator | Expected |
+|--------|----------|----------|----------|
+| Status Code | | `=` | `200` |
+| Response Time | | `<` | `500` |
 
-```
-JSON Path  $.data        exists
-JSON Path  $.data.users  isType   array
-JSON Path  $.data.total  >        0
-```
+Check that a JSON field exists and has the right type:
 
-### Extract a token for use in subsequent requests
+| Target | Property | Operator | Expected |
+|--------|----------|----------|----------|
+| JSON Path | `$.data` | `exists` | |
+| JSON Path | `$.data.users` | `isType` | `array` |
+| JSON Path | `$.data.total` | `>` | `0` |
 
-```
-Set Variable  $.token  (variable name: authToken)
-```
+Check a gRPC streaming call:
 
-In the next request, set the Authorization header to `Bearer {{authToken}}`.
+| Target | Property | Operator | Expected |
+|--------|----------|----------|----------|
+| gRPC Status Name | | `=` | `OK` |
+| Stream Msg Count | | `>=` | `3` |
+| Stream Message | `0.$.id` | `exists` | |
 
-### Validate a gRPC streaming call
+## Saving and exporting
 
-```
-gRPC Status Name   =       OK
-Stream Msg Count   >=      3
-Stream Message     0.$.id  exists
-```
-
-## Persistence
-
-Assertions are saved as part of the request in your collection. They are included in Postman export and restored on Postman import.
+Nouto saves assertions with the request in its collection. To keep them when you share a collection, export it as a Nouto collection. Postman exports don't include assertions.

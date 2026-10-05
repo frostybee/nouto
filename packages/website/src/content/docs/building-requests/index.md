@@ -1,37 +1,54 @@
 ---
-title: Building Requests
-description: Build HTTP requests in Nouto using the request editor, including URL, method, headers, params, body, auth, and settings.
+title: Building requests
+description: Build an HTTP request in Nouto with the URL bar and the request tabs for query and path parameters, headers, body, auth, and per-request settings.
 sidebar:
   order: 0
 ---
 
-The request editor is the central workspace in Nouto. It contains everything you need to configure and send an HTTP request: a URL bar with method selector, and a tabbed panel for params, headers, body, auth, and per-request settings.
+The request editor has a URL bar at the top and a row of tabs below it. Choose a method and URL in the URL bar, fill in the tabs your API needs, then send the request.
 
-## URL Bar
+## URL bar
 
-Type or paste a URL into the URL bar. Nouto auto-corrects URLs missing the `https://` prefix and highlights path parameters like `:id` or `:userId` directly in the bar.
+Select the method from the dropdown on the left of the URL bar. The list contains `GET`, `POST`, `PUT`, `PATCH`, `DELETE`, `HEAD`, and `OPTIONS`. To use another method, select **Custom...**, type the name, and select **OK**. Nouto converts the name to uppercase; it must start with a letter.
 
-The method selector is on the left. Supported methods: `GET`, `POST`, `PUT`, `PATCH`, `DELETE`, `HEAD`, `OPTIONS`.
+Type or paste the URL into the input next to the method. As you type, the URL bar does the following:
 
-Click **Send** to execute the request. While a request is in-flight, the Send button becomes a **Cancel** button.
+- Moves a query string such as `?page=2` into rows on the **Query** tab, and adds path placeholders such as `:id` or `{id}` to the **Path** tab. See [Query and path parameters](/building-requests/params).
+- Lists matching variables when you type `{{`, and shows a warning that names any variable Nouto can't resolve. See [Variable substitution](/variables/variable-substitution).
+- Suggests URLs from your collections and history after you type two characters.
+- Fills in the method, URL, headers, auth, and body when you paste a cURL command.
 
-## Request Tabs
+If the URL has no scheme, for example `api.example.com/users`, Nouto shows **Did you mean https://api.example.com/users?** below the bar. Select the suggestion or press `Ctrl+I` to apply it. To apply these fixes without asking, turn on **Auto-correct URLs** in **Settings > General**. If you send a URL without a scheme, Nouto uses `http://`.
 
-| Tab | Purpose |
-|-----|---------|
-| [Params](/building-requests/params) | Query parameters and path parameter values |
-| [Headers](/building-requests/headers) | Request headers with autocomplete |
-| [Body](/building-requests/body-types) | Request body in one of 8 formats |
-| Auth | Authentication credentials (see [Authentication](/authentication)) |
-| [Settings](/building-requests/timeouts-redirects) | Timeout, redirects, [SSL](/building-requests/ssl-certificates), and [proxy](/building-requests/proxy) |
-| [Notes](/building-requests/notes) | Markdown documentation saved with the request |
+## Request tabs
 
-Each tab shows a badge when it has active (non-empty, enabled) entries.
+The tabs below the URL bar hold the rest of the request:
 
-## Saving Requests
+| Tab | Contents |
+|-----|----------|
+| Query | Query string parameters. See [Query and path parameters](/building-requests/params). |
+| Path | Values for path placeholders such as `:id`. The tab label shows how many there are. |
+| Headers | Request headers and headers inherited from the collection or folder. See [Headers](/building-requests/headers). |
+| Body | The request body. See [Body types](/building-requests/body-types). |
+| Auth | Authentication. See [Authentication](/authentication). |
+| Tests | Assertions run against the response. See [Assertions](/testing/assertions). |
+| Scripts | Pre-request and post-response scripts. See [Scripts](/testing/scripts). |
+| Settings | SSL, client certificates, proxy, timeout, and redirects for this request. See [SSL certificates](/building-requests/ssl-certificates), [Proxy](/building-requests/proxy), and [Timeouts and redirects](/building-requests/timeouts-redirects). |
+| Examples | Saved example responses. Appears only for requests saved in a collection. See [Response examples](/response/response-examples). |
+| Notes | Markdown notes saved with the request. See [Notes](/building-requests/notes). |
 
-Press `Ctrl+S` (`Cmd+S` on Mac) to save the current request to your collection. Unsaved changes appear as a dot indicator on the request name in the sidebar.
+When the body type is GraphQL, the **Query** tab is hidden. The **Tests**, **Scripts**, **Examples**, and **Notes** labels change to show that the tab has content: **Tests** and **Examples** add a count, and **Scripts** and **Notes** add an asterisk.
 
-## Cancelling a Request
+To switch tabs from the keyboard, see [Keyboard shortcuts](/settings/keyboard-shortcuts).
 
-Click **Cancel** or press `Escape` while a request is in-flight to abort it. The response panel shows a cancellation message.
+## Send or cancel a request
+
+Select **Send** or press `Ctrl+Enter` (`Cmd+Enter` on macOS). Nouto substitutes variables and path parameters before it sends the request.
+
+While the request is in flight, **Send** changes to **Cancel**. Select **Cancel** or press `Escape` to stop the request.
+
+## Save a request
+
+Press `Ctrl+S` (`Cmd+S` on macOS) to save the request to a collection. For a request that isn't in a collection yet, select **Save** in the URL bar and choose a collection.
+
+When a saved request has unsaved changes, the URL bar shows **Save to Collection** and **Revert to Saved** buttons, and the sidebar shows a dot next to the request name.

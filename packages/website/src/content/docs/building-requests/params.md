@@ -1,58 +1,57 @@
 ---
-title: Query Params & Path Params
-description: Add query parameters and path parameter values to your requests in Nouto using the Params tab.
+title: Query and path parameters
+description: Add query string parameters and path parameter values to a request in Nouto with the Query and Path tabs.
 sidebar:
   order: 1
 ---
 
-The **Params** tab handles two kinds of URL parameters: query string parameters added after `?`, and path parameter values for URL segments like `:id` or `:userId`.
+Use the **Query** tab for parameters after the `?` in the URL. Use the **Path** tab for values that replace placeholders such as `:id` in the URL path.
 
-## Query Parameters
+## Query parameters
 
-Query parameters appear in the URL as `?key=value&key2=value2`. The Params tab gives you a structured editor for adding them without editing the URL string directly.
+The **Query** tab and the URL bar stay in sync. When you type a query string into the URL bar, for example `?page=2&limit=10`, each parameter becomes a row on the **Query** tab. When you edit a row, the URL bar updates.
 
-### Adding Parameters
+To add a parameter from the tab:
 
-Click **Add Param** to add a new row. Each row has:
+1. Open the **Query** tab.
+2. Select **Add Item**. If the tab already has rows, select **Add** below them.
+3. Enter the parameter name and value. Press `Enter` in the last row to start another row.
 
-- **Key**: the parameter name
-- **Value**: the parameter value
-- **Enabled checkbox**: uncheck to temporarily exclude a parameter
+Each row has a checkbox, a name, a value, and a description. Clear the checkbox to leave a parameter out of the request without deleting the row; disabled rows don't appear in the URL bar. The description is for your own notes and isn't sent.
 
-The URL bar updates in real time as you type. Enabled parameters appear in the URL; disabled ones are hidden.
+The **Query** tab is hidden when the body type is GraphQL.
 
-### Syncing with the URL Bar
+## Path parameters
 
-The Params tab and URL bar stay in sync. If you type a query string directly into the URL bar (e.g., `?page=2&limit=10`), the Params tab parses it and shows each parameter as a separate row. If you edit a row in the Params tab, the URL bar updates to reflect the change.
+A path parameter is a placeholder in the URL path. Nouto recognizes two forms:
 
-### Disabling Parameters
+- `:name`, for example `https://api.example.com/users/:userId`
+- `{name}`, for example `https://api.example.com/users/{userId}`
 
-Unchecking a row removes that parameter from the URL without deleting the row. This is useful when testing how an endpoint behaves with different combinations of optional parameters.
+Double braces, as in `{{userId}}`, mark a variable, not a path parameter. A colon in the host part of the URL, such as the port in `localhost:8080`, isn't treated as a placeholder.
 
-## Path Parameters
+When you type or paste a URL with placeholders into the URL bar, Nouto adds a row for each one to the **Path** tab. Enter a value in each row. Before sending, Nouto replaces each placeholder with its value.
 
-Path parameters are named segments in the URL that vary per request, like `:id` in `https://api.example.com/users/:id/posts`.
-
-Nouto detects `:name` segments in the URL automatically and shows them as a separate **Path Params** section below the query parameters. Enter the value for each detected segment, and Nouto substitutes it in the URL before sending.
-
-For example, with URL `https://api.example.com/users/:userId/posts/:postId`:
+For example, with the URL `https://api.example.com/users/:userId/posts/:postId` and these values:
 
 | Key | Value |
 |-----|-------|
 | `userId` | `42` |
 | `postId` | `7` |
 
-The actual request goes to `https://api.example.com/users/42/posts/7`.
+Nouto sends the request to `https://api.example.com/users/42/posts/7`.
 
-## Variable Support
+A placeholder whose row is disabled or has an empty value stays in the URL as typed.
 
-Both query parameter values and path parameter values accept `{{variable}}` syntax:
+## Variables in parameters
 
-```
+Query parameter names and values, and path parameter values, accept `{{variable}}` syntax. Typing `{{` in a value field lists the available variables.
+
+```text
 page={{PAGE_NUMBER}}
 userId={{CURRENT_USER_ID}}
 ```
 
-## Postman Compatibility
+## Requests imported from Postman
 
-Postman query parameters and path variable definitions are preserved during import. Disabled parameters in Postman collections are imported as disabled rows in the Params tab.
+When you import a Postman collection, query parameters keep their enabled or disabled state. Postman path variables such as `:id` stay in the URL, but their values aren't imported. Enter the values on the **Path** tab. If the tab is empty, edit the URL once so that Nouto detects the placeholders. See [Import from Postman](/import-export/from-postman).

@@ -1,39 +1,55 @@
 ---
-title: Compare
-description: Diff the open JSON document against a second document in the JSON Explorer, with a structural change summary.
+title: Compare JSON documents
+description: Diff the document open in the JSON Explorer against a second JSON document and see which paths were added, removed, or changed.
 sidebar:
   order: 2
 ---
 
-Click **Compare** (the diff icon) in the explorer toolbar to diff the open document against another JSON document.
+The JSON Explorer can diff the open document against a second JSON document that you paste or pick from disk. The diff lists every path in both documents and marks each one as added, removed, changed, or unchanged. Compare works in the JSON Explorer extension and in the [JSON Explorer](/response/json-explorer) inside Nouto.
 
 :::tip
-This compares two arbitrary JSON documents. To compare an HTTP response against the previous response for the same request, use [Response Diff](/response/response-diff) instead.
+To compare an HTTP response with the previous response from the same request, use [Response diff](/response/response-diff) in the response panel instead.
 :::
 
-## Providing the second document
+## Provide the second document
 
-The Compare button opens a panel with a text area. You can supply the second document in three ways:
+Click **Compare with another JSON** (the diff icon) in the explorer toolbar. The **Compare JSON** panel opens with a text area. Supply the second document in one of these ways:
 
-- **Paste** JSON into the text area directly.
-- **Paste from clipboard** to fill the text area automatically. Clipboard access is not available in every VS Code webview context, so pasting into the text area directly always works as a fallback.
-- **Choose file...** to pick a `.json`, `.jsonl`, or `.ndjson` file from disk. The file is read and diffed immediately; if it cannot be read or is not valid JSON, an error is shown and the dialog stays open so you can try again.
+- Paste JSON into the text area, then click **Compare**.
+- Click **Paste from clipboard** to fill the text area, then click **Compare**. Some webviews block clipboard access. If that happens, the panel says so and you can paste into the text area directly.
+- Click **Choose file...** and pick a file. The diff opens as soon as Nouto reads the file.
 
-The JSON is validated before the diff runs. If it does not parse, the panel reports the parse error and keeps your text so you can fix it.
+The text area accepts a single JSON document. If the text doesn't parse, the panel shows the parse error and keeps your text so you can fix it.
 
-## Reading the diff
+**Choose file...** accepts these file types:
 
-Click **Compare** in the panel and the explorer switches to the diff view. A summary bar reports the totals:
+| Where you use it | File types |
+|------------------|------------|
+| JSON Explorer extension | `.json`, `.jsonl`, `.ndjson` |
+| Nouto desktop app | `.json`, `.jsonl`, `.ndjson` |
+| Nouto VS Code extension | `.json` |
+
+If Nouto can't read the file or the file isn't valid JSON, a notification reports the error and the **Compare JSON** panel stays open.
+
+## Read the diff
+
+The diff view replaces the tree. The open document is in the **Original** column and the second document is in the **Comparison** column. A summary bar at the top counts the paths in each state:
 
 | Indicator | Meaning |
 |-----------|---------|
-| `+N added` | Paths present in the second document but not the first |
-| `-N removed` | Paths present in the first document but not the second |
-| `~N changed` | Paths present in both, with a different value or type |
-| `N unchanged` | Paths that are identical in both |
+| `+N added` | Paths that exist only in the comparison document |
+| `-N removed` | Paths that exist only in the original document |
+| `~N changed` | Paths that exist in both documents with a different value or type |
+| `N unchanged` | Paths that are identical in both documents |
 
-Below the summary, the merged tree marks each node as added, removed, or modified, showing the original and comparison values side by side for changed entries.
+Each row shows the value from each side and an icon for its state. Objects appear as `{N keys}`, arrays as `[N items]`, and values longer than 60 characters are cut short.
 
-## Closing the diff
+The counts include objects and arrays as well as the values inside them:
 
-Close the diff view to discard the comparison document and return to the tree view. Loading a new document also clears the comparison.
+- An object counts as changed when anything inside it changed.
+- An array counts as changed when its length changed.
+- The diff compares arrays position by position. An item inserted at the start of an array therefore marks every later item as changed.
+
+## Close the diff
+
+Click the close button in the summary bar to discard the comparison document and return to the tree view. Loading new data into the explorer also clears the comparison, for example when you send the request again or the file changes on disk.

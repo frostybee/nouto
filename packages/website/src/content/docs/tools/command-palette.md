@@ -1,58 +1,69 @@
 ---
-title: Command Palette
-description: Find saved requests with Nouto's fuzzy search command palette.
+title: Command palette
+description: Find and open saved requests with fuzzy search and filters in the Nouto command palette.
 sidebar:
   order: 3
 ---
 
-The Command Palette is a keyboard driven search overlay for finding saved requests. It combines fuzzy search, filter syntax, match context, and frecency based ranking.
+The command palette searches the requests saved in your collections and opens the one you select. It matches request names, URLs, and request contents, and ranks requests you open often and recently higher.
 
-## Opening the Palette
+## Open the palette
 
-Press `Ctrl+Shift+P` (or `Cmd+Shift+P` on macOS). The search input auto-focuses.
+In the desktop app, press `Ctrl+P` (`Cmd+P` on macOS) or click **Search** in the top toolbar. You can change the shortcut in [Keyboard shortcuts](/settings/keyboard-shortcuts).
 
-## Search Modes
+In VS Code, use one of these:
 
-### Empty Query
+- Press `Ctrl+K Ctrl+K` (`Cmd+K Cmd+K` on macOS).
+- Run **Nouto: Search Requests** from the VS Code Command Palette.
+- In a request tab, click **More actions** (the `...` button next to **Code**) and select **Search requests**.
 
-When the palette opens with no query, it shows recently opened requests ranked by how often and how recently you opened them.
+When a request tab is active, the palette opens on top of it. Otherwise, it opens in its own tab.
 
-### Request Search
+## Search for a request
 
-Type any text to fuzzy-search across all saved requests. Matches are ranked by a combination of search relevance and frecency.
+Type at least two characters. Nouto searches these fields of every saved request:
 
-Search matches against request name, URL, method, collection name, query parameters, headers, body content, body JSON keys, and variable references.
+- Request name
+- URL
+- HTTP method
+- Collection name
+- Query parameters
+- Headers
+- Body text and JSON keys in the body
+- `{{variable}}` references
 
-Minimum 2 characters are required. Typos are tolerated by fuzzy matching.
+Matching tolerates small typos and matches the start of words, so `str` finds `stripe`. A match in the name or URL ranks higher than a match in the body. The palette shows up to 100 results.
 
-## Filter Syntax
+When the match comes from a field other than the name, the result shows where it matched, for example `Matched in: Request Body`.
 
-Narrow results with a single letter prefix:
+With an empty search box, the palette lists up to five recent requests.
 
-| Filter | Scope | Example |
-|--------|-------|---------|
+## Filter results
+
+Start the query with a one-letter prefix to narrow the search:
+
+| Prefix | Searches | Example |
+|--------|----------|---------|
 | `m:` | HTTP method | `m:POST` |
 | `c:` | Collection name | `c:Auth` |
-| `s:` | Status code | `s:404` |
 | `b:` | Request body | `b:stripe` |
 | `h:` | Headers | `h:Authorization` |
 | `p:` | Query parameters | `p:userId` |
 | `d:` | All fields | `d:token` |
 
-Typing a bare HTTP method name, such as `GET` or `post`, automatically filters by method without needing the `m:` prefix.
+A bare method name, such as `GET` or `post`, filters by method without the `m:` prefix.
 
-## Match Context
+The `m:` and `c:` filters use the whole rest of the query as their value. `m:POST stripe` looks for the method `POST STRIPE` and finds nothing, so use `b:stripe` or a plain search instead.
 
-When a match comes from a field other than the request name, a context indicator appears below the result showing where the match was found, for example "Matched in: Request Body".
-
-## Keyboard Navigation
+## Keyboard navigation
 
 | Key | Action |
 |-----|--------|
-| `Arrow Up` / `Arrow Down` | Navigate between results |
-| `Enter` | Select the highlighted result |
+| `Up` / `Down` | Move between results |
+| `Enter` | Open the highlighted request |
+| `Tab` / `Shift+Tab` | Move focus between the search box and results |
 | `Escape` | Close the palette |
 
-## Frecency Ranking
+## Ranking
 
-Results are ranked using a frecency algorithm that combines how often and how recently you opened each request. Requests you use frequently appear higher in the results.
+Nouto keeps a frecency score for each request, based on how often and how recently you opened it from the sidebar or the palette. Search results combine that score with match quality, so a request you open every day ranks above a rarely used request with a similar match. The recent list with an empty search box uses frecency alone.

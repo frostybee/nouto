@@ -1,32 +1,42 @@
 ---
-title: Body Types
-description: Configure the request body in Nouto using one of eight body types including JSON, form data, binary file upload, and GraphQL.
+title: Body types
+description: Choose a request body type in Nouto, including JSON, XML, text, form data with file fields, URL-encoded fields, a binary file, or GraphQL.
 sidebar:
   order: 3
 ---
 
-The **Body** tab in the request editor lets you send data with your request. Nouto supports eight body types to cover every common API format.
+Set the request body on the **Body** tab. Select a body type from the row of buttons at the top of the tab, then enter the content for that type. Nouto saves the body type and content with the request.
 
-## Body Types
+## `Content-Type` for each body type
 
-| Type | Content-Type set | Use for |
-|------|-----------------|---------|
-| **None** | (none) | GET/DELETE requests with no body |
-| **JSON** | `application/json` | REST APIs expecting JSON |
-| **XML** | `application/xml` | SOAP services, XML APIs |
-| **Text** | `text/plain` | Raw text payloads |
-| **Form Data** | `multipart/form-data` | HTML form submissions, file uploads |
-| **URL-Encoded** | `application/x-www-form-urlencoded` | Simple form submissions without files |
-| **Binary** | Detected from file extension | Single file upload as raw body |
-| **GraphQL** | `application/json` | GraphQL queries (see [GraphQL](/features/graphql)) |
+Nouto sets the `Content-Type` header from the body type and shows it as an **AUTO** row on the **Headers** tab:
 
-Nouto sets the `Content-Type` header automatically when you select a body type. You can override it manually in the Headers tab if needed.
+| Body type | `Content-Type` |
+|-----------|----------------|
+| None | Not set |
+| JSON | `application/json` |
+| Text | `text/plain` |
+| XML | `application/xml` |
+| Form Data | `multipart/form-data`, with a generated boundary |
+| URL Encoded | `application/x-www-form-urlencoded` |
+| Binary | The file's MIME type, detected from its extension, or `application/octet-stream` |
+| GraphQL | `application/json` |
+
+To send a different `Content-Type`, add the header on the **Headers** tab. Don't do this for Form Data, because the generated value includes the multipart boundary that the server needs.
+
+Only the selected body type is sent. Nouto sends the body with any method, including `GET`.
 
 ## JSON
 
-The JSON editor provides syntax highlighting, bracket matching, and auto-formatting. Press `Ctrl+Shift+F` to format the JSON.
+The JSON editor has syntax highlighting, bracket matching, and a toolbar with these controls:
 
-Variable substitution (`{{variable}}`) works anywhere in the JSON body, including nested values:
+- **Auto-format** reformats valid JSON shortly after you stop typing or paste. It's on by default.
+- **Format** and **Minify** reformat the body once.
+- **Wrap** toggles line wrapping. The zoom buttons change the editor's font size.
+
+When the body isn't valid JSON, the parse error appears above the editor. Nouto skips this check while the body contains `{{variables}}`, because the text becomes valid JSON only after substitution.
+
+Variables work anywhere in the body, including nested values:
 
 ```json
 {
@@ -36,63 +46,47 @@ Variable substitution (`{{variable}}`) works anywhere in the JSON body, includin
 }
 ```
 
-Typing `{{` inside the JSON, Text, or XML body editor triggers autocomplete for all available variables: environment variables, dynamic variables, and faker data generators. Press `Ctrl+Enter` to send the request directly from the body editor.
+In the JSON, Text, and XML editors, typing `{{` lists your environment variables and the [dynamic variables](/variables/dynamic-variables). Press `Ctrl+Enter` (`Cmd+Enter` on macOS) to send the request without leaving the editor.
+
+## Text and XML
+
+The Text editor sends its content as typed. The XML editor adds **Format** and **Minify** buttons that re-indent or collapse the markup.
 
 ## Form Data
 
-The Form Data editor is a key-value table where each row can be either a text field or a file field:
+Form Data sends `multipart/form-data`. Each row is either a text field or a file field.
 
-- Click **Add Field** to add a new row.
-- Click the **Text/File** toggle on a row to switch between a text input and a file picker.
-- File rows show the selected file name and size inline.
-- Rows can be disabled with the checkbox without removing them.
+1. Select **Form Data**.
+2. Select **Add Field** and enter the field name.
+3. For a text field, enter the value. For a file field, select the **Text** button on the row to switch it to **File**, then select **Browse** and choose the file. The row shows the file name and size.
 
-Multiple file fields are supported in the same request. Each file is streamed from disk when the request is sent.
+Add as many file fields as you need. Select the check icon at the start of a row to disable it without removing it.
 
-## URL-Encoded
+The request stores the file path, not the file contents. Nouto reads each file when you send the request. If a file no longer exists at that path, Nouto sends the request without that field.
 
-A key-value editor that sends fields as `application/x-www-form-urlencoded`. Suitable for simple form submissions that do not include files.
+## URL Encoded
 
-```
+URL Encoded sends the enabled rows as `application/x-www-form-urlencoded`. Use it for forms without file uploads. For example, three rows named `name`, `age`, and `active` produce this body:
+
+```text
 name=John+Doe&age=30&active=true
 ```
 
 ## Binary
 
-Send a single file as the raw request body. Use this for file-storage APIs, image-upload endpoints, or any service that expects the file content directly.
+Binary sends one file as the raw request body, for example to a file storage or image upload endpoint.
 
-1. Select **Binary** from the body-type dropdown.
-2. Click **Browse** or drop a file onto the drop zone.
-3. The UI shows the file name, size, and detected MIME type.
+1. Select **Binary**.
+2. Select the **Click to select a file** area and choose the file.
 
-Nouto sets `Content-Type` to the file's detected MIME type, or `application/octet-stream` if the extension is not recognized.
+Nouto shows the file name, size, and detected MIME type. To pick another file, select **Change file**; to clear it, select **Remove file**.
 
-Files are read from disk at send time. Only the file path is stored in the collection, not the file contents. If the file is moved or deleted, you will see a "File not found" error when sending.
+The request stores the file path, not the file contents. Nouto reads the file when you send the request. If the file was moved or deleted, the request fails with a file error and isn't sent.
 
-## Persistence
+## GraphQL
 
-The body type and content are saved as part of the request when you save to a collection. File fields store the file path only.
+Selecting **GraphQL** switches a `GET` request to `POST` and hides the **Query** tab. Nouto sends the query, variables, and operation name as a JSON object. See [GraphQL](/features/graphql) for the editor and schema features.
 
-## cURL Export
+## Body in generated code
 
-All body types are included in cURL exports:
-
-**JSON:**
-```bash
-curl -X POST https://api.example.com/data \
-  -H 'Content-Type: application/json' \
-  -d '{"key": "value"}'
-```
-
-**Form Data with file:**
-```bash
-curl -X POST https://api.example.com/upload \
-  -F 'name=John Doe' \
-  -F 'avatar=@/path/to/photo.jpg;type=image/jpeg'
-```
-
-**Binary:**
-```bash
-curl -X POST https://api.example.com/upload \
-  --data-binary @'/path/to/file.pdf'
-```
+To see the body as a cURL command or a code snippet, select **Code** in the URL bar. For JSON, Text, XML, URL Encoded, and GraphQL bodies, generated code includes the body only when the method is `POST`, `PUT`, or `PATCH`. See [Code generation](/tools/code-generation).

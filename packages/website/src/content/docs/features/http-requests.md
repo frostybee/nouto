@@ -1,63 +1,64 @@
 ---
-title: HTTP Requests
-description: Send HTTP requests with full control over method, URL, params, headers, body, and authentication.
+title: HTTP requests
+description: Build and send HTTP requests in Nouto, with standard and custom methods, request tabs for every part of the request, and a tabbed response viewer.
 ---
 
-The request editor is the core of Nouto. It provides a tabbed interface for building and sending HTTP requests, inspecting responses, and running tests.
+The request editor builds and sends HTTP requests. The URL bar holds the method and URL. The tabs below it hold everything else: parameters, headers, body, auth, tests, scripts, per-request settings, and notes.
 
-## Supported Methods
+## Create a request
 
-`GET` `POST` `PUT` `PATCH` `DELETE` `HEAD` `OPTIONS`
+Click **New Request** at the top of the sidebar, or press `Ctrl+N`. To create another kind of request, click the arrow next to **New Request** and pick GraphQL, GraphQL subscription, WebSocket, SSE, or gRPC.
 
-Select the method from the dropdown to the left of the URL bar.
+## Choose a method
 
-## Request Editor Tabs
+Select the method from the dropdown to the left of the URL. The dropdown lists `GET`, `POST`, `PUT`, `PATCH`, `DELETE`, `HEAD`, and `OPTIONS`.
+
+To use a method that isn't listed, select **Custom...** at the bottom of the dropdown and type the method name. Method names can contain uppercase letters, digits, hyphens, and underscores, and must start with a letter.
+
+## Request tabs
+
+The tabs below the URL bar are listed in this table, in the order they appear:
 
 | Tab | Contents |
 |-----|----------|
-| **Params** | Query parameters and path parameters as key-value pairs |
-| **Headers** | Request headers with autocomplete for standard header names |
-| **Auth** | Authentication (see below) |
-| **Body** | Request body in JSON, XML, text, form data, URL-encoded, binary, or GraphQL format |
-| **Tests** | GUI assertions to validate the response automatically |
-| **Scripts** | Pre-request and post-response JavaScript |
-| **Notes** | Free-text notes saved with the request |
+| **Query** | Query parameters as key-value pairs. Hidden when the body type is GraphQL. See [Query and path parameters](/building-requests/params). |
+| **Path** | Values for path parameters in the URL |
+| **Headers** | Request headers, with suggestions for standard header names and values. See [Headers](/building-requests/headers). |
+| **Body** | Request body: JSON, Text, XML, Form Data, URL Encoded, Binary, or GraphQL. See [Body types](/building-requests/body-types). |
+| **Auth** | Authentication for this request, or inheritance from its collection or folder. See [Authentication](/authentication). |
+| **Tests** | Assertions that check the response automatically. See [Assertions](/testing/assertions). |
+| **Scripts** | Pre-request and post-response JavaScript. See [Scripts](/testing/scripts). |
+| **Settings** | Per-request SSL, proxy, timeout, and redirect settings |
+| **Examples** | Saved example responses. Shown only for requests saved in a collection. See [Response examples](/response/response-examples). |
+| **Notes** | Markdown notes saved with the request. See [Notes](/building-requests/notes). |
 
-## Sending a Request
+`Ctrl+1` through `Ctrl+7` switch to the Query, Headers, Auth, Body, Tests, Scripts, and Notes tabs. See [Keyboard shortcuts](/settings/keyboard-shortcuts).
 
-Press `Ctrl+Enter` or click **Send**. While a request is in flight, a cancel button replaces Send. Press `Escape` to cancel.
+## Send a request
 
-Nouto substitutes all `{{variables}}` in the URL, params, headers, and body before sending.
+Click **Send**, or press `Ctrl+Enter`. Before sending, Nouto resolves every `{{variable}}` reference in the request. See [Variable substitution](/variables/variable-substitution).
 
-## Authentication
+While the request is in flight, a cancel button replaces **Send**. Click it or press `Escape` to cancel the request.
 
-Select an auth type from the **Auth** tab:
+The **Code** button next to **Send** shows the request as code in other languages and tools. See [Code generation](/tools/code-generation).
 
-| Type | Description |
-|------|-------------|
-| None | No authentication header |
-| Basic | Username and password encoded as Base64 |
-| Bearer Token | `Authorization: Bearer <token>` header |
-| API Key | Key sent as a header or query parameter |
-| OAuth 2.0 | Authorization Code, Client Credentials, Implicit, or Password grant with PKCE and auto-refresh |
-| AWS Signature v4 | SigV4 signing for AWS service requests |
-| NTLM | Windows-integrated authentication |
-| Digest | HTTP Digest authentication (RFC 7616) |
+## Read the response
 
-Requests can also inherit auth from a parent folder or collection. See [Auth Inheritance](/authentication/inheritance).
+The response panel shows the status code, response time, and size, followed by these tabs:
 
-## Response Viewer
+| Tab | Contents |
+|-----|----------|
+| **Body** | The response body, formatted for JSON, XML, HTML, images, and other content types |
+| **Headers** | Request and response headers |
+| **Cookies** | Cookies sent with the request and cookies set by the response |
+| **Redirects** | Each redirect hop. Shown only when the request was redirected. |
+| **Timing** | Time spent on DNS lookup, TCP connection, TLS handshake, time to first byte, and download |
+| **Timeline** | A step-by-step log of the request, including where it failed |
+| **Tests** | Assertion results. Shown only after assertions run. |
+| **Scripts** | Script output. Shown only when a script produced output. |
 
-After sending, the response panel shows:
+If the request fails before a response arrives, for example on a DNS or connection error, the panel hides the **Headers** and **Cookies** tabs and shows the error. See [Response viewer](/response/response-viewer) for details on each tab.
 
-- **Status code** and status text (color-coded by range)
-- **Response time** and body size
-- **Body**: pretty-printed with syntax highlighting for JSON, XML, and HTML; raw text toggle available
-- **Headers**: all response headers
-- **Cookies**: cookies set by the response
-- **Timing**: per-phase breakdown (DNS, connect, TLS, TTFB, download)
-- **Tests**: assertion pass/fail results
+## Save a request
 
-## Saving a Request
-
-Press `Ctrl+S` to save the current request to a collection. Saved requests appear in the sidebar and are restored on next open.
+To save a new request, click **Save** next to **Send** and pick a collection or folder. After that, press `Ctrl+S` to save changes. See [Collections](/features/collections).

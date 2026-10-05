@@ -1,122 +1,119 @@
 ---
-title: Secrets & Sensitive Data
-description: How Nouto stores environment variables, how to protect sensitive values, and how to share configurations with your team safely.
+title: Secrets and sensitive data
+description: Where Nouto stores environments and secret variables in VS Code and the desktop app, and how to share variables with your team without sharing credentials.
 sidebar:
   order: 4
 ---
 
-## How Nouto Stores Environments
+Environments often hold API keys, tokens, and passwords. This page explains where Nouto stores variables on each platform, what marking a variable as secret changes, and how to share variable names with your team without sharing the values.
 
-### VS Code Extension
+## Where Nouto stores variables
 
-Environments and global variables are stored in **VS Code's global extension storage**, not inside your workspace or project directory. This means:
+The storage location depends on the platform. In both, environments live outside your project unless you open a folder as a workspace in the desktop app.
 
-- They never appear in your file system alongside your code
-- They are never committed to git accidentally
-- Each machine keeps its own copy
+### VS Code extension
 
-When you switch to [workspace storage mode](/settings/storage-modes), only your **collections** move into the `.nouto/` workspace folder. Environments remain in global storage on that machine.
+The extension saves environments and global variables to `environments.json` in VS Code's global storage for the extension, outside your workspace. On Windows, for example, that folder is `%APPDATA%\Code\User\globalStorage\frostybee-dev.nouto\`. Each machine keeps its own copy.
 
-### Desktop App
+[Workspace storage mode](/settings/storage-modes) moves only collections into the `.nouto/` folder of your workspace. Environments stay in global storage.
 
-In the Desktop app, environments and global variables are stored in a platform-specific configuration directory (`~/.config/nouto/` on Linux, `~/Library/Application Support/nouto/` on macOS, and `%APPDATA%\nouto\` on Windows). Like the VS Code extension, these files live outside any project directory and are not committed to git.
+### Desktop app
 
-This is intentional. Environments often contain API keys, tokens, and passwords. Keeping them out of the workspace directory prevents them from ending up in version control.
+The desktop app saves global variables to `environments.json` in its app data folder:
 
-## Secret Variables
+| Operating system | Folder |
+|------------------|--------|
+| Windows | `%APPDATA%\com.nouto.app\nouto\` |
+| macOS | `~/Library/Application Support/com.nouto.app/nouto/` |
+| Linux | `~/.local/share/com.nouto.app/nouto/` |
 
-Any variable can be marked as **secret**. Secret variables:
+Environments are saved to the same file, unless you open a folder as a workspace with **Open Folder…** in the workspace menu. While a workspace is open, the desktop app saves its environments to `.nouto/environments.json` inside that folder.
 
-- Show as `••••••••` in the UI
-- Are encrypted before being written to disk
-- Have their values stripped when you export an environment to JSON
+:::caution
+If the workspace folder is a Git repository, Git tracks `.nouto/environments.json` unless you ignore it. Non-secret values in that file end up in your repository when you commit it. Mark sensitive values as secret, or add `.nouto/environments.json` to your `.gitignore`.
+:::
 
-Mark a variable as secret by clicking **Mark as secret** next to its value row in the environment editor. To unmask it temporarily for editing, use the reveal button.
+## Secret variables
 
-### Desktop App: OS Keychain
+Mark a variable as secret to keep its value out of the environments file and off your screen:
 
-In the Desktop app, secret variable values are stored in the **operating system keychain** rather than on disk:
+1. Open the Environments panel and select the environment, or **Global Variables**.
+2. Click the lock icon at the end of the variable's row. Its tooltip reads **Mark as secret**.
+3. Click **Save**.
 
-- **Windows**: Windows Credential Manager
-- **macOS**: macOS Keychain
-- **Linux**: libsecret (GNOME Keyring or compatible)
+The value field then shows dots instead of the value. To see the value while you edit, click **Reveal value** (the eye icon). In autocomplete, secret values show as `******`.
 
-This means secret values never touch the file system. They are read directly from the OS keychain at runtime. Non-secret variable values are stored in the app's config directory as described above.
+Nouto stores the value of a secret variable in a separate secure store, and leaves the value empty in `environments.json`:
 
-Use secrets for:
+- The VS Code extension uses VS Code's secret storage, which VS Code encrypts.
+- The desktop app uses the operating system keychain: Windows Credential Manager, the macOS Keychain, or a Secret Service provider such as GNOME Keyring on Linux.
 
-- API keys and access tokens
-- Passwords and credentials
-- Private keys and signing secrets
-- Any value you would not want visible on your screen during a screen share
+In the desktop app, a secret value that contains a `{{variable}}` reference stays in `environments.json`, because Nouto resolves it when you send the request. Keep the real value in the referenced variable and mark that one as secret.
 
-## Sharing Configurations with Your Team
+:::caution
+In the desktop app, the keychain only holds secret variables that belong to an environment. The values of secret global variables are saved in `environments.json` in plain text. Keep credentials in an environment instead.
+:::
 
-Because environments are local to each machine, you have two options for sharing variable configurations:
+### Warning for unmarked secrets
 
-### Option 1: Export and import environment JSON
+When you click **Save**, Nouto checks for variables that look like credentials but aren't marked as secret. A variable looks like a credential when:
 
-1. In the **Environments** tab, click the export button next to an environment
-2. Share the exported `.json` file with your team (via Slack, email, or a shared drive)
-3. Each team member imports it using the import button in the Environments toolbar
+- Its name contains `key`, `secret`, `token`, `password`, `passwd`, `auth`, or `credential`, in any case.
+- Its value is longer than 20 characters and starts with a known token prefix, such as `sk-`, `ghp_`, `AKIA`, `xoxb-`, or `glpat-`.
 
-Secret variable values are stripped from the export. Recipients receive the variable names and non-secret values, and must fill in secret values themselves.
+If any variables match, the **Possible secrets detected** dialog lists them. Click **Go Back** to mark them as secret, or **Save Anyway** to save them in plain text.
 
-### Option 2: Commit a `.env.example` to your repository (recommended)
+## Share variables with your team
 
-This is the most common pattern for development teams:
+Environments are local to each machine, so you choose how teammates get the same variables. Committing a `.env.example` file works best for teams that share a repository. Exporting environments works for sharing a one-off set of variables.
 
-1. Create a `.env.example` file in your project root with all variable names and safe placeholder values:
+### Commit a .env.example file
 
-```dotenv
-# API configuration
-BASE_URL=https://api.example.com
-API_VERSION=v2
+A `.env.example` file lists every variable your requests need, with placeholder values. Each developer keeps the real values in a `.env` file that Git ignores.
 
-# Authentication: fill in your own values, never commit real tokens
-API_KEY=your_api_key_here
-ACCESS_TOKEN=your_token_here
+1. Create `.env.example` in your project root with every variable name and a safe placeholder value:
 
-# Database
-DB_HOST=localhost
-DB_PORT=5432
-```
+   ```dotenv title=".env.example"
+   # API configuration
+   BASE_URL=https://api.example.com
+   API_VERSION=v2
 
-2. Commit `.env.example` to your repository
-3. Each developer copies it to `.env` and fills in their real values
-4. Add `.env` to `.gitignore` so the real values are never committed
-5. Each developer links their local `.env` file in Nouto
+   # Fill in your own values in .env, never in this file
+   API_KEY=your_api_key_here
+   ACCESS_TOKEN=your_token_here
+   ```
 
-When a new team member clones the repository, they:
+2. Add `.env` to your `.gitignore`, and commit `.env.example`.
+3. Ask each developer to copy `.env.example` to `.env` and fill in their own values.
+4. Ask each developer to [link their `.env` file](/variables/env-file) in Nouto.
 
-1. Copy `.env.example` to `.env`
-2. Fill in their credentials
-3. In Nouto, open the **Environments** tab and click **Link .env file**
-4. All variables are immediately available in requests
+Nouto reads a linked `.env` file into memory and doesn't copy its values into its own storage. Nouto doesn't mask `.env` values, so the file itself must stay out of version control.
 
-### What not to do
+### Export and import environments
 
-Do not export environment JSON files that contain real secret values and commit them to a repository. Even if the values are not flagged as secret in Nouto, anyone with access to the repository can read them.
+1. In the Environments panel, click **Export** on an environment, or **Export all environments** in the list header.
+2. Send the exported JSON file to your teammates.
+3. Each teammate clicks **Import environments** in the Environments panel and selects the file.
 
-## `.env` Files and Sensitive Data
+What the exported file contains depends on the platform:
 
-Linking a `.env` file gives Nouto read access to its contents for the current session. Nouto does not copy the file's contents into its own storage. The variables exist only in memory and reload each time the file changes.
+- The VS Code extension leaves secret values empty in the exported file. Recipients fill them in. The extension doesn't keep the secret flag when it imports a file, so mark those variables as secret again before you enter the values.
+- The desktop app writes secret values into the exported file in plain text.
 
-This means:
+:::caution
+Before you share or commit a file exported from the desktop app, open it and remove the secret values.
+:::
 
-- The `.env` file itself is the source of truth
-- Nouto never stores `.env` values to disk (only the path to the file is saved)
-- If the file is deleted or moved, the variables disappear immediately
+## Storage summary
 
-Keep your `.env` file out of version control by ensuring it is listed in `.gitignore`.
+This table shows where each kind of data lives:
 
-## Summary
-
-| Data | VS Code | Desktop | In git? |
-|------|---------|---------|---------|
-| Environments | VS Code global storage | App config directory | No |
-| Global variables | VS Code global storage | App config directory | No |
-| Secret variable values | Encrypted in VS Code global storage | OS keychain (never on disk) | No |
-| Exported environment JSON | Wherever you save it | Wherever you save it | Only if you commit it |
-| Linked `.env` file contents | Memory only (not persisted) | Memory only (not persisted) | Only if you commit the file |
-| Linked `.env` file path | VS Code global storage | App config directory | No |
+| Data | VS Code extension | Desktop app |
+|------|-------------------|-------------|
+| Environments | `environments.json` in VS Code global storage | `environments.json` in the app data folder, or `.nouto/environments.json` in the open workspace folder |
+| Global variables | `environments.json` in VS Code global storage | `environments.json` in the app data folder |
+| Secret values in environments | VS Code secret storage | Operating system keychain |
+| Secret values in global variables | VS Code secret storage | `environments.json` in the app data folder |
+| Linked `.env` file values | Memory only | Memory only |
+| Linked `.env` file path | `environments.json` in VS Code global storage | Not saved |
+| Exported environment files | Where you save them, with secret values empty | Where you save them, with secret values included |

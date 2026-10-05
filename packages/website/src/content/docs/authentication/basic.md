@@ -1,52 +1,50 @@
 ---
-title: Basic Authentication
-description: Configure HTTP Basic auth in Nouto by entering a username and password in the Auth tab.
+title: Basic authentication
+description: Configure HTTP Basic auth in Nouto by entering a username and password on the Auth tab.
 sidebar:
   order: 1
 ---
 
-Basic authentication sends a base64-encoded `username:password` string in the `Authorization` header with every request. It is supported by most HTTP servers and is the simplest auth method to configure.
+Basic authentication sends a username and password with every request. Nouto joins them as `username:password`, encodes the result in Base64, and sends it in the `Authorization` header.
 
-## Setup
+## Set up Basic auth
 
-1. Open a request and click the **Auth** tab.
-2. Select **Basic Auth** from the type dropdown.
-3. Enter your **Username** and **Password**.
+1. Open a request and select the **Auth** tab.
+2. Select **Basic Auth** from the **Type** dropdown.
+3. Enter the **Username** and **Password**.
 
-The credentials are encoded and sent automatically with each request.
+When you send the request, Nouto adds the header:
 
-## How It Works
-
-Nouto combines the username and password as `username:password`, encodes the result in Base64, and sends it as an HTTP header:
-
-```
+```http
 Authorization: Basic dXNlcjpwYXNzd29yZA==
 ```
 
-The server decodes and validates the credentials on every request. There is no token exchange or session involved.
+## Use variables for credentials
 
-## Variable Support
-
-Both fields accept `{{variable}}` syntax:
+Both fields resolve `{{variable}}` references at send time:
 
 | Field | Example |
 |-------|---------|
 | Username | `{{API_USERNAME}}` |
 | Password | `{{API_PASSWORD}}` |
 
-Store credentials in environment variables to avoid hard-coding them in your requests.
+Reference a [secret variable](/variables/secrets) for the password to keep it out of the saved request.
 
-## cURL Export
+## Copy as cURL
 
-When you copy a request as cURL, Basic auth is included using the `-u` flag:
+To get a cURL command, right-click a saved request in the sidebar and select **Copy as cURL**. Nouto writes Basic auth with the `-u` flag:
 
 ```bash
-curl https://api.example.com/resource \
-  -u 'username:password'
+curl \
+  https://api.example.com/resource \
+  -u \
+  username:password
 ```
 
-## Security Considerations
+Nouto resolves variables in the copied command, so the command can contain the real password.
 
-Base64 encoding is not encryption. Anyone who intercepts the `Authorization` header can decode the credentials immediately. Always use HTTPS when sending Basic auth credentials to external servers.
+## Use HTTPS with Basic auth
 
-For public APIs and services, prefer Bearer tokens or API keys over Basic auth when the option exists.
+:::caution
+Base64 is an encoding, not encryption. Anyone who can read the request can decode the credentials. Send Basic auth only over HTTPS, or to a server on your own machine.
+:::

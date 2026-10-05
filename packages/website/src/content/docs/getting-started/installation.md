@@ -1,31 +1,38 @@
 ---
 title: Installation
-description: How to install Nouto for VS Code or as a desktop app. A local-first, open-source alternative to Postman and Thunder Client.
+description: Install Nouto, an open-source REST client, as a VS Code extension or as a desktop app for Windows, macOS, and Linux.
 ---
 
-Nouto is an open-source REST client and a local-first alternative to Postman and Thunder Client. It runs as a VS Code extension or as a standalone desktop app. No account is required, there is no telemetry, and all data is stored on your machine.
+Nouto is an open-source REST client and an alternative to Postman and Thunder Client. It runs as a VS Code extension or as a standalone desktop app. Neither requires an account, neither sends telemetry, and both store your data on your machine.
 
-## VS Code Extension
+## Install the VS Code extension
 
-1. Open VS Code
-2. Go to the Extensions panel (`Ctrl+Shift+X`)
-3. Search for **Nouto**
-4. Click **Install**
+The extension requires VS Code 1.74 or later.
 
-Or install from the command line:
+1. Open the Extensions view in VS Code (`Ctrl+Shift+X`, or `Cmd+Shift+X` on macOS).
+2. Search for **Nouto**.
+3. Click **Install**.
+
+To install from a terminal instead, run:
 
 ```bash
 code --install-extension frostybee-dev.nouto
 ```
 
-If you are coming from Thunder Client or Postman, you can import your existing collections during or after setup. See [From Postman](/import-export/from-postman) and [From Thunder Client](/import-export/from-thunder-client).
+After installation, the Nouto icon appears in the activity bar.
 
-## Desktop App
+## Install the desktop app
 
-The standalone desktop app is built with Tauri 2.0 and is available for Windows, macOS, and Linux.
+Download the build for your operating system from the [Nouto releases page on GitHub](https://github.com/frostybee/nouto/releases). Release builds are published for:
 
-Download the latest release from the [GitHub Releases](https://github.com/frostybee/nouto/releases) page.
+- Windows (x64)
+- macOS (Apple silicon and Intel)
+- Linux (x64)
 
-## Next Steps
+The desktop app checks for new releases shortly after it starts and offers to install them. See [Auto-update](/desktop/auto-update).
 
-Once installed, check out the [Quick Start](/getting-started/quick-start/) guide to send your first request.
+## Next steps
+
+- Send your first request with the [Quick start](/getting-started/quick-start/).
+- If you use Postman or Thunder Client, import your collections. See [From Postman](/import-export/from-postman) and [From Thunder Client](/import-export/from-thunder-client).
+- To choose between the extension and the desktop app, see [VS Code vs desktop](/getting-started/platforms).

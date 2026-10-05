@@ -2308,7 +2308,7 @@ node server.js
 
 **Steps:**
 1. Right-click on a collection in the sidebar.
-2. Select **Export as Nouto** (or Export > Nouto).
+2. Select **Export > Nouto Collection**.
 3. Save the file.
 
 **Expected:** A `.json` file is saved in Nouto's native format.
@@ -2319,7 +2319,7 @@ node server.js
 
 **Steps:**
 1. Right-click on a collection.
-2. Select **Export to Postman**.
+2. Select **Export > Postman Collection**.
 3. Save the file.
 
 **Expected:** A `.postman_collection.json` file is saved that can be imported into Postman.
@@ -2341,7 +2341,7 @@ node server.js
 
 **Steps:**
 1. Right-click on a collection.
-2. Select **Generate OpenAPI**.
+2. Select **Export > OpenAPI Spec**.
 3. Save the file.
 
 **Expected:** An `.openapi.yaml` file is generated describing the collection's endpoints as an OpenAPI specification.

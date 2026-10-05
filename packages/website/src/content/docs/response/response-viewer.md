@@ -1,119 +1,153 @@
 ---
-title: Response Viewer
-description: Inspect HTTP responses in Nouto with syntax highlighting, body views, headers, cookies, and copy/download actions.
+title: Response viewer
+description: Read HTTP responses in Nouto's response panel, with the status line, response tabs, a body viewer for JSON, XML, HTML, images, and files, and copy and save actions.
 sidebar:
   order: 0
 ---
 
-The response panel appears below the request editor after a request completes. It shows the status, timing, size, and full response body with syntax highlighting.
+The response panel shows the result of the last request you sent from a request tab. It has a status line, a row of tabs, and a body viewer that adapts to the content type.
 
-## Status Bar
+## Status line
 
-The top of the response panel shows three values at a glance:
+The top of the response panel shows:
 
-- **Status code**: color-coded by range (green for 2xx, amber for 3xx/4xx, red for 5xx) with the status text
-- **Response time**: duration in milliseconds from request send to last byte received
-- **Size**: response body size in bytes or KB
+- The status code and status text. The color shows the status class: green for 2xx, orange for 3xx, and red for 4xx and 5xx.
+- The response time in milliseconds.
+- The response size. In the VS Code extension, hover over the size to see the sizes of the response headers and body and of the request headers and body.
 
-## Body View
+While a request is in flight, the status line reads `Sending request...`. When the response body is downloading, it shows the bytes received so far, and a progress bar appears in the panel.
 
-The body viewer renders the response with syntax highlighting matched to the content type. The content type badge in the toolbar identifies the detected format.
+The status line also has these buttons:
 
-### Supported Content Types
+| Button | Action |
+|--------|--------|
+| **Save as Example** | Saves the response as an example of the request. Shown only for requests saved in a collection. See [Response examples](/response/response-examples). |
+| Layout toggle | Places the response panel below or beside the request editor. The default shortcut is `Alt+L`. |
 
-| Format | Rendering |
-|--------|-----------|
-| JSON | Syntax-highlighted with code folding, tree view, JSONPath filter |
-| XML | Syntax-highlighted |
-| HTML | Syntax-highlighted source, plus rendered preview toggle |
-| Image (PNG, JPG, GIF, SVG, WebP) | Inline preview with zoom controls |
-| PDF | Inline preview |
-| Binary | Hex dump with byte offsets |
-| Plain text | Syntax-highlighted as plain text |
+The **Decrease font size** and **Increase font size** buttons at the right of the tab row change the text size in the response panel. Click the number between them, or double-click **Decrease font size**, to reset the size.
 
-### Pretty / Raw Toggle
+## Response tabs
 
-Use the **Pretty** / **Raw** buttons to switch between formatted (indented) and minified output. The **Copy** button copies whichever mode is active.
+The response panel has these tabs. Some appear only when they have content.
 
-### Code Folding
+| Tab | Contents | Shown |
+|-----|----------|-------|
+| **Body** | The response body. See [Body viewer](#body-viewer). | Always |
+| **Headers** | The request URL, remote address, and HTTP version, then the request headers and response headers. The badge counts request and response headers. | When the server responded |
+| **Cookies** | **Sent Cookies** from the request and **Response Cookies** from `Set-Cookie` headers, with their attributes. The badge counts sent and received cookies. | When the server responded |
+| **Redirects** | Each redirect hop with its URL, status, and duration | When the request followed redirects |
+| **Timing** | Per-phase timing and the timeout and redirect settings used. See [Timing breakdown](/response/timing-breakdown). | Always |
+| **Timeline** | A step-by-step log of the request, including the step where it failed | Always |
+| **Tests** | Assertion and test results, labeled with the number passed, for example `Tests 3/4` | After tests run |
+| **Scripts** | Output from pre-request and post-response scripts | After a script runs |
 
-Click the fold arrow next to any JSON object or array to collapse it. A badge shows the number of hidden children. Use the fold depth buttons in the toolbar to collapse or expand all content to a specific depth level (1–5), or use **Expand All** / **Collapse All**.
+When a request fails before the server responds, for example on a DNS or connection error, the panel hides the **Headers**, **Cookies**, and **Redirects** tabs.
 
-### JSONPath Filter
+## Body viewer
 
-The filter bar lets you run a JSONPath expression against the response body. Matching results replace the view. The match count appears as a badge.
+The body viewer picks a display from the response's `Content-Type` header. A body that parses as JSON is treated as JSON whatever its content type. A badge at the end of the body toolbar shows the detected language, such as `JSON` or `TEXT`.
 
-```
+| Content type | Display |
+|--------------|---------|
+| JSON: `application/json`, `+json`, or any body that parses as JSON | Highlighted text with folding, or a tree |
+| XML: `text/xml`, `application/xml`, `+xml` | Highlighted text, or a tree |
+| HTML: `text/html` | Rendered preview, or highlighted source |
+| CSS, JavaScript, YAML, Markdown | Highlighted text |
+| Images: `image/*` | The image, with zoom controls |
+| PDF: `application/pdf` | A file card with **Open Externally** and **Save As** buttons |
+| Audio, video, `application/octet-stream`, `application/zip`, `application/gzip` | A file card with the content type, the size, and a **Save As** button |
+| Other types | Plain text |
+
+### Text and tree view
+
+JSON and XML responses have **Text view** and **Tree view** buttons in the body toolbar. The tree view shows the body as a collapsible tree, with a button that expands or collapses every node. For a JSON tree with table view, search, filters, and more, click **Open in JSON Explorer**. See [JSON Explorer](/response/json-explorer).
+
+### Pretty and raw JSON
+
+In the text view of a JSON response, **Pretty** indents the JSON and **Raw** shows it compact on one line.
+
+When the response panel is narrow, the toolbar moves **Pretty**, **Raw**, folding, search, **Go to Line**, the JSONPath filter, and **Compare** into a **More actions** menu.
+
+### Folding
+
+Click the arrow in the gutter next to an object or array to fold it. A folded block shows how many keys or items it hides.
+
+In the **Pretty** view of a JSON response, the folding button in the toolbar expands or collapses everything. The arrow next to it opens a menu that folds the body to **Level 1** through **Level 5**.
+
+### Search and go to line
+
+Click **Search** or press `Ctrl+F` to search the body text. Click **Go to Line** to jump to a line number.
+
+### JSONPath filter
+
+In the text view of a JSON response, click **JSONPath filter** to filter the body with a JSONPath expression. The body shows only the selected values, and a badge shows the number of matches. If the expression is invalid, the filter bar shows the error.
+
+```text
 $[?(@.status == "active")]
 $..email
 $.data[0:5]
 ```
 
-### JSON Tree View
+Below the body, a path bar shows the JSONPath of the value at the cursor, with a button to copy it.
 
-For JSON responses, click the **Tree** button to switch to the interactive tree view. See [JSON Explorer](/response/json-explorer) for the full feature set.
+### JSON statistics
 
-### HTML Preview
+Click **JSON statistics** to show a summary of the JSON body: the number of keys, objects, and arrays, the maximum depth, and the number of strings, numbers, booleans, and nulls. The [JSON Explorer](/response/json-explorer#statistics) has a more detailed statistics panel.
 
-HTML responses show a **Preview** / **Source** toggle. Preview renders the HTML in a sandboxed frame. Source shows the raw HTML with syntax highlighting.
+### HTML preview
 
-### Image Preview
+HTML responses open in **Preview**, which renders the page in a sandboxed frame. The frame allows scripts, so JavaScript in the page runs. Click **View Source** to see the HTML as highlighted text.
 
-Image responses display inline with zoom controls. Use **Fit** to scale the image to the panel, **100%** for actual size, and **+**/**-** for 25% increments. A checkered background indicates transparent areas.
+### Image preview
 
-## Response Tabs
+Images have zoom controls above them. **Fit** scales the image to the panel, **100%** shows its actual size, and **-** and **+** zoom out and in by 25%, from 25% to 500%. A checkered background shows transparent areas.
 
-The response panel has multiple tabs:
+### Links in JSON
 
-| Tab | Content |
-|-----|---------|
-| **Body** | Response body with all viewer features |
-| **Headers** | Response headers as key-value pairs |
-| **Cookies** | Cookies received in this response vs. cookies sent with the request |
-| **Tests** | Assertion and script test results (appears after running) |
-| **Scripts** | Script execution output and console log (appears after running) |
-| **Timing** | Per-phase timing breakdown (see [Timing Breakdown](/response/timing-breakdown)) |
+URLs inside JSON string values are underlined. Hover over a URL to show a menu with **Open in browser**, **Copy to clipboard**, and **Create new request**.
 
-## Toolbar Actions
+### Minimap
 
-| Action | Description |
-|--------|-------------|
-| **Copy** | Copy the response body (respects Pretty/Raw mode and active filter) |
-| **Copy as cURL** | Copy the request that produced this response as a cURL command |
-| **Download** | Save the response body to a file (format detected from content type) |
-| **Compare** | Open the diff view against the previous response |
-| **Open in JSON Explorer** | Open the JSON Explorer panel with this response loaded |
-| **Search** (`Ctrl+F`) | Search within the response body |
-| **Go to Line** (`Ctrl+G`) | Jump to a specific line number |
+The text view can show a minimap on its right edge. Click the minimap to scroll to that part of the body. The **Minimap** setting controls when it appears:
 
-## Clickable URLs
+| Option | Behavior |
+|--------|----------|
+| **Auto (show for large documents)** | Shows the minimap for bodies longer than 50 lines. This is the default. |
+| **Always** | Shows the minimap for every body |
+| **Never** | Hides the minimap |
 
-URLs inside JSON string values are underlined. Hovering shows an **Open** button (opens in system browser) and a **Copy** button.
+Find the setting in **Settings** > **General** in the VS Code extension, and in **Settings** > **Interface** in the desktop app. Bodies larger than 512 KB or longer than 5,000 lines never show a minimap.
 
-## Minimap
+The [JSON Explorer](/response/json-explorer#find-your-way-around) has a separate minimap that maps the tree instead of the text.
 
-For large responses (roughly 50+ lines), a minimap appears on the right edge of the body viewer. Click anywhere on the minimap to scroll to that position.
+## Body toolbar actions
 
-This minimap maps the raw response text. The [JSON Explorer](/response/json-explorer#more-features) has its own minimap that maps the parsed node tree instead.
+The body toolbar also has these actions:
 
-## Error Display
+| Action | Effect |
+|--------|--------|
+| **Open in JSON Explorer** | Opens the JSON body in the [JSON Explorer](/response/json-explorer). JSON responses only. |
+| **JSON Schema actions** | **Copy as JSON Schema** copies a schema inferred from the body. In the VS Code extension, **Add as component schema** adds the schema under `components/schemas` in an open OpenAPI document. JSON responses only. |
+| **Compare with previous response** | Shows a side-by-side diff with the previous response. JSON responses only. See [Response diff](/response/response-diff). |
+| **Toggle word wrap** | Wraps long lines in the text view |
+| **Copy to clipboard** | Copies the body in the current **Pretty** or **Raw** format. A JSONPath filter doesn't change what is copied. |
+| **Save response to file** | Saves the body to a file. The default file name has the form `METHOD-path-YYYY-MM-DD-HH-MM.ext`, for example `GET-users-2026-10-05-14-30.json`. |
 
-When a request fails, the response panel shows an error panel instead of a body:
+To copy the request as a cURL command, right-click the saved request in the sidebar and select **Copy as cURL**.
 
-| Error type | Icon | Examples |
-|-----------|------|---------|
-| DNS | Search icon (red) | `getaddrinfo ENOTFOUND` |
-| Connection | Plug icon (red) | `ECONNREFUSED`, port not listening |
-| SSL | Lock icon (red) | Certificate expired, self-signed |
-| Timeout | Watch icon (amber) | Request exceeded the configured timeout |
-| Network | Globe icon (amber) | General network failures |
+## Errors
 
-Each error panel includes a short description and a suggestion for how to resolve it.
+When a request fails before the server responds, the body shows the error message as text.
 
-## Saving Response Bodies
+In the VS Code extension, an error panel above the message names the kind of failure, shows the host that failed when it is known, and suggests a fix. The status line shows the same message with an icon. Click **Retry** to send the request again, or the copy button to copy the error details.
 
-By default, Nouto saves response bodies to history. You can disable this in **Settings > General > Save Response Bodies** to reduce storage usage. Entries saved without a body show an empty response panel when reopened from history.
+| Kind | Message |
+|------|---------|
+| `TIMEOUT` | `Request timed out` |
+| `DNS` | `Could not resolve hostname` |
+| `SSL` | `SSL/TLS certificate error` |
+| `CONNECTION` | `Connection refused` or `Connection was reset` |
+| `NETWORK` | `Network unreachable` or `Network error` |
+| `UNKNOWN` | The original error message |
 
-## Response Examples
-
-Use **Save as Example** in the response toolbar to keep a representative response with the current request. Open it later from the request's **Examples** tab. See [Response Examples](/response/response-examples) for details.
+The desktop app shows the error message in the body without the error panel.

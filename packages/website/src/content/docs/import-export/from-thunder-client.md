@@ -1,47 +1,52 @@
 ---
 title: From Thunder Client
-description: Switch from Thunder Client to Nouto. Import your collections and environments and continue testing without an account or cloud sync.
+description: Import Thunder Client collections into Nouto from an export file or a thunder-tests folder, and find where Thunder Client features live in Nouto.
 sidebar:
   order: 1
 ---
 
-Nouto is a VS Code-native alternative to Thunder Client with deeper protocol support, a standalone desktop app, and no account or cloud dependency. Your existing Thunder Client data imports in one step.
+Nouto imports Thunder Client collections, with their folders and requests, from an exported JSON file or from a `thunder-tests` folder. Nouto runs in VS Code and as a desktop app, and doesn't need an account.
 
-## What Transfers
+## What transfers
 
-| Data | Imported |
-|------|----------|
-| Collections and folder structure | Yes |
-| Requests (method, URL, params, headers, body) | Yes |
-| Environments and variables | Yes |
-| Auth settings | Yes |
-| Request descriptions | Yes |
-| Test scripts | No (Thunder Client tests use a different format) |
+| Thunder Client data | Result in Nouto |
+|---------------------|-----------------|
+| Collections, folders, and nested folders | Imported |
+| Request method, URL, query parameters, and headers | Imported |
+| JSON, text, XML, form-encoded, form data, and GraphQL bodies | Imported. XML bodies become text bodies. |
+| Basic, Bearer, API Key, OAuth 2.0, and AWS auth | Imported |
+| Other auth types | Not imported. The request gets no auth. |
+| Environments | Not imported |
+| Tests | Not imported |
 
-## Importing from Thunder Client
+Recreate environments in Nouto by hand. See [Environments](/variables/environments).
 
-1. In VS Code with Thunder Client installed, open the Thunder Client sidebar.
-2. Click the **...** menu and select **Export** to save your data directory (or export individual collections).
-3. In Nouto, open the Command Palette (`Ctrl+Shift+P`) and run **Import Thunder Client**.
-4. Select your Thunder Client data directory.
+## Import from a folder
 
-Nouto reads the Thunder Client JSON format directly and recreates your collections, folders, environments, and requests.
+Thunder Client can save its data to a `thunder-tests` folder in your workspace. Nouto reads `thunderCollection.json` and `thunderRequestCollection.json` from that folder.
 
-## What's Different
+1. Click **Import / Export** in the Collections toolbar of the sidebar.
+2. Select **Import Thunder Client Folder**.
+3. In VS Code, choose **From Folder**.
+4. Select the `thunder-tests` folder.
 
-Nouto covers everything Thunder Client does, and goes further in several areas:
+## Import from an export file
 
-| Capability | Thunder Client | Nouto |
-|-----------|---------------|-------|
-| VS Code extension | Yes | Yes |
-| Standalone desktop app | No | Yes |
-| GraphQL | No | Yes |
-| WebSocket | No | Yes |
-| Server-Sent Events | No | Yes |
-| Collection Runner with data files | No | Yes |
-| CLI (`nouto run`) | No | Yes |
-| Auth inheritance across folders | No | Yes |
-| Pre/post-request scripts | Limited | Full JavaScript sandbox |
-| Mock server | No | Yes |
-| Benchmarking | No | Yes |
-| Open source | No | MIT |
+In VS Code:
+
+1. Run **Nouto: Import Thunder Client** from the Command Palette.
+2. Choose **From File**.
+3. Select the JSON file you exported from Thunder Client.
+
+In the desktop app, click **Import / Export** in the Collections toolbar, select **Import Collection**, and select the exported JSON file. Nouto detects the Thunder Client format.
+
+## Thunder Client features in Nouto
+
+| In Thunder Client | In Nouto |
+|-------------------|----------|
+| Tests tab | **Tests** tab with assertions. See [Assertions](/testing/assertions). |
+| Environments | Environments and global variables. See [Environments](/variables/environments). |
+| Collection runner | Collection runner with CSV and JSON data files. See [Collection runner](/testing/collection-runner). |
+| Command-line runs | The `nouto run` command. See [Run collections from the CLI](/cli/run). |
+
+For a feature comparison across API clients, see [Feature comparison](/compare).

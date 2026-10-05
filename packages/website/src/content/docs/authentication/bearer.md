@@ -1,55 +1,51 @@
 ---
-title: Bearer Token
-description: Configure Bearer token authentication in Nouto by pasting a token into the Auth tab.
+title: Bearer token
+description: Configure Bearer token authentication in Nouto by pasting a token on the Auth tab.
 sidebar:
   order: 2
 ---
 
-Bearer token authentication sends a token in the `Authorization` header using the `Bearer` scheme. It is the most common auth method for modern APIs, covering JWT tokens, OAuth access tokens, and service account keys.
+Bearer token authentication sends a token in the `Authorization` header with the `Bearer` scheme. Use it for JWTs, personal access tokens, and other tokens your API issues outside of an OAuth 2.0 flow.
 
-## Setup
+## Set up a Bearer token
 
-1. Open a request and click the **Auth** tab.
-2. Select **Bearer Token** from the type dropdown.
-3. Paste your token into the **Token** field.
+1. Open a request and select the **Auth** tab.
+2. Select **Bearer Token** from the **Type** dropdown.
+3. Paste the token into the **Token** field.
 
-Nouto adds the `Authorization` header automatically on every request.
+When you send the request, Nouto adds the header:
 
-## How It Works
-
-The token is sent as-is in the Authorization header:
-
-```
+```http
 Authorization: Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...
 ```
 
-No encoding or transformation is applied. The token you enter is exactly what the server receives.
+Nouto sends the token exactly as you enter it, after resolving any variables. Don't type the `Bearer ` prefix into the field.
 
-## Variable Support
+:::note
+The **Token** field shows its value in plain text. Reference a variable instead of pasting the token if other people can see your screen.
+:::
 
-The token field accepts `{{variable}}` syntax:
+## Use a variable for the token
 
-```
+The **Token** field resolves `{{variable}}` references at send time:
+
+```text
 {{ACCESS_TOKEN}}
-{{JWT_TOKEN}}
-{{SERVICE_KEY}}
 ```
 
-Using an environment variable lets you rotate tokens without editing individual requests. Set the variable in your active environment and all requests using `{{ACCESS_TOKEN}}` pick up the new value immediately.
+When the token changes, update the variable in your environment. Every request that references `{{ACCESS_TOKEN}}` uses the new value on its next send. Store long-lived tokens, such as GitHub personal access tokens, in a [secret variable](/variables/secrets).
 
-## Common Use Cases
+If your token comes from an OAuth 2.0 provider, use the [OAuth 2.0](/authentication/oauth2) auth type instead. It fetches the token and refreshes it before it expires.
 
-**JWT tokens**: Paste the full JWT string. For tokens obtained via OAuth flows, use [OAuth 2.0](/authentication/oauth2) instead, which handles token fetching and refresh automatically.
+## Copy as cURL
 
-**Static API tokens**: Many services issue long-lived tokens (GitHub personal access tokens, Stripe secret keys, etc.). Store these in a secret environment variable and reference them with `{{variable}}`.
-
-**Short-lived tokens**: If your token expires frequently, consider using a [pre-request script](/testing/scripts) to fetch a fresh token and store it in a variable before each request.
-
-## cURL Export
-
-Bearer auth is included when you copy a request as cURL:
+To get a cURL command, right-click a saved request in the sidebar and select **Copy as cURL**. Nouto writes the token as a header:
 
 ```bash
-curl https://api.example.com/resource \
-  -H 'Authorization: Bearer eyJhbGci...'
+curl \
+  https://api.example.com/resource \
+  -H \
+  'Authorization: Bearer eyJhbGci...'
 ```
+
+Nouto resolves variables in the copied command, so the command can contain the real token.

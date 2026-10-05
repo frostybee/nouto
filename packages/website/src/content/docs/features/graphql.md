@@ -1,17 +1,16 @@
 ---
 title: GraphQL
-description: Send GraphQL queries and mutations over HTTP, and test GraphQL subscriptions over WebSocket.
+description: Send GraphQL queries and mutations over HTTP, explore a schema with introspection, and test subscriptions over WebSocket.
 ---
 
-Nouto supports GraphQL in two ways. Queries and mutations are sent as HTTP requests with the **GraphQL** body type. Subscriptions use the separate **GraphQL Subscription** protocol mode over WebSocket with the `graphql-ws` protocol.
+Nouto sends GraphQL queries and mutations as HTTP requests with the **GraphQL** body type. Subscriptions use a separate **GraphQL Subscription** request type that connects over WebSocket.
 
-## Queries and Mutations
+## Send a query or mutation
 
-1. Create a new request or open an existing one.
-2. In the **Body** tab, select **GraphQL** from the body type dropdown.
-3. Enter the GraphQL endpoint URL (e.g., `https://api.example.com/graphql`).
-4. Write your query in the editor.
-5. Click **Send**.
+1. Click the arrow next to **New Request** in the sidebar and select **New GraphQL Request**. The request uses `POST` and the **GraphQL** body type. To convert an existing request, open its **Body** tab and select **GraphQL**.
+2. Enter the endpoint URL, for example `https://api.example.com/graphql`.
+3. Write the operation in the **Query** editor.
+4. Click **Send**.
 
 ```graphql
 query GetUser($id: ID!) {
@@ -23,11 +22,13 @@ query GetUser($id: ID!) {
 }
 ```
 
-Nouto sends the request as JSON with a `query` field, optional `variables`, and optional `operationName`. The request uses the normal HTTP request pipeline, so headers, auth, variables, scripts, assertions, proxy, SSL settings, redirects, and history work the same way they do for other HTTP requests.
+Nouto sends a JSON body with a `query` field, plus `variables` and `operationName` when you set them, and adds `Content-Type: application/json` unless you set that header yourself. A GraphQL request is a normal HTTP request, so headers, auth, scripts, assertions, proxy, SSL, and redirect settings apply as they do to any other request. The **Query** tab for URL parameters is hidden for GraphQL requests.
 
-## Variables
+Click **Format** above the editor to reformat the query.
 
-Click **Variables** below the query editor to open the variables panel. Enter variables as a JSON object:
+## Add variables
+
+Enter variables as a JSON object in the **Variables (JSON)** editor below the query:
 
 ```json
 {
@@ -35,37 +36,60 @@ Click **Variables** below the query editor to open the variables panel. Enter va
 }
 ```
 
-Variables are merged into the request body at send time. Use `{{envVariable}}` syntax inside the JSON to reference environment variables.
+You can use `{{variables}}` from the active environment inside the JSON. Nouto resolves them before it sends the request.
 
-## Operation Name
+If the JSON is invalid, the editor shows **Invalid JSON** and Nouto sends the request without variables.
 
-If your document contains multiple named operations, enter the operation name in the **Operation** field to specify which one to execute. Leave it blank to use the single operation in the document.
+## Choose an operation
 
-## Schema Introspection
+When the document contains more than one named operation, enter the one to run in **Operation Name (optional)**. Leave the field empty when the document has a single operation.
 
-Click the schema icon in the toolbar (or **Fetch Schema**) to introspect the API. Nouto sends a standard introspection query to the endpoint and builds a local type map.
+## Explore the schema
 
-Once loaded, the schema panel shows all available types, queries, mutations, and subscriptions with field descriptions. Click any type or field to insert it into the query editor.
+Click **Fetch Schema** in the GraphQL toolbar. Nouto sends the standard introspection query to the request URL and opens the schema explorer.
 
-Authentication headers from the Auth tab are included in the introspection request.
+The explorer lists **Queries**, **Mutations**, **Subscriptions**, and **Types**. Use the search box to filter types and fields. Click a type to see its fields, arguments, enum values, input fields, and interfaces. Click a field name to copy it. Click **Hide Explorer** or **Show Explorer** to toggle the panel.
 
-## Subscriptions
+After the schema loads, the query editor suggests field names as you type.
 
-Create a GraphQL Subscription request from the protocol selector when you need to test a subscription operation. Nouto opens a persistent WebSocket connection using the `graphql-ws` protocol. Events appear in the message log as they arrive. Click **Disconnect** to close the connection.
+The introspection request includes the request's enabled headers and its auth settings. VS Code applies Bearer, Basic, and header-based API Key auth. The desktop app applies Bearer and Basic auth.
+
+:::caution
+Fetch Schema sends the URL, headers, and auth values as written. `{{variables}}` aren't resolved for the introspection request, so use literal values when you fetch the schema.
+:::
+
+## Test a subscription
+
+A GraphQL Subscription request connects over WebSocket with the `graphql-transport-ws` subprotocol used by the [graphql-ws](https://github.com/enisdenjo/graphql-ws) library.
+
+1. Click the arrow next to **New Request** and select **New GraphQL Subscription**.
+2. Enter the WebSocket endpoint, for example `ws://localhost:4000/graphql`.
+3. Write the subscription in the **Query** editor.
+4. Click **Subscribe** in the URL bar.
 
 ```graphql
-subscription OnOrderUpdated($orderId: ID!) {
-  orderUpdated(id: $orderId) {
+subscription OnOrderUpdated {
+  orderUpdated {
     status
     updatedAt
   }
 }
 ```
 
-## Authentication
+Nouto sends a `connection_init` message with an empty payload, waits up to 10 seconds for `connection_ack`, then sends the subscription. While the subscription is active, the status shows `subscribed` in VS Code and `connected` in the desktop app.
 
-GraphQL over HTTP uses the same auth system as HTTP requests. Configure the auth type in the **Auth** tab and Nouto attaches credentials to queries, mutations, and schema introspection requests.
+Events appear in the log below the editor with a timestamp and a type badge:
 
-## Code Generation
+| Type | Meaning |
+|------|---------|
+| `data` | A result from the server. JSON is pretty-printed. |
+| `error` | An error message from the server |
+| `complete` | The server ended the subscription. VS Code logs this event. The desktop app closes the subscription without logging it. |
 
-Open the code generation panel to generate a snippet for the current GraphQL request. GraphQL subscriptions are not exported through HTTP code generation.
+Click **Unsubscribe** to close the connection. Click **Clear** to empty the event log.
+
+Subscription requests have no Headers or Auth tab. Nouto sends cookies from the active [cookie jar](/tools/cookie-jars) that match the URL with the WebSocket upgrade request. Subscriptions don't reconnect automatically.
+
+## Generate code
+
+Code generation works for GraphQL queries and mutations the same way as for other HTTP requests. See [Code generation](/tools/code-generation). The **Generate Code** panel isn't available for subscription requests.

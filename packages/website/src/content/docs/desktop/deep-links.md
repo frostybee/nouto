@@ -1,43 +1,42 @@
 ---
-title: Deep Links
-description: Use nouto:// URLs to open the Nouto desktop app from the terminal, browser, or other applications.
+title: Deep links
+description: Open the Nouto desktop app from a terminal, browser, or another application with a nouto:// URL.
 sidebar:
   order: 0
 ---
 
-The Nouto desktop app registers the `nouto://` URL scheme. Clicking or opening a `nouto://` URL launches the app and performs the specified action.
+The Nouto desktop app registers the `nouto://` URL scheme with the operating system. Opening a `nouto://` URL starts Nouto, or brings the running window to the front.
 
-## URL Scheme
+## Open Nouto from a terminal
 
-```
-nouto://<action>/<parameters>
-```
+Pass a `nouto://` URL to your system's URL opener.
 
-## OAuth Callbacks
+On macOS:
 
-The primary use case for deep links is OAuth 2.0 authorization callbacks. When you use OAuth 2.0 in the desktop app, Nouto registers a callback URL using the `nouto://` scheme. After authorizing in the browser, the OAuth provider redirects back to Nouto via the deep link, and the app receives the authorization code to complete the token exchange.
-
-This replaces the local callback server approach used in the VS Code extension.
-
-## Opening from Terminal
-
-You can open Nouto from the command line using the deep link scheme:
-
-**macOS:**
 ```bash
 open nouto://
 ```
 
-**Windows:**
-```bash
+On Windows, in PowerShell or Command Prompt:
+
+```powershell
 start nouto://
 ```
 
-**Linux:**
+On Linux:
+
 ```bash
 xdg-open nouto://
 ```
 
-## Single Instance
+You can also put a `nouto://` link in a web page or document to open Nouto when someone clicks it.
 
-Deep links always route to the running Nouto instance. If Nouto is not running, the OS launches it first. The `tauri-plugin-single-instance` plugin ensures only one instance is active, so deep links never create a duplicate window.
+## What a deep link does
+
+A deep link opens or focuses Nouto. Deep links can't open a specific request, collection, or environment.
+
+Nouto runs as a single instance. Opening a deep link, or launching the app again, while Nouto is running brings the existing window to the front instead of starting a second copy.
+
+## OAuth 2.0 redirects
+
+The OAuth 2.0 Authorization Code flow doesn't use deep links. The desktop app receives the redirect on a temporary local server at `http://127.0.0.1` on a random port. See [OAuth 2.0](/authentication/oauth2/).

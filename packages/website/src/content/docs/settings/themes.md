@@ -1,15 +1,19 @@
 ---
 title: Themes
-description: Choose from 26 built-in themes, browse a catalog of 65 VS Code themes, import theme files, or create custom themes with live WCAG contrast feedback.
+description: Pick one of 26 built-in themes in the Nouto desktop app, install themes from a catalog of 65 VS Code themes, import theme files, or build a custom theme with live contrast checks.
 sidebar:
   order: 1
 ---
 
-Nouto ships with 26 built-in themes. In VS Code, themes follow the editor's active color theme. In the Desktop app, you select a theme from the Settings page and can go further: browse and install from a catalog of 65 VS Code themes, import any VS Code theme file, or create a fully custom theme.
+In the VS Code extension, Nouto uses the colors of your active VS Code color theme. To change how Nouto looks there, change the VS Code theme.
 
-## Built-in Themes
+The desktop app has its own theme picker in **Settings > Appearance**. It ships 26 built-in themes, and you can install themes from a catalog of 65 VS Code themes, import a VS Code theme file, or customize any theme. Everything else on this page applies to the desktop app only.
 
-### Dark Themes (17)
+## Built-in themes
+
+**System (Auto)** follows your operating system's light or dark preference. The other built-in themes are fixed.
+
+The 17 dark themes are listed in this table:
 
 | Theme | Notes |
 |-------|-------|
@@ -21,17 +25,17 @@ Nouto ships with 26 built-in themes. In VS Code, themes follow the editor's acti
 | GitHub Dark | GitHub's dark mode |
 | One Dark Pro | Atom-inspired |
 | Catppuccin Frappe | Pastel on dark gray |
-| Catppuccin Macchiato | Pastel on darker base |
-| Catppuccin Mocha | Pastel on darkest base |
+| Catppuccin Macchiato | Pastel on a darker base |
+| Catppuccin Mocha | Pastel on the darkest base |
 | Ayu Dark | Warm dark |
 | Rose Pine | Muted rose tones |
 | Rose Pine Moon | Brighter rose variant |
 | Tokyo Night | Cool blue and purple |
 | Everforest Dark | Earthy green |
 | Gruvbox Dark | Retro warm |
-| Night Owl | Optimized for low light |
+| Night Owl | Tuned for low light |
 
-### Light Themes (9)
+The 9 light themes are listed in this table:
 
 | Theme | Notes |
 |-------|-------|
@@ -40,60 +44,52 @@ Nouto ships with 26 built-in themes. In VS Code, themes follow the editor's acti
 | GitHub Light | GitHub's light mode |
 | Catppuccin Latte | Pastel on cream |
 | Ayu Light | Warm light |
-| Rose Pine Dawn | Rose on light base |
+| Rose Pine Dawn | Rose on a light base |
 | Tokyo Night Day | Light blue |
 | Everforest Light | Earthy green on light |
+| Gruvbox Light | Retro warm on light |
 
-### System
+## Install a theme from the VS Code catalog
 
-**Auto** follows the OS dark/light preference.
+The catalog holds 65 themes from the VS Code and Shiki ecosystems, including Catppuccin, Dracula, Everforest, GitHub, Gruvbox, Kanagawa, Material Theme, Nord, One Dark Pro, Rose Pine, Solarized, and Tokyo Night variants.
 
-## VS Code Integration
+1. In **Settings > Appearance**, click **Browse VS Code themes**.
+2. Search by name, or filter the list with **All**, **Dark**, or **Light**. Each entry shows background, foreground, and accent swatches.
+3. Click **Install** to add the theme without switching to it, or **Install & Use** to add it and switch to it.
 
-In the VS Code extension, Nouto uses CSS variables from the active VS Code color theme (`var(--vscode-*)`). The theme picker in Settings is available in the Desktop app only. In VS Code, change your theme through VS Code's built-in theme settings and Nouto adapts automatically.
+Themes you have already installed show an **Installed** label and a **Use** button. Installed catalog themes appear in the **Custom Themes** group in **Settings > Appearance**.
 
-## VS Code Theme Catalog
+## Import a theme file
 
-*Desktop app only.*
+To use a VS Code or Shiki theme that isn't in the catalog, click **Import theme file…** in **Settings > Appearance** and select the theme's JSON or JSONC file.
 
-The catalog provides 65 curated themes from the VS Code and Shiki ecosystem. Open it from **Browse VS Code Themes** in Settings > Appearance.
+Nouto maps the theme's VS Code workbench colors to its own color tokens where it can, and derives the rest from the theme's background, text, and accent colors. If the text color has less than 4.5:1 contrast against the background, Nouto adjusts it toward that ratio and keeps its hue. A message lists any parts of the theme that didn't map cleanly.
 
-- Search by name and filter by **All**, **Dark**, or **Light**
-- Each entry shows three color swatches (background, foreground, accent) so you can preview the palette at a glance
-- **Install** adds the theme without switching to it; **Install & Use** adds it and activates it immediately
-- Already-installed themes show an **Installed** badge and a **Use** button instead
+If an imported theme has the same colors as a theme you already installed, Nouto reuses the installed theme instead of adding a duplicate. If its name clashes with an existing theme, Nouto adds a number to the new theme's name, for example `Nord (2)`.
 
-Included families: Catppuccin, Dracula, Everforest, GitHub, Gruvbox, Kanagawa, Material Theme, Nord, One Dark Pro, Rose Pine, Solarized, Tokyo Night, and more.
+## Customize a theme
 
-## Import a Theme File
+Built-in themes can't be edited directly. Nouto makes an editable copy instead.
 
-*Desktop app only.*
+1. Select the theme you want to start from.
+2. In **Settings > Appearance**, click **Customize current theme**. For a custom theme, the button reads **Edit current theme**, and you can also click the pencil icon on its card.
+3. Adjust the colors in the editor that opens. Changes apply as you make them.
 
-You can import any VS Code or Shiki theme JSON/JSONC file from disk. The converter maps VS Code workbench colors to Nouto tokens where possible and derives the rest using the OKLCH color engine (see [Customize a Theme](#customize-a-theme) below). Notes are shown when parts of the theme couldn't be mapped cleanly.
+The editor has four controls:
 
-Duplicate detection prevents installing byte-identical themes. When an imported theme's name collides with an existing one, a numeric suffix is appended automatically.
-
-## Customize a Theme
-
-*Desktop app only.*
-
-Any installed, imported, or built-in theme can be forked into an editable custom copy. Click the pencil icon on a theme card in Settings > Appearance to open the inline editor.
-
-The editor exposes three anchor colors and a contrast control:
-
-| Anchor | What it controls |
-|--------|------------------|
+| Control | What it sets |
+|---------|--------------|
 | **Background** | Editor and window base color |
 | **Text** | Primary text color |
 | **Accent** | Buttons, links, and focus rings |
-| **Contrast** (0-100) | Surface and border separation strength |
+| **Contrast** | Separation between surfaces and borders, from 0 to 100 |
 
-The full palette (~38 tokens) is derived from these four anchors using the OKLCH color engine, which guarantees WCAG contrast floors (4.5:1 for text, 3:1 for accent and focus). Live contrast ratio readouts appear next to the Text and Accent fields, showing the ratio and WCAG grade (e.g. "4.8:1 AA", "7.2:1 AAA", or "Low").
+Nouto derives the full palette of 38 color tokens from these four values. Next to **Text** and **Accent**, a readout shows the contrast ratio against the background and a grade, for example `4.8:1 AA`, `7.2:1 AAA`, or `Low`. Text needs at least 4.5:1 contrast and the accent needs at least 3:1. Nouto rejects colors below those ratios and shows a message that explains the problem.
 
-When editing a theme imported from a VS Code file, a warning banner notes that anchor edits re-derive the whole palette and drop any pinned VS Code color overrides from the original import.
+If the theme came from a VS Code theme file, it can carry colors pinned from the original file. A note in the editor warns that changing any value re-derives the whole palette from the four controls.
 
-Custom themes can be renamed or deleted from the same editor panel.
+Rename a custom theme in the name field at the top of the editor, or remove it with **Delete theme**.
 
-## Editor Syntax Colors
+## Code editor colors
 
-The Monaco editor (used in the OpenAPI editor) and CodeMirror editors both derive their syntax highlighting from the active theme's CSS variables. Custom themes, catalog themes, and imported themes produce correct syntax colors automatically. The editor font size is shared across both editor implementations.
+The code editors in Nouto, including the Monaco editor in the desktop OpenAPI editor, take their syntax colors from the active theme. Catalog, imported, and custom themes color code without extra setup. The editor font and size set in **Settings > Interface** apply to every code editor.

@@ -3,26 +3,45 @@ title: Changelog
 description: Release history for the Nouto VS Code extension.
 ---
 
-Release history for the Nouto VS Code extension.
+Release history for the Nouto VS Code extension. The desktop app and the standalone JSON Explorer extension keep separate changelogs on GitHub:
+
+- [Desktop app changelog](https://github.com/frostybee/nouto/blob/main/packages/desktop/CHANGELOG.md)
+- [JSON Explorer extension changelog](https://github.com/frostybee/nouto/blob/main/packages/json-explorer-ext/CHANGELOG.md)
+
+## 1.6.1
+
+Released September 2026.
+
+### Changed
+
+- The action bar, tab strip, and URL row are combined into one compact toolbar, with a breadcrumb that shows the request's collection path
+
+### Fixed
+
+- Sort and import dropdown menus in the Collections sidebar no longer render behind the panel
+- Sort and import dropdown menus are centered under their buttons instead of right-aligned
+- Variable autocomplete namespace labels use the badge foreground color for better contrast
+- OpenAPI editor title buttons (Preview, Generate Collection, Open in Browser) no longer appear over webview panels
 
 ## 1.6.0
 
 Released September 2026.
 
-### OpenAPI Editor
+### OpenAPI editor
 
-Full editing support for OpenAPI 3.0, 3.1, and 3.2 specifications in YAML and JSON.
+Editing support for OpenAPI 3.0, 3.1, and 3.2 specifications in YAML and JSON.
 
-- Schema-aware autocomplete and hover documentation, gated by an IntelliSense setting
+- Schema-aware autocomplete and hover documentation, controlled by an IntelliSense setting
 - Go-to-definition for `$ref` values, including references into other workspace files
-- 65 lint rules across eleven groups (Security, Servers, Responses, Paths, Schemas, Components, OWASP, OpenAPI 3.2, Metadata, Policy, Opt-in), each with configurable severity
-- Schema-aware ambiguous-path detection reduces false positives on endpoints that differ only by path parameter type
-- One-click quick fixes for most lint rules and structural diagnostics
-- Example validation against schemas (`example-invalid-schema` / `example-invalid-media`)
-- Opt-in rules stay off until you pick a severity, so upgrades never enable new rules silently
-- Outline tree view with editor sync, per-node context menus, method-colored operations, sort toggle, and parse-failure resilience
-- Documentation preview with Swagger UI and RapiDoc, Try It proxied through the extension host to bypass CORS, and an open-in-browser live-refreshing snapshot
+- 65 lint rules in eleven groups (Security, Servers, Responses, Paths, Schemas, Components, OWASP, OpenAPI 3.2, Metadata, Policy, Opt-in), each with a configurable severity
+- Schema-aware ambiguous-path detection, which reduces false positives on endpoints that differ only by path parameter type
+- One-click quick fixes for 41 of the 65 lint rules and for structural diagnostics
+- Example validation against schemas (`example-invalid-schema` and `example-invalid-media`)
+- Opt-in rules stay off until you pick a severity, so an upgrade never turns on a new opt-in rule
+- Outline tree view with editor sync, per-node context menus, method-colored operations, a sort toggle, and an inline explanation when the spec fails to parse
+- Documentation preview with Swagger UI and RapiDoc, Try It requests proxied through the extension host to avoid CORS errors, and a live-refreshing snapshot you can open in a browser
 - Generate OpenAPI specs from collections or HAR files, and infer JSON Schema from response bodies
+- **New OpenAPI Specification** command that opens a starter spec as an untitled document
 - Bundled Swagger Petstore example specs (3.0 and 3.2)
 
 ### JSON Explorer
@@ -43,7 +62,6 @@ Full editing support for OpenAPI 3.0, 3.1, and 3.2 specifications in YAML and JS
 
 ### Other
 
-- Sidebar three-dot menu with Environments, Settings, and About entries
 - Collection runner reports gRPC, WebSocket, and SSE items as skipped instead of running them as HTTP
 
 ### Fixed
@@ -80,6 +98,14 @@ Released April 2026.
 ### Fixed
 
 - Saved requests no longer open all at once in new tabs when the extension loads
+
+## 1.3.1
+
+Released April 2026.
+
+### Fixed
+
+- Updated the README screenshot. No changes to the extension itself.
 
 ## 1.3.0
 
@@ -128,6 +154,7 @@ Released March 2026.
 - Runner result export in JUnit XML and HTML formats
 - Onboarding flow with a redesigned welcome screen, sample collection, and contextual hints
 - Collection-scoped variables in benchmarks
+- Reset onboarding option in the Settings panel, which shows the hints and welcome screen again
 
 ### Fixed
 

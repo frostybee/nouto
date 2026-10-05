@@ -1,55 +1,49 @@
 ---
-title: VS Code vs Desktop
-description: Understand the differences between the VS Code extension and the standalone desktop app.
+title: VS Code vs desktop
+description: Compare the Nouto VS Code extension with the standalone desktop app, including storage, the HTTP engine, and desktop-only features.
 ---
 
-Nouto runs on two platforms with a shared UI and core feature set. Both support HTTP requests, GraphQL over HTTP, GraphQL subscriptions, WebSockets, SSE, gRPC, collections, environments, authentication, scripts, assertions, the mock server, benchmarks, and code generation. The differences are in storage and operating system integration.
+The VS Code extension and the desktop app share the same request editor and core features: HTTP requests, GraphQL (including subscriptions), WebSocket, Server-Sent Events, gRPC, collections, environments, authentication, scripts, assertions, the collection runner, the mock server, benchmarking, and code generation. They differ in where data is stored, which HTTP engine sends requests, and how they integrate with the operating system.
 
-## VS Code Extension
+## VS Code extension
 
-Runs as a webview panel inside your editor. You access it from the activity bar without leaving VS Code.
+The extension adds a **Nouto** view to the activity bar, and requests open as editor tabs next to your code.
 
-**HTTP client:** Node.js via axios
+- Requests go through the Node.js `http` and `https` modules. Nouto decompresses gzip, deflate, and Brotli responses.
+- Collections live in VS Code's global extension storage by default. Switch to workspace storage to write each request as its own file under `.nouto/collections/` in your project. See [Storage modes](/settings/storage-modes).
+- Environments, history, and trash stay in global extension storage in both storage modes.
+- In workspace storage, Nouto watches `.nouto/collections/` and reloads when files change outside Nouto, for example after a `git pull`.
+- Nouto uses the colors of the active VS Code theme.
+- The extension updates through the VS Code Marketplace like any other extension.
 
-**Storage location:** VS Code global extension storage by default
+## Desktop app
 
-**Storage modes:** Global and workspace `.nouto/collections/`. See [Storage Modes](/settings/storage-modes).
+The desktop app is built with Tauri 2.0 and a Rust backend.
 
-**File watching:** In workspace mode, Nouto watches collection files for external changes and reloads automatically.
+- Requests go through reqwest, a Rust HTTP client. Nouto decompresses gzip, deflate, Brotli, and zstd responses.
+- Data lives in the app data directory by default. When you open a project folder, collections and environments are stored in `.nouto/` inside that folder, using the same per-request file layout as VS Code workspace storage. Global variables stay in the app data directory.
+- While a project folder is open, Nouto watches it and reloads when files change outside Nouto.
+- You pick the theme in Settings. The desktop app has 26 built-in themes, a catalog of 65 VS Code themes, theme file import, and a custom theme editor. See [Themes](/settings/themes).
+- The app registers the `nouto://` URL scheme. Opening a `nouto://` URL starts Nouto or brings it to the front. See [Deep links](/desktop/deep-links).
+- A built-in updater installs new releases. See [Auto-update](/desktop/auto-update).
+- The **Desktop** section of Settings controls close to tray, system notifications, launch at login, and a system-wide shortcut that brings Nouto to the front.
 
-Best for developers who want API testing integrated into their editor workflow, with collection files stored alongside their code.
+## Feature differences
 
-## Desktop App
-
-A standalone application built with Tauri 2.0 and a Rust backend.
-
-**HTTP client:** Rust via reqwest, with native gzip, brotli, deflate, and zstd decompression
-
-**Storage location:** App data directory by default, or `.nouto/` in an opened project folder
-
-**Projects:** Desktop projects use the same per request `.nouto/collections/` layout as VS Code workspace storage.
-
-**Deep links:** Supports the `nouto://` URL scheme for OAuth callbacks and external launches. See [Deep Links](/desktop/deep-links).
-
-**Auto-update:** Built-in update checker. See [Auto-Update](/desktop/auto-update).
-
-Best for developers who want a dedicated, lightweight API client that works outside of VS Code, or who need the desktop app's native HTTP capabilities.
-
-## JSON Explorer Extension
-
-The JSON Explorer also ships on its own as the [Nouto JSON Explorer](/json-explorer) VS Code extension. It runs the same viewer engine as the two clients above (tree and table views, search, query and JSONPath filtering, compare, type generation) but has no request, collection, or environment features.
-
-Best for developers who want a fast JSON viewer in VS Code without installing the full REST client.
-
-## Feature Differences
+This table lists only the features that differ between the two apps.
 
 | Feature | VS Code | Desktop |
 |---------|---------|---------|
-| Global storage | Yes | Yes |
-| Project `.nouto/` storage | Yes | Yes |
-| File watching for project files | Yes | Yes |
+| HTTP engine | Node.js `http` and `https` | reqwest (Rust) |
+| Response decompression | gzip, deflate, Brotli | gzip, deflate, Brotli, zstd |
+| Default storage | VS Code global extension storage | App data directory |
+| Project storage | `.nouto/` in the workspace, opt-in | `.nouto/` in an opened project folder |
+| Environments in project storage | No, always global | Yes |
+| Theme | Follows the VS Code theme | Built-in themes, VS Code theme catalog, custom themes |
 | Deep links (`nouto://`) | No | Yes |
-| Auto-update | No | Yes |
-| Native compression (brotli, zstd) | No | Yes |
+| Updates | VS Code Marketplace | Built-in updater |
+| Tray, OS notifications, launch at login | No | Yes |
 
-This table compares the two full REST clients. The standalone JSON Explorer extension is not a REST client and shares only the JSON viewing engine.
+## Nouto JSON Explorer extension
+
+The JSON Explorer also ships on its own as the [Nouto JSON Explorer](/json-explorer) VS Code extension. It uses the same viewer as the two REST clients, with tree and table views, search, query and JSONPath filtering, compare, and type generation. It has no request, collection, or environment features. Install it if you want the JSON viewer in VS Code without the REST client.

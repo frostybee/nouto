@@ -1,41 +1,56 @@
 ---
 title: Exporting
-description: Export Nouto collections to Postman, HAR, or Nouto native format.
+description: Export Nouto collections and folders in Nouto or Postman v2.1 format, export several collections at once, and export requests as HAR.
 sidebar:
   order: 6
 ---
 
-Export your collections for sharing, backup, or use in other tools. Right-click a collection in the sidebar and select **Export**, then choose a format.
+Export a collection to share it, keep a copy, or open it in another tool. Use the Nouto format to move collections between Nouto installations with every setting intact. Use the Postman format for people who use Postman. To save all your Nouto data at once, including environments and history, use [Backup and restore](/import-export/backup-restore) instead.
 
-## Export Formats
+## Export a collection
 
-| Format | Extension | Use for |
-|--------|-----------|---------|
-| **Postman** | `.json` | Sharing with Postman users, v2.1 compatible |
-| **HAR 1.2** | `.har` | Network recording replay, browser DevTools compatibility |
-| **Nouto Native** | `.json` | Full-fidelity backup, transfer between Nouto installations |
-| **Bulk Export** | `.json` | Export all collections at once |
+Right-click a collection in the sidebar, select **Export**, and choose a format:
 
-## Postman Export
+- **Postman Collection** writes a Postman Collection v2.1 file.
+- **Nouto Collection** writes a `.nouto.json` file in the Nouto format.
+- **OpenAPI Spec** generates an OpenAPI document from the collection. See [Generate OpenAPI from collections](/openapi/generate-from-collections).
 
-Exports to Postman Collection v2.1 format. Folder structure, auth settings, headers, body, query params, and variables are preserved. You can import the file directly into Postman.
+## Export a folder
 
-## HAR Export
+Right-click a folder and select **Export**. In VS Code, Nouto writes the folder as a Postman Collection v2.1 file. In the desktop app, Nouto writes it in the Nouto format.
 
-Exports to HAR 1.2 standard format. Includes full request details, timing data, cookies, and redirect chains. Compatible with Chrome DevTools, Firefox DevTools, Charles Proxy, Postman, and Insomnia.
+## Export several collections
 
-## Nouto Native Export
+1. Click **Import / Export** in the Collections toolbar.
+2. Select **Bulk Export to Postman** or **Bulk Export as Nouto**.
+3. Select the collections to include, then click the export button, for example **Export 3 Collections**.
 
-The native format preserves everything: assertions, scripts, auth inheritance, collection variables, notes, and all request configuration. Use this for backup or to move collections between machines.
+The result depends on the format and platform:
 
-All IDs are regenerated on import to avoid conflicts.
+| Option | VS Code | Desktop app |
+|--------|---------|-------------|
+| **Bulk Export as Nouto** | One file with the selected collections | One file with every collection, whatever you selected |
+| **Bulk Export to Postman** | One file with the selected collections in a `collections` array | One Postman file per collection, with a save dialog for each |
 
-## Bulk Export
+Postman imports one collection per file. To move several collections from VS Code to Postman, export them one at a time with **Export** > **Postman Collection**.
 
-Use **Export All Collections** from the Command Palette to export every collection into a single file.
+## Export as HAR
 
-## Round-Trip Fidelity
+In VS Code, run **Nouto: Export as HAR** and select a collection. Nouto writes one HAR 1.2 entry per request, without the folder structure. Each entry has the method, the URL with enabled query parameters, enabled headers, and the body. Auth settings and responses aren't included. The desktop app has no HAR export.
 
-Collections exported in Nouto native format and re-imported retain full fidelity: folders, requests, auth, headers, variables, assertions, scripts, and notes are all preserved.
+## Nouto format
 
-For Postman format, most data is preserved. Nouto-specific features like assertions, scripts, and auth inheritance are not included in the Postman export since Postman does not support them in its collection schema.
+A Nouto export is a JSON copy of the collection with every setting: folders, requests, auth and auth inheritance, headers, collection and folder variables, scripts, assertions, and notes. The file starts with `"_format": "nouto"`, which is how **Import Collection** recognizes it.
+
+When you import a Nouto export, Nouto gives every collection, folder, and request a new ID. You can import the same file twice without conflicts. See [Nouto export files](/import-export/from-other#nouto-export-files).
+
+## Postman format
+
+A Postman export contains:
+
+- Folders and requests, with each request's method, URL, query parameters, headers, body, and description
+- Collection-level auth, headers, and variables
+- Folder-level auth
+- Basic, Bearer Token, and API Key auth. VS Code also exports OAuth 2.0 settings.
+
+A Postman export leaves out scripts, assertions, auth inheritance, folder-level headers and variables, and per-request settings such as timeouts and proxies. Other auth types are exported as no auth. Use the Nouto format when you need these.

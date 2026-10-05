@@ -1,33 +1,42 @@
 ---
-title: Feature Comparison
-description: Side-by-side comparison of Nouto with Postman, Insomnia, Bruno, Yaak, and Thunder Client.
+title: Feature comparison
+description: Compare Nouto with Postman, Insomnia, Bruno, Yaak, and Thunder Client, feature by feature, on each tool's free tier.
 ---
 
-# Feature Comparison
+This page compares Nouto with five other API clients: Postman, Insomnia, Bruno, Yaak, and Thunder Client. Each cell describes what the tool offers on its free tier.
 
-How does Nouto compare to other API clients? This page provides a factual, feature-by-feature comparison across six popular tools.
+Last reviewed: October 5, 2026. Competitor information comes from each product's website, documentation, pricing page, and public source code, and it changes often. If a cell is wrong, [open an issue](https://github.com/frostybee/nouto/issues) with the correction and a link to the source.
 
-**Last verified:** September 2026. If anything here is inaccurate, please [open an issue](https://github.com/frostybee/nouto/issues) and we will correct it.
+## How to read the tables
 
----
+The cells use these values:
+
+| Value | Meaning |
+|-------|---------|
+| Yes | Supported in the free tier |
+| No | Not available |
+| Partial | Limited support |
+| Paid | Requires a paid plan |
+| Via plugin | Available through a plugin, not built in |
+| `-` | Not confirmed as of October 2026 |
 
 ## Basics
 
 | Feature | Nouto | Postman | Insomnia | Bruno | Yaak | Thunder Client |
 |---------|:-----:|:-------:|:--------:|:-----:|:----:|:--------------:|
-| Open Source | Yes (MIT) | No | Yes (Apache 2.0) | Yes (MIT) | Yes | No |
-| Free Tier | Yes (full) | Yes (limited) | Yes (limited) | Yes (most features) | Yes | Yes (very limited) |
-| Account Required | No | Partial | Partial | No | No | No |
-| Telemetry | No | Yes | Yes (opt-out) | Yes (opt-out) | - | Yes (opt-out) |
-| Local-First Storage | Yes | No | Yes | Yes | Yes | Yes |
-| Desktop App | Yes | Yes | Yes | Yes | Yes | No |
-| VS Code Extension | Yes | Yes | No | Yes | No | Yes |
-| Web Version | No | Yes | No | No | Yes | No |
-| CLI | Yes | Yes | Yes | Yes | Yes | Paid |
+| Open source | Yes (MIT) | No | Yes (Apache 2.0) | Yes (MIT) | Yes (MIT) | No |
+| Free tier | Yes (full) | Yes (limited) | Yes (limited) | Yes (most features) | Personal use only | Yes (very limited) |
+| Account required | No | Partial | Partial | No | No | No |
+| Telemetry | No | Yes | Yes (opt-out) | Yes (daily ping) | No | Yes (opt-out) |
+| Local-first storage | Yes | No | Yes | Yes | Yes | Yes |
+| Desktop app | Yes | Yes | Yes | Yes | Yes | No |
+| VS Code extension | Yes | Yes | No | Yes | No | Yes |
+| Web version | No | Yes | No | No | No | No |
+| CLI | Yes (build from source) | Yes | Yes | Yes | Yes | Paid |
 
-Nouto is fully free with no account, no telemetry, and no feature gating. Postman's free tier requires an account for most features and stores data in the cloud by default. Thunder Client locks WebSocket, SSE, gRPC, scripting, and CLI behind paid plans.
+Nouto has no paid tier, no account, and no telemetry. The Nouto CLI isn't published to npm yet, so you [build it from the repository](/cli/).
 
----
+Postman requires an account for most features and stores data in the Postman cloud by default. Bruno sends one anonymous ping a day with the operating system and app version. Yaak is free for personal use and requires a license for work use. Thunder Client's free tier excludes WebSocket, SSE, gRPC, scripting, environments, the collection runner, and the CLI.
 
 ## Protocols
 
@@ -36,133 +45,110 @@ Nouto is fully free with no account, no telemetry, and no feature gating. Postma
 | HTTP/1.1 | Yes | Yes | Yes | Yes | Yes | Yes |
 | HTTP/2 | Partial | Yes | Partial | No | Yes | - |
 | GraphQL | Yes | Yes | Yes | Yes | Yes | Yes |
-| GraphQL Subscriptions | Yes | Yes | Yes | Yes | - | - |
+| GraphQL subscriptions | Yes | Yes | Yes | Yes | - | - |
 | WebSocket | Yes | Yes | Yes | Yes | Yes | Paid |
 | Server-Sent Events | Yes | Yes | Yes | Yes | Yes | Paid |
-| gRPC (all patterns) | Yes | Yes | Yes | Yes | Yes | Paid |
-| gRPC Reflection | Yes | Yes | - | Yes | Yes | - |
+| gRPC (all four call types) | Yes | Yes | Yes | Yes | Yes | Paid |
+| gRPC reflection | Yes | Yes | - | Yes | Yes | - |
 
-All six support the core protocols, but Thunder Client puts WebSocket, SSE, and gRPC behind a paywall. Nouto's HTTP/2 support relies on ALPN negotiation (the server decides); explicit HTTP/2 prior knowledge is not yet configurable.
+Thunder Client requires a paid plan for WebSocket, SSE, and gRPC.
 
----
+In the Nouto VS Code extension and CLI, HTTPS requests negotiate HTTP/2 through ALPN when no proxy is set, and use HTTP/1.1 otherwise. The Nouto desktop app sends HTTP/1.1. Neither lets you force HTTP/2.
 
 ## Authentication
 
 | Feature | Nouto | Postman | Insomnia | Bruno | Yaak | Thunder Client |
 |---------|:-----:|:-------:|:--------:|:-----:|:----:|:--------------:|
-| Basic / Bearer / API Key | Yes | Yes | Yes | Yes | Yes | Yes |
-| OAuth 2.0 | Yes | Yes | Yes | Yes | Yes | Yes |
+| Basic, Bearer, and API key | Yes | Yes | Yes | Yes | Yes | Yes |
+| OAuth 2.0 | Yes | Yes | Yes | Yes | Yes | Paid |
 | AWS Signature V4 | Yes | Yes | Yes | Yes | Yes | Yes |
-| Digest Auth | Yes | Yes | Yes | Yes | - | - |
+| Digest | Yes | Yes | Yes | Yes | - | - |
 | NTLM | Yes | Yes | Yes | Yes | Yes | Yes |
-| Auth Inheritance | Yes | Yes | Partial | Yes | - | Yes |
+| Auth inheritance | Yes | Yes | Partial | Yes | - | Yes |
 
-Nouto and Bruno support the broadest set of auth methods. Insomnia's auth inheritance has known issues with WebSocket requests and OAuth 2.0 template tags.
+A Nouto request can inherit auth from its folder or collection. See [Auth inheritance](/authentication/inheritance). Thunder Client's free tier doesn't include OAuth 2.0.
 
----
-
-## Variables and Environments
+## Variables and environments
 
 | Feature | Nouto | Postman | Insomnia | Bruno | Yaak | Thunder Client |
 |---------|:-----:|:-------:|:--------:|:-----:|:----:|:--------------:|
-| Multiple Environments | Yes | Yes | Yes | Yes | Yes | Yes |
-| Global Variables | Yes | Yes | Yes | Yes | Yes | Yes |
-| Dynamic Variables | Yes | Yes | Yes | Yes | Yes | Yes |
-| Collection Variables | Yes | Yes | Partial | Yes | Yes | Yes |
-| .env File Linking | Yes | No | Via plugin | Yes | - | Yes |
-| Secret Variables | Yes | Yes | Yes | Yes | Yes | Paid |
+| Multiple environments | Yes | Yes | Yes | Yes | Yes | Paid |
+| Global variables | Yes | Yes | Yes | Yes | Yes | Paid |
+| Dynamic variables | Yes | Yes | Yes | Yes | Yes | Yes |
+| Collection variables | Yes | Yes | Partial | Yes | Yes | Paid |
+| `.env` file linking | Yes | No | Via plugin | Yes | - | Paid |
+| Secret variables | Yes | Yes | Yes | Yes | Yes | Paid |
 
-Nouto and Yaak offer the richest set of dynamic variables, including hash functions, encoding/decoding, regex, faker data, file reads, and interactive prompts. Postman's dynamic variables cover the basics (guid, timestamp, random). Nouto stores secrets in the OS keychain (Windows Credential Manager, macOS Keychain, Linux Secret Service) so they never appear in collection files on disk.
+Nouto's dynamic variables include hashes, HMAC, encoding and decoding, regex extraction, Faker data, file reads, and values you type at send time. See [Dynamic variables](/variables/dynamic-variables). Postman's dynamic variables come from the Faker library and cover about 120 values, such as names, addresses, and dates.
 
----
+Nouto stores secret variable values outside your collection and environment files. The desktop app uses the OS keychain: Windows Credential Manager, macOS Keychain, or the Linux Secret Service. The VS Code extension uses VS Code's secret storage.
 
-## Testing and Automation
+Thunder Client's free tier allows no environments, so the environment-based features in this table need a paid plan.
+
+## Testing and automation
 
 | Feature | Nouto | Postman | Insomnia | Bruno | Yaak | Thunder Client |
 |---------|:-----:|:-------:|:--------:|:-----:|:----:|:--------------:|
-| Pre-request Scripts | Yes | Yes | Yes | Yes | No | Paid |
-| Post-response Scripts | Yes | Yes | Yes | Yes | No | Paid |
-| No-code Assertions | Yes | Partial | No | Yes | No | Yes |
-| Collection Runner | Yes | Yes | Yes | Paid (GUI) | Partial | Yes |
-| Data-driven Runs | Yes | Yes | - | Paid | No | Yes |
+| Pre-request scripts | Yes | Yes | Yes | Yes | No | Paid |
+| Post-response scripts | Yes | Yes | Yes | Yes | No | Paid |
+| No-code assertions | Yes | Partial | No | Yes | No | Yes |
+| Collection runner | Yes | Yes | Yes | Yes | Partial | Paid |
+| Data-driven runs | Yes | Yes | - | Paid | No | Paid |
 | Benchmarking | Yes | Yes | No | No | No | No |
-| Mock Server | Yes | Yes | Yes | No | No | - |
+| Mock server | Yes | Yes | Yes | Yes | No | - |
 | Monitors | No | Yes | No | No | No | - |
 
-This is where Nouto differentiates most strongly. It is the only free tool that combines scripting, no-code assertions, a collection runner, data-driven testing, benchmarking, and a mock server in one package. Yaak has no scripting or testing at all. Bruno locks its GUI collection runner and data-driven runs behind paid plans.
-
----
+Nouto includes scripting, no-code assertions, a collection runner that reads CSV and JSON data files, benchmarking, and a mock server. Bruno's data-driven runs and run reports need a paid plan. Thunder Client's scripting, collection runner, and data-driven runs need a paid plan. Yaak has no scripting or assertions.
 
 ## Response
 
 | Feature | Nouto | Postman | Insomnia | Bruno | Yaak | Thunder Client |
 |---------|:-----:|:-------:|:--------:|:-----:|:----:|:--------------:|
-| JSON Tree Viewer | Yes | Yes | Yes | Yes | Yes | Yes |
-| JSONPath Filter | Yes | Partial | Partial | - | Via plugin | Partial |
-| Image Preview | Yes | Yes | Via plugin | Yes | Yes | - |
-| PDF Preview | Yes | No | No | No | Yes | No |
-| Timing Breakdown | Yes | Yes | Yes | Yes | Yes | Partial |
-| Response Diff | Yes | Partial | No | - | Yes | - |
-| Code Generation | Yes (12) | Yes (many) | Yes (many) | Yes (35+) | Yes (many) | Yes (6) |
+| JSON tree viewer | Yes | Yes | Yes | Yes | Yes | Yes |
+| JSONPath filter | Yes | Partial | Partial | - | Via plugin | Partial |
+| Image preview | Yes | Yes | Via plugin | Yes | Yes | - |
+| PDF preview | No | No | No | No | Yes | No |
+| Timing breakdown | Yes | Yes | Yes | Yes | Yes | Partial |
+| Response diff | Yes | Partial | No | - | Yes | - |
+| Code generation | Yes (12 targets) | Yes (many) | Yes (many) | Yes (35+) | Yes (many) | Yes (10+) |
 
-Nouto and Yaak are the only tools with built-in PDF preview and response diff. Nouto's JSONPath filter is built into the response panel without plugins or scripting.
-
----
+Nouto previews image responses and offers PDF responses as a file to open or save. Its response diff compares a response with the previous response to the same request. The JSONPath filter is part of the response panel, so filtering a response doesn't need a script or plugin.
 
 ## Organization
 
 | Feature | Nouto | Postman | Insomnia | Bruno | Yaak | Thunder Client |
 |---------|:-----:|:-------:|:--------:|:-----:|:----:|:--------------:|
-| Nested Folders | Yes | Yes | Yes | Yes | Yes | Yes |
-| Drag-and-Drop | Yes | Yes | Yes | Yes | Yes | Yes |
-| Trash / Recovery | Yes | Yes | - | No | - | - |
-| Request History | Yes | Yes | Yes | Yes | Yes | Yes |
-| Import Sources | 8 | 9+ | 5 | 3 | 5 | 4 |
-| Export Formats | 4 | 1 | 1 | 2 | 3 | Paid |
+| Nested folders | Yes | Yes | Yes | Yes | Yes | Yes |
+| Drag and drop | Yes | Yes | Yes | Yes | Yes | Yes |
+| Trash and recovery | Yes | Yes | - | No | - | - |
+| Request history | Yes | Yes | Yes | Yes | Yes | Yes |
+| Import sources | 8 | 9+ | 5 | 5 | 4 | Paid (5) |
+| Export formats | 4 | 1 | 1 | 2 | 3 | Paid |
 
-Nouto supports the widest range of import sources among free tools: Postman, Insomnia, Bruno, Hoppscotch, Thunder Client, OpenAPI, cURL, and HAR. It also exports to more formats than most competitors (native JSON, HAR, OpenAPI, and runner reports in JSON/CSV/JUnit XML/HTML).
+Nouto imports from Postman, Insomnia, Bruno, Hoppscotch, Thunder Client, OpenAPI, cURL, and HAR. It exports collections as Nouto JSON, Postman, HAR, and OpenAPI, and exports collection runner results as JSON, CSV, JUnit XML, and HTML.
 
----
-
-## Editor and DX
+## Editor and workflow
 
 | Feature | Nouto | Postman | Insomnia | Bruno | Yaak | Thunder Client |
 |---------|:-----:|:-------:|:--------:|:-----:|:----:|:--------------:|
-| OpenAPI Editor | Yes | Yes | Yes | No | No | No |
-| OpenAPI Linting | Yes | Yes | Yes | No | No | No |
-| Command Palette | Yes | Yes | Yes | - | - | Yes |
-| Undo / Redo | Yes | Yes | Yes | - | - | - |
-| Custom Shortcuts | Yes | Yes | - | Yes | - | Partial |
-| Custom Themes | Yes (30+) | Partial | Via plugins | Yes | Via plugins | Yes |
+| OpenAPI editor | Yes | Yes | Yes | No | No | No |
+| OpenAPI linting | Yes | Yes | Yes | No | No | No |
+| Command palette | Yes | Yes | Yes | - | - | Yes |
+| Undo and redo | Yes | Yes | Yes | - | - | - |
+| Custom shortcuts | Yes | Yes | - | Yes | - | Partial |
+| Custom themes | Yes (26 built in) | Partial | Via plugins | Yes | Via plugins | Yes |
 
-Nouto ships with 30+ built-in themes, a live theme editor, and the ability to import any VS Code theme file. Postman only offers light and dark modes.
-
----
+The Nouto desktop app has 26 built-in themes, a browser for 65 bundled VS Code themes, a panel for customizing the current theme, and import for VS Code theme files. The Nouto VS Code extension uses your editor's theme.
 
 ## Extensibility
 
 | Feature | Nouto | Postman | Insomnia | Bruno | Yaak | Thunder Client |
 |---------|:-----:|:-------:|:--------:|:-----:|:----:|:--------------:|
-| Plugin System | No | No | Yes | Partial | Yes | No |
-| Git Sync UI | No | Yes | Yes | Yes | Yes | Paid |
-| AI Features | No | Yes | Paid | Yes | No | Partial |
-| MCP Support | No | Yes | Yes | Yes | Yes | Paid |
+| Plugin system | No | No | Yes | Partial | Yes | No |
+| Git UI | No | Yes | Yes | Partial | Yes | Paid |
+| AI features | No | Yes | Yes | Yes | No | Partial |
+| MCP support | No | Yes | Yes | Yes | Yes | Paid |
 
-Nouto does not currently have a plugin system, built-in git UI, AI features, or MCP support. Collections are stored in a git-friendly JSON format for manual version control. These are on the [roadmap](/changelog).
+Nouto has no plugin system, built-in Git UI, AI features, or MCP support. In workspace storage, Nouto saves each request as its own JSON file under `.nouto/`, so you can version collections with your usual Git tools. See [Storage modes](/settings/storage-modes).
 
----
-
-## Legend
-
-| Symbol | Meaning |
-|--------|---------|
-| Yes | Fully supported in the free tier |
-| No | Not available |
-| Partial | Limited support (see section notes) |
-| Paid | Requires a paid subscription |
-| Via plugin | Available through a third-party plugin, not built-in |
-| `-` | Not confirmed as of September 2026 |
-
-This comparison is based on official documentation, public repositories, and direct codebase inspection where available. It reflects the state of each tool as of September 2026. Features may have changed since then.
-
-Found an error? [Open an issue](https://github.com/frostybee/nouto/issues) with the correction and a source link.
+Bruno's free tier can clone a repository, pull, and view diffs from its Git UI. Committing and pushing from the Git UI need a paid plan.

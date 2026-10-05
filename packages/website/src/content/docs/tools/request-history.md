@@ -1,85 +1,77 @@
 ---
-title: Request History
-description: Browse, search, and analyze your past HTTP requests in Nouto's history drawer with statistics and export.
+title: Request history
+description: Find, reopen, and save requests you sent earlier from the History tab, and export your history as JSON or CSV.
 sidebar:
   order: 0
 ---
 
-Nouto logs every request you send to a persistent history store. The History tab in the sidebar lets you browse, search, filter, and re-open past requests, even after restarting VS Code or the desktop app.
+Nouto records each request you send in the **History** tab of the sidebar. Use the tab to find a request you sent earlier, open it again with the same settings, or save it to a collection. History persists when you restart VS Code or the desktop app.
 
-## Accessing History
+## Recorded requests
 
-Click the **History** tab in the sidebar (alongside Collections and Variables). Entries are displayed in reverse chronological order, grouped by date:
+Nouto records every request you send from a request tab, whether or not it's saved in a collection. Each entry stores the method, URL, headers, query parameters, body, auth, status code, response time, and response size. History doesn't store response bodies.
 
-- **Today**
-- **Yesterday**
-- **This Week**
-- **Earlier**
+In VS Code, Nouto also records requests that fail before a response arrives. These entries have no status code. The desktop app records only requests that got a response.
 
-Each entry shows:
+## Browse history
 
-- HTTP method badge (color-coded)
-- URL path (truncated, with full URL on hover)
-- Response status code (green for 2xx, yellow for 3xx, red for 4xx/5xx)
-- Response time (e.g., `150ms`, `1.2s`)
-- Relative timestamp (e.g., `5m`, `2h`, `3d`)
+Open the **History** tab in the sidebar, next to **Collections** and **Trash**. Entries are grouped under **Today**, **Yesterday**, **This Week**, and **Earlier**. Each entry shows:
 
-## Auto-Logging
+- The method badge
+- The URL path and query string. Hover to see the full URL.
+- The time since you sent it, for example `5m ago`. Hover to see the full date.
+- The response time, for example `150ms` or `1.2s`
+- The status code, colored by range
 
-Every request is logged automatically, whether it belongs to a collection or is an unsaved draft. Both successful responses and errors are recorded. Error entries show status `0` with the error message.
+More entries load as you scroll down.
 
-## Searching and Filtering
+## Search, filter, and sort
 
-### Text Search
+Type in the search box to find entries whose URL, request name, or method contains the text. Click `.*` to switch to a regular expression search.
 
-Type in the search bar to filter entries by URL, request name, or HTTP method. Search is debounced for responsiveness.
+The bar under the search box has more filters:
 
-### Method Filters
+- The method pills (`GET`, `POST`, `PUT`, `PATCH`, `DELETE`) show only entries with the selected methods. Select several to combine them.
+- **URL** and **Headers** set which fields the search box checks. Select **Headers** to also match request header names and values.
+- The sort button orders entries by **Newest First**, **Oldest First**, **Slowest First**, **Fastest First**, **By Status Code**, or **By Method**.
 
-Click the method pills (GET, POST, PUT, PATCH, DELETE) to toggle filtering by HTTP method. Multiple methods can be active at once. Click again to deselect.
+Click the `×` at the end of the bar to clear the search, method filters, and sort order.
 
-### Deep Search
+To see the history of one collection, right-click a saved request in the **Collections** tab and select **View Send History**. The History tab then shows only entries sent from that request's collection. Click `×` on the **Filtered** badge to remove the filter.
 
-History search matches against URLs, request names, and methods. When response body saving is enabled (Settings > General), you can also search within response bodies.
+:::note
+In the desktop app, search, method filters, sorting, and **Find Similar** don't change the list. The tab shows every entry.
+:::
 
-## Context Menu
+## Entry actions
 
-Right-click a history entry for:
+Right-click an entry, or click its `...` button, to open the menu:
 
-- **Open**: re-opens the request in a new panel with the original method, URL, headers, params, auth, and body pre-filled
-- **Save to Collection**: save the request to a collection
-- **Pin**: mark as a favorite
-- **Copy URL**: copy the full request URL
-- **Delete**: remove the entry from history
+| Action | Result |
+|--------|--------|
+| **Open in New Tab** | Opens the request in a new tab with the recorded method, URL, headers, parameters, auth, and body |
+| **Copy URL** | Copies the full URL, with variables resolved |
+| **Save to Collection** | Saves the request to a collection |
+| **Find Similar** | Lists entries with the same URL, ignoring the query string |
+| **Delete** | Removes the entry from history |
 
 ## Statistics
 
+Click **More actions** (the `...` button in the History toolbar) and select **Statistics**. The view shows the total number of requests, average response time, error rate, the date of the oldest entry, the status code distribution, the most-called endpoints, and requests per day. In VS Code, statistics cover the last 30 days. Select **Statistics** again to return to the list.
 
-The history statistics panel shows aggregate data across your history:
+## Export and import history
 
-- **Top endpoints**: most frequently called URLs
-- **Status distribution**: breakdown by 2xx, 3xx, 4xx, 5xx
-- **Average response time**: across all or filtered entries
-- **Requests per day**: volume over time
+Click **Import / Export** in the History toolbar:
 
-## Export and Import
+- **Export History** saves your history as JSON or CSV. The CSV file has one row per request with the timestamp, method, URL, status, duration, size, and request name.
+- **Import History** reads a JSON file created by **Export History**. Nouto skips entries that are already in your history.
 
-Export your full history as a JSONL file for backup, analysis, or sharing. Import a previously exported JSONL file to restore history on a different machine or after a clean install.
+In VS Code, the **Nouto: Export History** and **Nouto: Import History** commands do the same.
 
-## Pagination
+## Clear history
 
-History loads 50 entries at a time. A **Load More** button appears at the bottom when additional entries exist.
+To delete every entry, click **More actions** and select **Clear All History**, then confirm. You can't undo this.
 
-## Storage Limits
+## Storage limit
 
-| Limit | Value |
-|-------|-------|
-| Maximum entries | 10,000 (VS Code) / 2,000 (Desktop) |
-| Maximum age | 90 days (auto-pruned on startup) |
-| Response body cap | 256 KB per entry (larger bodies are truncated) |
-
-Old entries beyond these limits are pruned automatically.
-
-## Clearing History
-
-Click the trash icon next to the search bar to clear all history. This is permanent.
+The desktop app keeps the 2,000 most recent entries and drops the oldest entry each time you send a request past that limit. VS Code keeps every entry until you delete it or clear the history.

@@ -1,13 +1,17 @@
 ---
 title: Linting
-description: 65 configurable lint rules across eleven groups that check for security, correctness, completeness, and design issues in OpenAPI specs.
+description: Reference for the 65 OpenAPI lint rules in Nouto, with their default severities, quick fixes, and how to configure them.
 sidebar:
   order: 2
 ---
 
-The OpenAPI editor ships 65 lint rules organized into eleven groups (Security, Servers, Responses, Paths, Schemas, Components, OWASP, OpenAPI 3.2, Metadata, Policy, Opt-in). Each rule has a configurable severity: **Off**, **Warning**, or **Error**. Rules run automatically as you type and produce inline diagnostics. Most rules have a one-click [quick fix](/openapi/diagnostics#lint-rule-quick-fixes); the "Fix" column says which.
+Nouto's OpenAPI linter has 65 rules in 11 groups: Security, Servers, Responses, Paths, Schemas, Components, OWASP, OpenAPI 3.2, Metadata, Policy, and Opt-in. The rules run as you type and report their findings as diagnostics, each labeled with the rule ID. You can set each rule to **Off**, **Warning**, or **Error**, as described in [Configure rule severity](#configure-rule-severity).
+
+The **Default** column shows the severity a rule uses until you change it. The **Fix** column shows whether the rule has a one-click [quick fix](/openapi/diagnostics#lint-rule-quick-fixes); 41 rules do.
 
 ## Security
+
+These rules flag authentication schemes and text that put credentials or users at risk.
 
 | Rule | Default | Fix | Description |
 |------|---------|-----|-------------|
@@ -16,6 +20,8 @@ The OpenAPI editor ships 65 lint rules organized into eleven groups (Security, S
 | `markdown-unsafe` | Warning | No | A `description`, `summary`, `title`, or `termsOfService` contains a `<script>` tag, `eval(`, or a `javascript:` URL that could execute in rendered documentation |
 
 ## Servers
+
+These rules check the URLs and variables in `servers` entries.
 
 | Rule | Default | Fix | Description |
 |------|---------|-----|-------------|
@@ -28,16 +34,18 @@ The OpenAPI editor ships 65 lint rules organized into eleven groups (Security, S
 
 ## Responses
 
+These rules check that operations document their error responses.
+
 | Rule | Default | Fix | Description |
 |------|---------|-----|-------------|
 | `operation-missing-4xx` | Warning | Yes | Operation declares no client error (4xx) or `default` response |
 | `operation-missing-5xx` | Warning | Yes | Operation declares no server error (5xx) or `default` response |
 
-Both response rules have a quick fix that adds a `default` response. When both rules fire on the same operation, the fix is deduplicated so only one `default` response is inserted.
+Both rules share one quick fix that adds a `default` response. When both fire on the same operation, the fix is offered once and inserts a single `default` response.
 
 ## Paths
 
-Path key and parameter hygiene.
+These rules check path keys, path templates, and the parameters declared for each operation.
 
 | Rule | Default | Fix | Description |
 |------|---------|-----|-------------|
@@ -48,11 +56,13 @@ Path key and parameter hygiene.
 | `path-duplicate` | Error | No | Two path keys are identical except for template variable names (`/pets/{id}` and `/pets/{petId}`) |
 | `path-ambiguous` | Warning | No | A concrete segment overlaps a template segment in another path with the same shape (`/users/me` vs `/users/{id}`). Suppressed when the template parameter's declared schema provably rejects the literal (e.g. `{petId}` typed as `integer` won't match `findByStatus`) |
 
-The rename fixes rewrite only the key token, so the path item's operations and formatting stay untouched.
+The `path-key-trailing-slash` and `path-key-has-query` fixes change only the path key. The operations under it and their formatting stay as they are.
 
 The `path-ambiguous` rule checks the template parameter's declared `type`, `enum`, `pattern`, `const`, and numeric bounds. If every operation on the templated path declares a schema that rejects the literal segment, the warning is suppressed. Parameters without a `schema` (e.g. using `content`), undeclared parameters, and composition keywords (`oneOf`/`anyOf`/`allOf`) are treated as unconstrained and still produce the warning.
 
 ## Schemas
+
+These rules check Schema Objects and the examples attached to them.
 
 | Rule | Default | Fix | Description |
 |------|---------|-----|-------------|
@@ -67,13 +77,13 @@ The `path-ambiguous` rule checks the template parameter's declared `type`, `enum
 | `example-invalid-schema` | Warning | No | A schema's `example` (or a 3.1+ `examples` entry) does not validate against that schema |
 | `example-invalid-media` | Warning | No | A media type or parameter `example` / `examples.*.value` does not validate against its `schema` |
 
-The two `example-invalid-*` rules are host-validated: the editor collects every example/schema pair, and a JSON Schema validator on the host side (Ajv in the VS Code extension host, the Rust `jsonschema` crate in the desktop app) checks them. In the desktop app they arrive a moment after the other diagnostics, like meta-schema errors. Examples with `externalValue`, `$ref` Example Objects, and schemas defined in other files are not checked. OpenAPI 3.0 `nullable: true` is honoured.
+The two `example-invalid-*` rules validate each example against its schema with a full JSON Schema validator: Ajv in the VS Code extension, and the Rust `jsonschema` crate in the desktop app. In the desktop app, their results appear a moment after the other diagnostics. These rules skip examples that use `externalValue`, Example Objects referenced through `$ref`, and schemas defined in other files. They respect OpenAPI 3.0 `nullable: true`.
 
 Schema rules visit every Schema Object in the document, including inline schemas under parameters, headers, request bodies, and responses, and every nested sub-schema. `$ref` targets are checked where they are defined, not at each usage.
 
 ## Components
 
-Reference, component, and security-requirement integrity.
+These rules check `$ref` usage, component definitions, security requirements, callbacks, and webhooks.
 
 | Rule | Default | Fix | Description |
 |------|---------|-----|-------------|
@@ -89,11 +99,11 @@ Reference, component, and security-requirement integrity.
 
 ## OWASP
 
-OWASP API Security Top 10 checks, modelled on the vacuum and Spectral OWASP rulesets. On by default; teams whose API is internal or not security-sensitive can turn the whole group down in Settings. Schema checks visit every Schema Object in the document.
+These rules implement checks from the OWASP API Security Top 10, modeled on the OWASP rulesets of the vacuum and Spectral linters. They are on by default. For an internal API, set the rules you don't need to **Off**. The schema checks visit every Schema Object in the document.
 
 | Rule | Default | Fix | Description |
 |------|---------|-----|-------------|
-| `owasp-integer-unbounded` | Warning | Yes | An integer schema has no `minimum` and/or `maximum` (or exclusive variants); enums and consts are exempt |
+| `owasp-integer-unbounded` | Warning | Yes | An integer schema lacks a `minimum` or a `maximum` (exclusive variants count). Schemas with `enum` or `const` are exempt |
 | `owasp-integer-no-format` | Warning | Yes | An integer schema declares no `format` (`int32` or `int64`) |
 | `owasp-string-unrestricted` | Warning | Yes | A string schema has none of `maxLength`, `pattern`, `enum`, `format`, `const` (operation parameter schemas are left to `parameter-unbounded`) |
 | `owasp-array-unbounded` | Warning | Yes | An array schema has no `maxItems` (operation parameter schemas are left to `parameter-unbounded`) |
@@ -107,11 +117,11 @@ OWASP API Security Top 10 checks, modelled on the vacuum and Spectral OWASP rule
 | `owasp-numeric-id` | Warning | No | A path parameter named `...id` has an integer type; sequential ids invite enumeration |
 | `owasp-unsafe-operation-unprotected` | Warning | Yes | A POST/PUT/PATCH/DELETE (or other non-safe) operation runs without any security requirement, including `security: []` overrides |
 
-The fixes insert placeholder bounds (`minimum: 0`, `maximum: 1000000`, `maxLength: 255`, `maxItems: 100`, `format: int64`); adjust them to your API's real limits.
+The fixes insert placeholder values: `minimum: 0`, `maximum: 1000000`, `maxLength: 255`, `maxItems: 100`, and `format: int64`. Change them to your API's real limits.
 
 ## OpenAPI 3.2
 
-Checks for the structures OpenAPI 3.2 introduced. They key off the construct being present, so a 3.1 document that already uses one is checked too.
+These rules check structures that OpenAPI 3.2 introduced. They run whenever the structure is present, so a 3.1 document that already uses one is checked too.
 
 | Rule | Default | Fix | Description |
 |------|---------|-----|-------------|
@@ -121,6 +131,8 @@ Checks for the structures OpenAPI 3.2 introduced. They key off the construct bei
 | `media-type-encoding-conflict` | Error | No | A Media Type Object uses more than one of `encoding`, `prefixEncoding`, `itemEncoding`, or uses a sequential encoding without `itemSchema` |
 
 ## Metadata
+
+These rules check that the document and its operations carry the descriptive fields that documentation and client generators use.
 
 | Rule | Default | Fix | Description |
 |------|---------|-----|-------------|
@@ -132,11 +144,9 @@ Checks for the structures OpenAPI 3.2 introduced. They key off the construct bei
 | `operation-tag-undefined` | Warning | Yes | An operation uses a tag that the root `tags` list does not declare (silent when the document has no root `tags` at all) |
 | `tag-duplicate-name` | Error | Yes | The root `tags` list declares the same name more than once |
 
-The `operation-missing-tags` and `operation-missing-operation-id` rules have quick fixes that derive a tag from the first static path segment and an operationId from the method and path.
-
 ## Policy
 
-Policy rules encode opinions about API design rather than defects. They are on by default, but turning them off is normal if they do not match your team's conventions.
+Policy rules encode opinions about API design rather than defects. They are on by default. Turn them off if they don't match your API's conventions.
 
 | Rule | Default | Fix | Description |
 |------|---------|-----|-------------|
@@ -145,7 +155,7 @@ Policy rules encode opinions about API design rather than defects. They are on b
 
 ## Opt-in
 
-Opt-in rules are disabled by default and must be enabled in Settings. They stay off until you pick a severity for them, even after upgrading to a version that adds new opt-in rules.
+Opt-in rules are off by default. An opt-in rule runs only after you set it to **Warning** or **Error** in Settings, and opt-in rules added in later Nouto versions also start off. The **Default** column shows the severity the rule uses once you turn it on.
 
 | Rule | Default | Fix | Description |
 |------|---------|-----|-------------|
@@ -153,27 +163,12 @@ Opt-in rules are disabled by default and must be enabled in Settings. They stay 
 | `info-missing-license` | Warning | Yes | The `info` object has no `license` |
 | `tag-missing-description` | Warning | Yes | A root tag has no `description` |
 
-## How Nouto's Linter Compares
+## Configure rule severity
 
-Nouto's linting engine is built from scratch for the editor, not adapted from a CLI tool. It goes beyond diagnostics: 41 of the 65 rules include a one-click quick fix that rewrites the spec in place.
+1. Open **Settings** and select **OpenAPI**. In VS Code, you can also click **OpenAPI Settings** in the OpenAPI Outline title bar.
+2. Under **Lint rules**, find the rule. Rules are listed by group, with their IDs and descriptions.
+3. Set the rule to **Off**, **Warning**, or **Error**.
 
-| | Nouto | Spectral | Redocly CLI |
-|---|---|---|---|
-| Rules | 65 across 11 groups | ~30 core | ~70 (configurable presets) |
-| One-click quick fixes | 41 rules | None | None |
-| Schema-aware checks | Yes (`path-ambiguous` checks parameter types, `enum`, `pattern`, numeric bounds) | No | No |
-| Example validation | JSON Schema validation against Ajv (VS Code) / `jsonschema` crate (Desktop) | No | Basic |
-| OpenAPI 3.2 | 4 dedicated rules | No | Partial |
-| Editor integration | Inline diagnostics with pointers, anchors, and automatic refresh | CLI / CI output | CLI / CI output |
-| Runtime | Pure TypeScript (runs in VS Code and Tauri with no extra dependencies) | Node.js | Node.js |
-| Custom rulesets | Per-rule severity (Off / Warning / Error) | `.spectral.yaml` with custom functions | `redocly.yaml` with configurable presets |
+Nouto re-checks every open spec as soon as you change a severity.
 
-Spectral and Redocly are CI/CLI linters that report problems. Nouto diagnoses and fixes them inside the editor as you type.
-
-## Configuring Severity
-
-1. Open **Settings**.
-2. Navigate to **OpenAPI** > **Linting**.
-3. Set each rule to **Off**, **Warning**, or **Error**.
-
-Rules are grouped by category. Changes take effect immediately on all open specs without requiring an edit.
+To turn off every lint rule at once, turn off **Enable OpenAPI linting** in the same section. The severity controls are disabled while linting is off, and your per-rule choices return when you turn it back on. Structural diagnostics and meta-schema validation keep running. See [Diagnostics and quick fixes](/openapi/diagnostics).

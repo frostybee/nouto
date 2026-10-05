@@ -1,148 +1,221 @@
 ---
 title: JSON Explorer
-description: Interactive JSON viewer with tree and table views, search, query and JSONPath filtering, compare, type generation, statistics, bookmarks, pinned nodes, and copy support.
+description: Explore JSON responses and files in a tree or table view, with search, JSONPath and query filters, compare, type generation, schema validation, statistics, bookmarks, and pins.
 sidebar:
   order: 1
 ---
 
-The JSON Explorer is an interactive viewer for JSON responses and files. Open it from a JSON response, from a `.json`, `.jsonl`, or `.ndjson` file in VS Code, from the standalone JSON Explorer extension, or by pasting JSON into the explorer. JSONL and NDJSON inputs are parsed as arrays with one element per non-blank line; a malformed line reports an error with its line number.
+The JSON Explorer is an interactive viewer for large or deeply nested JSON. It shows a document as a collapsible tree or as a table, and adds search, filters, bookmarks, pins, schema validation, and type generation.
 
-## Opening the Explorer
+The same explorer runs in three places:
 
-- **From a response**: Click **Open in JSON Explorer** in the response toolbar when viewing a JSON response. The explorer opens with request context, enabling you to create assertions and save variables back to the originating request.
-- **From a file in the API client extension**: Right click any `.json` file in the VS Code explorer and select **Open in JSON Explorer**. Files up to 20 MB are supported.
-- **From the JSON Explorer extension**: Use **Open with JSON Explorer**, **Open JSON File from Disk**, or the JSON Explorer sidebar.
-- **By pasting**: When the explorer is open and no input field is focused, paste JSON from your clipboard with `Ctrl+V`. The explorer parses and loads it automatically.
+- The Nouto VS Code extension opens it in an editor tab beside the request.
+- The Nouto desktop app opens it in place of the request view. Click **Back to Requests** to return.
+- The standalone [JSON Explorer extension](/json-explorer/) for VS Code opens JSON files without the REST client.
 
-## Tree View
+This page is the reference for features that all three share. Differences between them are noted where they apply.
 
-The default view displays JSON as a collapsible, color-coded hierarchy.
+## Open the explorer
 
-- Color-coded types: strings (orange), numbers (green), booleans (blue), null (gray italic), object keys (yellow badge), array keys (purple badge)
-- Inline previews for collapsed nodes: `{ 3 keys }`, `[ 42 items ]`
-- Click a node to expand or collapse it
-- Double-click to expand or collapse recursively
-- **Expand All**, **Collapse All**, and expand to depth buttons for levels 1 through 5 in the toolbar
-- Virtual scrolling for large documents
-- Copy value on hover
-- Keyboard navigation: arrow keys, Home/End
-- Timestamp hints: numbers and strings recognized as Unix seconds, Unix milliseconds, or ISO 8601 show an inline formatted date next to the value, with the full date on hover
-- Embedded JSON: string values that parse as a JSON object or array show an inline JSON badge; a context menu action opens the parsed value in a new panel
-- Sort keys: a toolbar toggle reorders object keys alphabetically in the tree without changing the document; table view, search, diff, and copy keep the original order
-- Multi-select: `Ctrl`/`Cmd`+click to toggle nodes, `Shift`+click to select a range, `Ctrl+A` to select all visible nodes, `Escape` to clear. The status bar shows the selection count
+To explore a JSON response, click **Open in JSON Explorer** in the body toolbar of the response panel. The button appears when the response body is JSON. Sending the request again refreshes the open explorer with the new response. In VS Code, opening the explorer again from the same request reuses its tab.
 
-## Table View
+To explore a JSON file with the Nouto VS Code extension, right-click a `.json` file in the Explorer view or an editor tab and select **Open in JSON Explorer**. You can also run **Nouto: Open in JSON Explorer** from the Command Palette while a JSON file is active. Files up to 20 MB are supported. The JSON Explorer extension opens more file types; see [Open a JSON file](/json-explorer/#open-a-json-file).
 
-When the root is an array of objects, switch to table view with the toolbar toggle or `Ctrl+Shift+T`.
+To replace the open document with JSON from the clipboard, press `Ctrl+V` while no input field in the explorer has focus. The clipboard must hold a JSON object or array.
 
-- Auto-detected columns from all array items
-- Click column headers to sort ascending or descending
-- Drag column borders to resize; double-click to auto-fit
-- Row numbers stay pinned, and you can pin any column in place from its header
-- Timestamp hints in cells for recognized Unix and ISO 8601 date values
-- Rows matching the query filter are highlighted
-- Pagination with "Show more"
-- CSV export button in the table toolbar
+On macOS, press `Cmd` wherever this page says `Ctrl`.
+
+## Tree view
+
+The tree view is the default. It shows one row per key or array element:
+
+- Values are colored by type using your theme's colors. `null` values are in italics.
+- A collapsed object or array shows a count badge, for example `3 keys` or `42 items`.
+- Click a row to select it and to expand or collapse it. Double-click a collapsed row to expand it and everything inside it.
+- Hover over a row to show buttons that pin the node, bookmark it, or copy its value.
+- Arrays show 2,000 items at a time. Click the `Show N more` row at the end of the list to load the next batch. In the JSON Explorer extension, the `noutoJsonExplorer.arrayPageSize` setting changes the batch size.
+
+The toolbar controls the tree as a whole:
+
+- **Expand All** expands every node. The arrow next to it opens a menu with **Expand to Level 1** through **Expand to Level 5**.
+- **Collapse All** collapses every node.
+- **Sort keys alphabetically** shows object keys in alphabetical order. Only the tree display changes. The document, the table view, the diff, and copied values keep the original order.
+- **Toggle word wrap** (`Alt+Z`) wraps long values onto several lines. Word wrap is on by default.
+
+### Timestamp hints
+
+The tree shows a formatted date after values that look like timestamps, and the date's format when you hover over the value:
+
+| Value | Detected as |
+|-------|-------------|
+| A number from 1,000,000,000 to 9,999,999,999 | Unix seconds |
+| A number from 1,000,000,000,000 to 9,999,999,999,999 | Unix milliseconds |
+| A string that starts with an ISO 8601 date and time, such as `2026-03-15T14:30:00Z` | ISO 8601 |
+
+Dates are formatted for your locale. A date without a time, such as `2026-03-15`, gets no hint.
+
+### Embedded JSON
+
+A string value that itself contains a JSON object or array shows a **JSON** badge. The explorer checks strings up to 64 KB. To explore the embedded document, right-click the value and select **Open Embedded JSON in New Tab** (VS Code) or **Open Embedded JSON** (desktop).
+
+### Multi-select
+
+Select several nodes to copy or bookmark them together:
+
+- `Ctrl+click` adds or removes a node.
+- `Shift+click` selects the range between the last selected node and the clicked node.
+- `Ctrl+A` selects every visible node.
+- `Escape` clears the selection.
+
+The status bar shows how many nodes are selected. The context menu then offers **Copy N values** and **Bookmark N nodes**, and the **Copy as...** menu copies the selected values as an array.
+
+## Table view
+
+When the document is an array whose first item is an object, the toolbar shows **Tree** and **Table** buttons. Click **Table** or press `Ctrl+Shift+T` to switch. To show a nested array as a table, right-click it in the tree and select **View as Table**.
+
+- Columns come from the keys of every item.
+- Click a column header to sort by that column. Click again to reverse the order.
+- Drag a column border to resize the column. Double-click the border to fit the column to its content.
+- Row numbers stay in place when you scroll sideways. Click the pin button in a column header to keep that column in place too.
+- Cells show timestamp hints, like the tree.
+- Rows that match the search or the query filter are highlighted. In filter mode, the table shows only matching rows.
+- Long tables show a **Show more** button with the number of remaining rows.
+- **Copy as CSV** copies the table to the clipboard as CSV.
 
 ## Search
 
-Press `Ctrl+F` to search across keys and values.
+Press `Ctrl+F` or click **Search** to search keys and values. Press `Enter` for the next match and `Shift+Enter` for the previous one. Matching text is highlighted in the tree and the table.
 
-- Case-sensitive, regex, and fuzzy (fzf) modes
-- Scope to keys only, values only, or a subtree
-- Filter mode: toggle between highlighting matches and hiding non-matches
-- Navigate with `Enter` / `Shift+Enter`
-- Inline text highlighting in both tree and table views
+The search bar has these options:
 
-## JSONPath Filter
+| Option | Effect |
+|--------|--------|
+| **Toggle regex** | Treat the search text as a regular expression |
+| **Toggle case sensitivity** | Match letter case exactly |
+| Search scope | Cycle between **All**, **Keys**, and **Values** |
+| **Toggle fuzzy search** | Typo-tolerant matching, using the fzf algorithm |
+| **Toggle filter mode** | Switch between highlighting matches and hiding rows that don't match |
 
-Press `Ctrl+/` to open the JSONPath filter. Enter an expression like `$.data[*].name` to filter the view to matching nodes. Click the **?** button in the filter bar to open a reference panel covering JSONPath syntax, filter operators, and examples.
+To search inside one object or array, right-click it and select **Search in this node**. A badge in the search bar shows the scope. Click the badge to search the whole document again.
 
-## Query Filter
+## JSONPath filter
 
-Press `Ctrl+Shift+K` to open the query filter. Unlike the JSONPath filter above, it uses field comparisons rather than path expressions: `status = "active"`, `age > 30`, `name contains "john"`. Conditions combine with `AND`, `OR`, `NOT`, and parentheses, and field paths use dot notation such as `address.city`. Matches are highlighted in both tree and table views, with controls to step through them.
+Press `Ctrl+/` or click **Filter** to open the JSONPath filter. Enter an expression such as `$.data[*].name`. The explorer replaces the document with the nodes the expression selects and shows the number of matches. If the expression is invalid, the bar shows the error.
 
-Click the **?** button in the filter bar to open a reference panel covering operators, combinators, and example queries. See [Query Filter](/json-explorer/query-filter) for the full operator reference.
+Click **?** in the filter bar to open the **JSONPath Reference** panel, which covers the syntax, filter operators, and examples. Press `Escape` to close the bar and clear the filter.
 
-## Context Menu
+## Query filter
 
-Right-click any node:
+Press `Ctrl+Shift+K` or click **Query** to find array items with field comparisons instead of paths, for example `status = "active" AND age > 30`. Matching items are highlighted in the tree and the table, and you can step through them. See [Query filter](/json-explorer/query-filter) for the operators, field paths, and examples.
 
-| Action | Description |
-|--------|-------------|
-| Copy Value | Copy the value at this node |
-| Copy Path | Copy the JSONPath expression to reach this node |
-| Copy Key | Copy the key name |
-| Bookmark | Add this path to the bookmarks panel |
-| Pin | Add this path to the always-visible Pinned strip above the tree |
-| Search in this node | Scope search to this subtree |
-| Expand Recursively | Expand this node and all children |
-| View as Table | Show this array of objects in table view |
-| Open Subtree in New Tab | Open this object or array in its own explorer panel (VS Code) |
-| Open Embedded JSON in New Tab | Parse a JSON string value and open it in its own panel (VS Code) |
-| Create Assertion | Auto-generate a JSON Path assertion targeting this value (from response context) |
-| Save as Variable | Save this value to your active environment (from response context) |
-| Copy N values | Copy every selected value (appears when more than one node is selected) |
-| Bookmark N nodes | Bookmark every selected node (appears when more than one node is selected) |
+## Context menu
+
+Right-click a node to open its context menu. Some actions appear only for certain nodes:
+
+| Action | Shown for | Effect |
+|--------|-----------|--------|
+| **Copy N values** | A selection of more than one node | Copies the selected values as a JSON array |
+| **Bookmark N nodes** | A selection of more than one node | Bookmarks every selected node |
+| **Copy Value** | Every node | Copies the value as JSON |
+| **Copy Path** | Every node | Copies the node's JSONPath, for example `$.users[0].name` |
+| **Copy Key** | Object keys and array elements | Copies the key or index |
+| **Bookmark** or **Remove Bookmark** | Every node | Adds the node to the bookmarks panel or removes it |
+| **Pin** or **Unpin** | Every node | Adds the node to the **Pinned** strip or removes it |
+| **Search in this node** | Objects and arrays | Limits search to this node |
+| **View as Table** | Arrays whose first item is an object | Shows this array in the table view |
+| **Open Subtree in New Tab** or **Open Subtree** | Objects and arrays | Opens the node as its own document. VS Code opens a new tab. The desktop app replaces the current document and shows **Back to previous document**. |
+| **Open Embedded JSON in New Tab** or **Open Embedded JSON** | Strings that contain JSON | Opens the parsed string as its own document |
+| **Expand Recursively** or **Collapse** | Objects and arrays | Expands everything inside the node, or collapses it |
+| **Expand to Level 1** to **Expand to Level 3** | Every node | Expands the whole tree to that depth |
+| **Create Assertion** | Documents opened from a saved request's response | See [Response actions](#response-actions) |
+| **Save as Variable** | Values in documents opened from a saved request's response | See [Response actions](#response-actions) |
+
+## Response actions
+
+When you open the explorer from the response of a request saved in a collection, the explorer links back to that request. The request's method and URL appear above the tree. Click them to go back to the request.
+
+Two context menu actions use this link:
+
+- **Create Assertion** adds an assertion on the node's path to the request's **Tests** tab. For a value, the assertion checks that the path equals the current value. For an object or array, it checks that the path exists. See [Assertions](/testing/assertions).
+- **Save as Variable** opens the **Save as Environment Variable** dialog. Enter a variable name and click **Save** to store the value in the active environment. If no environment is active, Nouto asks you to select one first. See [Environments](/variables/environments).
 
 ## Compare
 
-Click **Compare** (the diff icon) in the toolbar to diff the open document against another JSON document. Paste the second document into the compare panel, or click **Choose file...** to pick a JSON file from disk (VS Code), and the explorer reports how many paths were added, removed, changed, and left unchanged, then marks each one in a merged tree.
+Click **Compare with another JSON** in the toolbar to diff the open document against a second JSON document that you paste or pick from disk. The explorer counts the added, removed, changed, and unchanged paths and marks each one in a side-by-side list. See [Compare JSON documents](/json-explorer/compare).
 
-See [Compare](/json-explorer/compare) for details. This is separate from [Response Diff](/response/response-diff), which compares a response against the previous response for the same request.
+This compares two arbitrary documents. To compare a response with the previous response from the same request, use [Response diff](/response/response-diff).
 
-## Generate Types
+## Generate types
 
-Click **Generate Types** in the toolbar to turn the loaded JSON into type definitions in TypeScript, Zod, Rust, Go, Python, or JSON Schema. With a node selected, only that subtree is used. See [Generate Types](/json-explorer/generate-types).
+Click **Generate types** in the toolbar to generate TypeScript, Zod, Rust, Go, Python, or JSON Schema definitions from the document or from the selected node. See [Generate types](/json-explorer/generate-types).
 
-## Schema Validation
+## Schema validation
 
-Click the schema button (the verified icon) in the toolbar to open the schema panel. Paste a JSON Schema and click **Validate**. Nodes that fail validation are marked in the tree, and the panel lists each violation with its path and message; click a violation to jump to the node. **Clear schema** removes all marks.
+To check the document against a JSON Schema:
+
+1. Click **Validate against JSON Schema** (the verified icon) in the toolbar.
+2. Paste the schema into the **Schema Validation** panel.
+3. Click **Validate**.
+
+If the document is valid, the panel shows a **Valid** badge. Otherwise, the tree marks every node that fails, and the panel lists each violation with its path and message. Click a violation to jump to its node. Click **Clear schema** to remove the schema and the marks.
 
 ## Statistics
 
-Click the statistics button in the toolbar for a breakdown of the loaded document: total keys, objects, arrays, values, and maximum nesting depth; a type distribution bar covering strings, numbers, booleans, nulls, objects, and arrays with counts and percentages; array length and string length summaries; and a list of unique keys.
+Click **JSON statistics** in the toolbar to open the **Statistics** panel. It shows:
 
-## Copy As / Export
+- The number of keys, objects, arrays, and primitive values, and the maximum nesting depth.
+- A type distribution bar for strings, numbers, booleans, nulls, objects, and arrays. Hover over a segment for its count and percentage.
+- The minimum, maximum, and average length of arrays and of strings.
+- The list of unique keys in the document.
 
-Copy the current document or selected node in these formats:
+## Copy and save
 
-- Formatted JSON
-- Minified JSON
+**Copy JSON to clipboard** in the toolbar copies the whole document as formatted JSON.
+
+**Copy as...** in the toolbar copies the selected values, the selected node, or the whole document, in that order of preference. It offers these formats:
+
+- JSON (formatted)
+- JSON (minified)
 - YAML
 - TypeScript
 - Python
 - PHP array
-- CSV (arrays only)
-- Markdown table (arrays only)
+- CSV, for arrays only
+- Markdown table, for arrays only
 
-When several nodes are multi-selected, the copy applies to the whole selection.
+The same menu has a **Save to file** section with JSON, YAML, and CSV. In the JSON Explorer extension, these open the VS Code save dialog.
 
-### Save to File
+## Find your way around
 
-The same menu can save the document straight to disk as JSON, YAML, or CSV. In the VS Code extensions this opens the native save dialog.
+These parts of the explorer help you keep track of where you are:
 
-## More Features
+- The breadcrumb bar above the tree shows the path of the selected node. Click a segment to jump to it, or click **Copy path**.
+- The status bar shows the total number of nodes, the number of selected nodes, and the path and type of the selected node.
+- The **Pinned** strip above the tree lists pinned nodes with a preview of their current values. Click a pin to jump to its node, remove pins one at a time, or click **Clear all pins**. Pin a node from its hover buttons or its context menu.
+- The **Bookmarks** panel lists bookmarked paths. Open it from the toolbar in the tree view. Unlike pins, bookmarks stay hidden until you open the panel.
+- **Toggle minimap** in the toolbar shows an overview of the tree beside it when more than 20 rows are visible. Click the minimap to scroll. This is separate from the [response viewer's minimap](/response/response-viewer#minimap), which maps the raw response text.
 
-- **Breadcrumb navigation**: Clickable path bar showing your current location in the document
-- **Bookmarks panel**: A panel you open from the toolbar to save and jump to frequently accessed paths
-- **Pinned nodes**: Pin a node from its hover button or the context menu and it joins an always-visible **Pinned** strip above the tree, showing a live preview of each pinned value. Click a pin to jump to it, remove pins individually, or clear them all. Pins persist between sessions. Pinning differs from bookmarking: the Pinned strip stays on screen with value previews, while Bookmarks is a panel you open on demand
-- **Minimap**: Toolbar toggle showing a canvas overview of the document with a viewport indicator you can click to scroll. It appears for documents with more than 20 visible nodes, and is separate from the [response viewer's minimap](/response/response-viewer#minimap), which maps the raw response text
-- **Node count**: Toolbar badge showing the number of nodes in the loaded document
-- **Word wrap**: Toggle with `Alt+Z`
+The desktop app keeps bookmarks and pins after a restart.
 
-## Keyboard Shortcuts
+## Keyboard shortcuts
+
+These shortcuts work while the explorer has focus. They are fixed and can't be changed in Settings.
 
 | Shortcut | Action |
 |----------|--------|
 | `Ctrl+F` | Toggle search |
-| `Ctrl+/` | Toggle JSONPath filter |
-| `Ctrl+Shift+K` | Toggle query filter |
-| `Ctrl+Shift+T` | Toggle tree / table view |
+| `Ctrl+/` | Toggle the JSONPath filter |
+| `Ctrl+Shift+K` | Toggle the query filter |
+| `Ctrl+Shift+T` | Switch between tree and table view |
 | `Alt+Z` | Toggle word wrap |
-| Arrow keys | Navigate tree nodes |
-| `Enter` | Expand / collapse selected node |
-| `Ctrl`/`Cmd`+click | Add or remove a node from the selection |
-| `Shift`+click | Select a range of nodes |
+| `Enter` or `Shift+Enter` in the search or query bar | Go to the next or previous match |
+| `Escape` in the search, filter, or query bar | Close the bar |
+| `Up` and `Down` | Select the previous or next row |
+| `Right` | Expand the selected node, or move into it |
+| `Left` | Collapse the selected node, or move to its parent |
+| `Home` and `End` | Select the first or last row |
+| `Enter` or `Space` on a row | Expand or collapse the row |
+| `Ctrl+click` | Add or remove a node from the selection |
+| `Shift+click` | Select a range of nodes |
 | `Ctrl+A` | Select all visible nodes |
 | `Escape` | Clear the selection |

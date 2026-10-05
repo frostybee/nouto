@@ -1,133 +1,124 @@
 ---
 title: Scripts
-description: Write pre-request and post-response JavaScript in Nouto to modify requests, extract values, run tests, and chain requests.
+description: Run JavaScript in Nouto before a request is sent and after its response arrives, to set headers, store values for later requests, and test responses.
 sidebar:
   order: 1
 ---
 
-Scripts let you run JavaScript before a request is sent and after the response is received. Use them to compute dynamic headers, chain values between requests, validate responses programmatically, or control flow in the Collection Runner.
+A pre-request script runs before Nouto sends a request. A post-response script runs after the response arrives. Use scripts to compute headers, store values from a response for later requests, test responses in code, and choose the next request in a collection run. For checks that don't need code, use [assertions](/testing/assertions).
 
-## Accessing Scripts
+Scripts use the global `nt` object. The [Script API reference](/testing/script-api) documents every member.
 
-Open a request and click the **Scripts** tab. The tab shows an asterisk when a script is defined.
+## Add a script to a request
 
-Two buttons at the top toggle between:
+1. Open a request and select the **Scripts** tab.
+2. Select **Pre-request Script** or **Post-response Script**.
+3. Type the script. To start from an example, click a snippet button above the editor. The snippet goes in at the cursor.
+4. Send the request.
 
-- **Pre-request Script**: runs before the HTTP request is sent
-- **Post-response Script**: runs after the response is received
+The editor suggests `nt` members as you type. The tab label changes to `Scripts *` when the request has a script.
 
-## The `nt` API
+The snippet buttons depend on the selected script:
 
-Scripts have access to a global `nt` object that provides everything you need to interact with the request and response. The full reference is on the [Script API](/testing/script-api) page.
+| Script | Snippets |
+|--------|----------|
+| Pre-request | Set Header, Get Variable, Set Variable, Log, UUID, Base64 Encode, Timestamp, Random Int |
+| Post-response | Test Status, Test Body, Set Variable, Log Response, Hash, Set Next Request, Get Header |
 
-## Pre-request Scripts
+## Pre-request scripts
 
-Use pre-request scripts to modify the outgoing request or set up variables.
+A pre-request script can change the outgoing request through `nt.request`. Changes to the URL, method, and headers apply to the request that Nouto sends. `nt.response` is `undefined` here.
 
-```javascript
-// Add a computed timestamp header
-nt.request.setHeader('X-Timestamp', String(Date.now()));
+This script signs the request with an HMAC-style signature and adds a request ID:
 
-// Compute an HMAC signature
+```js
 const secret = nt.getVar('apiSecret');
 const timestamp = String(nt.timestamp.unix());
 const signature = nt.hash.sha256(nt.request.method + nt.request.url + timestamp + secret);
+
 nt.request.setHeader('X-Timestamp', timestamp);
 nt.request.setHeader('X-Signature', signature);
-
-// Generate a unique request ID
 nt.request.setHeader('X-Request-ID', nt.uuid());
 ```
 
-`nt.request` is read-write in pre-request scripts. `nt.response` is not available.
+## Post-response scripts
 
-## Post-response Scripts
+A post-response script reads the response through `nt.response`. Use it to store values for later requests and to test the response.
 
-Use post-response scripts to validate the response, extract values for use in later requests, or run tests.
+This script saves a token and runs two tests:
 
-```javascript
-// Log response info
-console.log('Status:', nt.response.status);
-console.log('Duration:', nt.response.duration, 'ms');
-
-// Extract and store a token
+```js
 const body = nt.response.json();
 if (body.token) {
   nt.setVar('authToken', body.token);
 }
 
-// Run programmatic tests
 nt.test('Status is 200', () => {
-  if (nt.response.status !== 200) throw new Error('Expected 200, got ' + nt.response.status);
+  expect(nt.response.status).to.equal(200);
 });
 
-nt.test('Response has users array', () => {
-  const data = nt.response.json();
-  if (!Array.isArray(data.users)) throw new Error('users is not an array');
+nt.test('Response has a users array', () => {
+  expect(Array.isArray(body.users)).to.equal(true);
 });
+
+console.log('Duration: ' + nt.response.duration + ' ms');
 ```
 
-`nt.response` is available in post-response scripts. `nt.request` is read-only.
+`nt.setVar()` saves to the active environment. If no environment is active, Nouto discards the value. To save a global variable instead, pass `'global'` as the third argument.
 
-## Snippet Toolbar
+## Script output
 
-Above the editor, a toolbar provides one-click snippets for common patterns:
+After you send the request, the response panel shows a **Scripts** tab with a section for each script that ran: **Pre-request Script** and **Post-response Script**. Each section shows:
 
-**Pre-request snippets:** Set Header, Get Variable, Set Variable, Log, UUID, Base64 Encode
+- An **OK** or **Error** badge, and the time the script took
+- The error message, if the script threw
+- Console output, labeled with the level: `log`, `info`, `warn`, or `error`
+- For the post-response script, the `nt.test()` results, headed `Tests: 2/3 passed`
 
-**Post-response snippets:** Test Status, Test Body, Set Variable, Log Response, Hash
+In the Collection Runner, click a request's row to see its **Script Tests** and **Script Logs**.
 
-Clicking a snippet inserts ready-to-edit code at the cursor position.
+## Script inheritance
 
-## Script Inheritance
+Collections and folders can have scripts too. To edit them, right-click the collection or folder in the sidebar, select **Settings...**, and open the **Scripts** tab. These scripts run for every request inside the collection or folder.
 
-Scripts can be defined at three levels: collection, folder, and request. When a request runs, all scripts in the ancestor chain execute in order:
+When a request in a collection runs, Nouto runs the scripts from the outermost level inward, in both phases:
 
-```
-Collection pre-request
-  → Folder pre-request
-    → Request pre-request
-      → HTTP Request
-    → Request post-response
-  → Folder post-response
-→ Collection post-response
-```
+1. The collection's pre-request script
+2. Each folder's pre-request script, starting with the outermost folder
+3. The request's pre-request script
+4. Nouto sends the request.
+5. The collection's post-response script
+6. Each folder's post-response script, starting with the outermost folder
+7. The request's post-response script
 
-This lets you define shared setup and teardown logic at the collection level (authentication, logging) while keeping request-specific logic at the request level.
+A variable set by one script in the chain is available to the scripts after it.
 
-If a script in the chain throws an unhandled error, subsequent scripts in that phase are skipped.
+To run only a request's own scripts, open the request's **Scripts** tab and select **Own Only** under **Script Inheritance**. The default, **Inherit**, runs the whole chain. The **Script Inheritance** setting appears only for requests saved in a collection.
 
-## Script Output
+## Errors
 
-After sending a request, a **Scripts** tab appears in the response panel showing:
+If a script throws an error, Nouto stops it and skips the remaining scripts in the same phase. The **Scripts** tab shows the error. When a pre-request script fails, Nouto still sends the request.
 
-- **Execution status**: OK or Error for each phase (pre/post)
-- **Duration**: script execution time
-- **Console output**: all `console.log`, `console.warn`, `console.error`, and `console.info` calls with color-coded levels
-- **Test results**: pass/fail list for all `nt.test()` calls, with error messages on failure
+## Asynchronous code
 
+The VS Code extension and the CLI run each script inside an `async` function, so you can use `await` at the top level. `nt.delay()` and the `nt.cookies` methods return promises there:
 
-## Async/Await
-
-Scripts run inside an async context, so you can use `await` directly:
-
-```javascript
+```js
 await nt.delay(500);
-const result = await nt.sendRequest({
-  url: 'https://auth.example.com/token',
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: { client_id: nt.getVar('CLIENT_ID'), grant_type: 'client_credentials' }
-});
-nt.setVar('accessToken', result.json().access_token);
+const cookies = await nt.cookies.getAll();
+console.log('Cookies in the active jar: ' + cookies.length);
 ```
 
-## Security
+The desktop app doesn't support `await`. A top-level `await` is a syntax error. Every `nt` member returns its result directly, and `nt.delay()` blocks:
 
-Scripts run in a sandboxed environment:
+```js
+nt.delay(500);
+const cookies = nt.cookies.getAll();
+console.log('Cookies in the active jar: ' + cookies.length);
+```
 
-- No `require()` or module imports
-- No access to `process`, file system, or network (except `nt.sendRequest()`)
-- No access to `global` or `globalThis`
-- 5-second execution timeout per script
-- Code generation from strings is disabled (`eval`, `new Function`)
+`nt.sendRequest()` is available only in the desktop app. See [Platform differences](/testing/script-api/#platform-differences) for every behavior that differs between the two.
+
+## Sandbox
+
+Scripts run in a sandbox without module loading, file system access, or timers. In VS Code and the CLI, the synchronous part of a script can run for 5 seconds and the whole script for 30 seconds. In the desktop app, a script can run for 30 seconds. See [Sandbox and limits](/testing/script-api/#sandbox-and-limits).

@@ -1,54 +1,57 @@
 ---
 title: Headers
-description: Add and manage request headers in Nouto, with autocomplete for standard HTTP header names and values.
+description: Add request headers in Nouto with name and value suggestions, bulk editing, and headers inherited from collections and folders.
 sidebar:
   order: 2
 ---
 
-The **Headers** tab contains a key-value editor for setting HTTP request headers. Nouto provides autocomplete for standard header names and common values so you can find the right header without looking up documentation.
+Add request headers on the **Headers** tab. The tab also shows the headers that the request inherits from its collection or folder, and the `Content-Type` that Nouto sets from the body type.
 
-## Adding Headers
+## Add a header
 
-Click **Add Header** or press the shortcut shown at the bottom of the tab to add a new row. Each row has:
+1. Open the **Headers** tab.
+2. Select **Add Item**. If the tab already has rows, select **Add** below them.
+3. Type the header name. A list of matching standard and common headers appears; hover a suggestion to see what the header does.
+4. Enter the value. For headers with well-known values, such as `Content-Type`, `Accept`, and `Cache-Control`, the value field suggests them.
 
-- **Key**: the header name (e.g., `Content-Type`, `X-Request-ID`)
-- **Value**: the header value
-- **Enabled checkbox**: uncheck to temporarily disable a header without removing it
+Press `Enter` in the last row to start another row. Clear a row's checkbox to stop sending that header without deleting it.
 
-## Autocomplete
+## Edit headers as text
 
-When you start typing in the Key field, Nouto shows a dropdown of matching standard HTTP headers with a short description of each. Selecting a suggestion fills in the header name and, for headers with common values (like `Content-Type` or `Accept`), also suggests values.
+Select **Bulk Edit** (or the edit icon above the rows) to edit all headers as text, one per line in `Name: Value` form. Prefix a line with `#` to disable that header. Select **Table** to return to the rows.
 
-Recognized headers include request headers from RFC 7231 and common non-standard headers (`Authorization`, `X-Correlation-ID`, `X-Request-ID`, etc.).
-
-## Disabling Headers
-
-The checkbox on each row toggles the header on and off. Disabled headers are not sent with the request but remain in the editor so you can re-enable them later. This is useful for testing which headers are required by an endpoint.
-
-## Variable Support
-
-Both the key and value fields accept `{{variable}}` syntax:
-
+```text
+Accept: application/json
+X-Request-ID: {{$uuid.v4}}
+# X-Debug: true
 ```
+
+## Variables in headers
+
+Header names and values accept `{{variable}}` syntax. Typing `{{` in a value field lists the available variables.
+
+```text
 Authorization: {{AUTH_HEADER}}
 X-Tenant-ID: {{TENANT_ID}}
 X-Timestamp: {{$timestamp.unix}}
 ```
 
-## Automatic Headers
+## Headers Nouto adds
 
-Nouto adds certain headers automatically based on the request configuration:
+Nouto adds these headers when you don't set them yourself:
 
-| Header | When added automatically |
-|--------|------------------------|
-| `Content-Type` | When the Body tab has a type selected |
-| `Authorization` | When the Auth tab has credentials configured |
-| `Content-Length` | Calculated from the body size |
+| Header | Value |
+|--------|-------|
+| `Content-Type` | Set from the body type. The Headers tab shows it as an **AUTO** row. See [Body types](/building-requests/body-types). |
+| `User-Agent` | `Nouto` |
+| `Authorization` | Set from the **Auth** tab. See [Authentication](/authentication). |
 
-You can override any automatic header by adding a manual entry with the same name. Your manually specified value takes precedence.
+To send a different `Content-Type` or `User-Agent`, add that header on the tab, and Nouto sends your value instead. When you add `Content-Type`, the **AUTO** row disappears.
 
-## Inherited Headers
+When the **Auth** tab is configured, set credentials there rather than adding an `Authorization` header by hand.
 
-Collections and folders can define headers that apply to all requests inside them. A request set to inherit from its parent receives those headers without any configuration. You can add request-level headers in addition to the inherited ones.
+## Inherited headers
 
-See [Collections](/features/collections) for instructions on setting collection-level and folder-level headers.
+Headers set on a collection or folder are sent with every request inside it. They appear under **Inherited Headers** at the top of the **Headers** tab. If a request header has the same name as an inherited one, compared without regard to case, the request header wins.
+
+To set headers on a collection or folder, right-click it in the sidebar, select **Settings...**, and open the **Headers** tab. See [Collections](/features/collections).

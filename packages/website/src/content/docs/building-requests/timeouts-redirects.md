@@ -1,96 +1,74 @@
 ---
-title: Timeouts & Redirects
-description: Configure per-request timeout, redirect following, and maximum redirect count in Nouto.
+title: Timeouts and redirects
+description: Set how long Nouto waits for a response and whether it follows HTTP redirects, for all requests or for a single request.
 sidebar:
   order: 6
 ---
 
-The **Settings** tab in the request editor lets you control how long Nouto waits for a response and how it handles HTTP redirects. Both settings are per-request and saved as part of the collection.
+The timeout sets how long Nouto waits for the server before it stops a request. The redirect settings control whether Nouto follows `3xx` responses and how many it follows. Set defaults for all requests in **Settings > Network**, and override them for one request on its **Settings** tab.
 
-## Request Timeout
+## Request timeout
 
-The timeout determines how long Nouto waits for the server to respond before giving up.
+To set the timeout for one request:
 
-1. Open the request and go to the **Settings** tab.
-2. Find the **Timeout** field.
-3. Enter a value in milliseconds.
+1. Open the request and select the **Settings** tab.
+2. Under **Timeout**, enter a value in **Request timeout**, in milliseconds.
+
+To change the default for all requests, open Nouto's settings with the gear icon, select **Network**, and enter **Default Request Timeout**.
 
 | Value | Behavior |
 |-------|----------|
-| Empty (default) | 30-second timeout |
-| `0` | No timeout; waits indefinitely |
-| `5000` | 5-second timeout |
-| `60000` | 1-minute timeout |
-| `600000` | 10-minute timeout (maximum) |
+| Empty | Uses the default from **Settings > Network**, or 30 seconds if that's empty too |
+| `0` | No timeout. In the desktop app, `0` sets a limit of 24 hours. |
+| `5000` | 5 seconds |
+| `600000` | 10 minutes, the largest value Nouto accepts |
 
-If the server does not respond within the configured timeout, the request fails with a timeout error.
+If the server doesn't respond in time, the request fails with a timeout error.
 
-### When to Adjust the Timeout
+Raise the timeout for slow operations such as large uploads, report generation, or long polling. Lower it for health checks, where a slow answer already means the service has a problem.
 
-**Increase it** for:
-- Endpoints that process large datasets or run expensive queries
-- File uploads where the upload itself takes time
-- Long-polling endpoints
+## Redirects
 
-**Decrease it** for:
-- Health checks where a slow response means the service is down
-- Any test where you want to detect unresponsive services quickly
+Nouto follows `3xx` redirects by default. To change this for one request:
 
-**Set to `0`** for:
-- Streaming endpoints where you want to wait indefinitely
-- Long-polling connections
+1. Open the request and select the **Settings** tab.
+2. Under **Redirects**, turn **Follow redirects** on or off.
+3. If redirects are on, enter **Max redirects**, from 1 to 100.
 
-## Follow Redirects
+To change the default for all requests, use **Follow Redirects** and **Max Redirects** in **Settings > Network**.
 
-By default, Nouto follows HTTP 3xx redirects automatically. You can disable this or limit the number of consecutive redirects.
+| Setting | Default |
+|---------|---------|
+| Follow redirects | On |
+| Max redirects | 10 in the desktop app, 5 in the VS Code extension |
 
-1. Open the request and go to the **Settings** tab.
-2. Toggle **Follow redirects** on or off.
-3. When enabled, optionally set **Max redirects** (default: 10).
+When a response is still a redirect after the maximum number of hops, the VS Code extension shows that last redirect response. The desktop app fails the request with `Maximum number of redirects (N) exceeded`.
 
-| Setting | Default | Description |
-|---------|---------|-------------|
-| Follow redirects | On | Automatically follow 301, 302, 303, 307, 308 responses |
-| Max redirects | 10 | Stop after this many redirects |
+After Nouto follows one or more redirects, the response panel shows a **Redirects** tab with each hop. See [Response viewer](/response/response-viewer).
 
-### Redirect Method Behavior
+### Method on the redirected request
 
-| Status | Method handling |
-|--------|----------------|
-| 301 Moved Permanently | POST/PUT changes to GET |
-| 302 Found | POST/PUT changes to GET |
-| 303 See Other | Always uses GET |
-| 307 Temporary Redirect | Original method preserved |
-| 308 Permanent Redirect | Original method preserved |
+Some redirect status codes change the method of the next request:
 
-### When to Disable Redirects
+| Status | Method Nouto uses for the next request |
+|--------|----------------------------------------|
+| `301 Moved Permanently`, `302 Found` | `GET`, unless the original method was `GET` or `HEAD`. The body is dropped. |
+| `303 See Other` | `GET`. The body is dropped. |
+| `307 Temporary Redirect`, `308 Permanent Redirect` | The original method |
 
-**Debugging redirect chains**: See the raw 3xx response, including the `Location` header, without following it. Use the [redirect chain viewer](/response/response-viewer) in the response panel to inspect each hop in a chain.
+### When to turn off redirects
 
-**OAuth callbacks**: Inspect the redirect URL containing the authorization code before the browser follows it.
+With **Follow redirects** off, Nouto shows the `3xx` response itself, including its `Location` header. Use this to check that your API returns the right redirect status and target, or to see where a redirect points before anything follows it, for example when you test for open redirects.
 
-**API testing**: Verify that your API returns the correct status code and Location header for redirect scenarios.
+## Saved settings
 
-**Security testing**: Check for open redirect vulnerabilities by seeing exactly where a redirect points.
-
-## Storing These Settings
-
-Timeout and redirect settings are stored per-request in your collection:
+Nouto saves the per-request values with the request, for example:
 
 ```json
 {
   "timeout": 60000,
-  "followRedirects": false,
   "maxRedirects": 5
 }
 ```
 
-When these fields are absent, the defaults apply: 30-second timeout, redirects enabled, max 10 redirects.
-
-## Platform Support
-
-| Setting | VS Code extension | Desktop app |
-|---------|-----------------|-------------|
-| Timeout | Supported | Supported |
-| Follow redirects | Supported | Supported |
-| Max redirects | Supported | Supported |
+When you turn redirects off, Nouto saves `"followRedirects": false` and drops `maxRedirects`. When a field is missing, Nouto uses the default from **Settings > Network**, then the built-in default.

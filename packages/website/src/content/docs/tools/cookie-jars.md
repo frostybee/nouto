@@ -1,76 +1,75 @@
 ---
-title: Cookie Jars
-description: Manage cookies across requests with named cookie jars, auto-injection, and Set-Cookie parsing in Nouto.
+title: Cookie jars
+description: Store cookies from responses in named cookie jars, send them with later requests, switch between sessions, and edit cookies by hand in Nouto.
 sidebar:
   order: 1
 ---
 
-Nouto provides a cookie management system with named jars, automatic domain-based injection, and `Set-Cookie` header parsing. Use it to test authenticated sessions, multi-tenant applications, or any API that relies on cookies.
+Nouto saves the cookies that servers set with `Set-Cookie` headers and sends them with later requests to matching URLs. It keeps cookies in cookie jars. A jar is a named set of cookies, so you can keep one jar per session, for example an admin user and a guest user, and switch between them.
 
-## Cookie Jars
+## Open the cookie jars
 
-A cookie jar is a named container that holds cookies. You can create multiple jars to keep cookies separated between environments, users, or test scenarios.
+Open the Environments panel and select the **Cookie Jar** tab. See [Environments](/variables/environments) for how to open the panel.
 
-### Creating a Jar
+The tab lists your jars, with the cookie count of each. Nouto starts with one jar named `Default`. A check mark shows the active jar.
 
-Open the cookie management panel and click **Add Jar**. Give it a name (e.g., "Admin Session", "Guest User", "Staging").
+## Create and switch jars
 
-### Selecting a Jar
+Only one jar is active at a time, and it applies to every request.
 
-The active jar selector appears in the URL bar area. Choose which jar is active for the current request. Cookies from the active jar are injected into requests and new cookies from responses are stored in it.
+- To create a jar, click **New jar** at the top of the jar list, type a name, and press `Enter`.
+- To make a jar active, click it in the list. The right pane shows its cookies, grouped by domain.
+- To rename or delete a jar, use the buttons on its row. You can't delete the last jar.
 
-## Cookie Attributes
+In the desktop app, you can also switch jars from the cookie jar selector in the top toolbar.
 
-Each cookie has the standard HTTP cookie attributes:
+## How Nouto sends and stores cookies
 
-| Attribute | Description |
-|-----------|-------------|
-| **Name** | Cookie name |
-| **Value** | Cookie value |
-| **Domain** | Domain the cookie applies to |
-| **Path** | URL path the cookie applies to |
-| **Expires** | Expiration date/time |
-| **HttpOnly** | Whether the cookie is inaccessible to JavaScript |
-| **Secure** | Whether the cookie is sent only over HTTPS |
-| **SameSite** | Cross-site request policy (`Strict`, `Lax`, `None`) |
+Before Nouto sends an HTTP, GraphQL, WebSocket, SSE, or GraphQL subscription request, it adds a `Cookie` header with the active jar's cookies that match the URL. A cookie matches when:
 
-## Auto-Injection
+- Its domain equals the URL's host, or the host is a subdomain of it. A cookie for `example.com` matches `api.example.com`.
+- The URL's path starts with the cookie's path.
+- It hasn't expired.
+- It isn't marked `Secure`, or the URL uses `https://`.
 
-When you send a request, Nouto checks the active cookie jar for cookies that match the request URL by domain and path. Matching cookies are added to the `Cookie` header automatically.
+If the request already has an enabled `Cookie` header, Nouto leaves it as it is and adds no cookies.
 
-This works for HTTP, WebSocket, and SSE requests.
+When an HTTP response contains `Set-Cookie` headers, Nouto saves those cookies to the active jar. A new cookie replaces an existing one with the same name, domain, and path. Nouto deletes cookies that have expired, so a server can remove a cookie by setting an expiry date in the past.
 
-## Set-Cookie Parsing
+The [CLI](/cli/run) doesn't use your cookie jars. Each `nouto run` starts with an empty jar that lasts for that run.
 
-When a response includes `Set-Cookie` headers, Nouto parses them and stores the cookies in the active jar. Subsequent requests to the same domain will include the new cookies. This lets you test login flows where the server sets a session cookie.
+## Edit cookies by hand
 
-## Response Cookies Tab
+To test a specific cookie value without signing in, add the cookie yourself:
 
-The **Cookies** tab in the response panel shows two sections:
+1. In the jar list, click the jar to make it active.
+2. Click **Add cookie** above the cookie list.
+3. Fill in **Name** and **Domain**, which are required, and any of **Value**, **Path**, **Expires**, **HttpOnly**, **Secure**, and **SameSite**.
+4. Click **Add**.
 
-- **Sent**: cookies that were included in the request (from the active jar)
-- **Received**: cookies parsed from `Set-Cookie` response headers
+Each cookie row has **Edit cookie** and **Delete cookie** buttons. Each domain group has a button that deletes every cookie for that domain. **Clear all cookies** empties the jar.
 
-This makes it easy to see exactly which cookies were exchanged during a request.
+## Cookies tab in the response panel
 
-## Manual Cookie Management
+The response panel's **Cookies** tab shows the cookies of the last request in two sections:
 
-You can add, edit, and delete cookies directly in the jar panel. This is useful for testing specific cookie values without going through a login flow.
+- **Sent Cookies** lists the cookies in the request's `Cookie` header.
+- **Response Cookies** lists the cookies from the response's `Set-Cookie` headers, with flags such as **Session**, **HttpOnly**, **Secure**, and **Deleted**, and their attributes.
 
-## Cookie Variables
+## Use a cookie value in a request
 
-Reference a cookie value in any request field using the `{{$cookie.name}}` syntax:
+To put a cookie's value in a header, URL, or body, use `{{$cookie.name}}`:
 
-```
+```http
 X-CSRF-Token: {{$cookie.csrfToken}}
 ```
 
-The cookie is looked up in the active jar, matched by domain and path against the request URL.
+Nouto uses the first cookie with that name in the active jar, whatever its domain or path.
 
-## Script API
+## Read and change cookies in scripts
 
-Scripts can read and write cookies programmatically. See [Cookie Script API](/tools/cookie-script-api) for the full reference.
+Scripts can read, add, and delete cookies in the active jar with `nt.cookies`. See [Cookie script API](/tools/cookie-script-api).
 
-## Backup
+## Back up cookie jars
 
-Cookie jars are included in Nouto's backup and restore feature. The `.nouto-backup` file covers cookies alongside collections, environments, and other data.
+Nouto backups can include your cookie jars. Cookies often hold session tokens, so store backup files somewhere safe. See [Backup and restore](/import-export/backup-restore).

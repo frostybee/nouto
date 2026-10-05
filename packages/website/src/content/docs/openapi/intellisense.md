@@ -1,56 +1,54 @@
 ---
 title: IntelliSense
-description: Context-aware completions, hover documentation, and go-to-definition for OpenAPI specs.
+description: Context-aware completions, hover documentation, and go to definition for OpenAPI specs in Nouto.
 sidebar:
   order: 1
 ---
 
-The OpenAPI editor provides context-aware IntelliSense that understands the structure of your spec and offers relevant suggestions as you type. IntelliSense requires the **OpenAPI IntelliSense** setting to be enabled (on by default).
+The OpenAPI editor suggests the properties and values that are valid at the cursor, shows documentation when you hover over a key, and jumps from a `$ref` to its target. Completions and hover documentation run while **Enable OpenAPI IntelliSense** is on in **Settings** > **OpenAPI**. The setting is on by default. Go to definition for references inside the same file works with the setting off.
 
-## Property Completions
+## Property completions
 
-A built-in classifier identifies the kind of node your cursor is in, including an info block, path item, operation, schema, response, parameter, or security scheme, and suggests valid properties for that context. Suggestions are filtered by:
+Nouto works out which kind of OpenAPI object the cursor is in, such as an info block, path item, operation, parameter, response, schema, or security scheme, and suggests the properties that object accepts. The list leaves out:
 
-- **OpenAPI version**: properties introduced in 3.1 or 3.2 only appear when the spec declares that version. The 3.2 set covers `$self`, tag `summary`/`parent`/`kind`, `additionalOperations` and the `query` method, `itemSchema`/`prefixEncoding`/`itemEncoding` on media types, `in: querystring` for parameters, and `discriminator.defaultMapping`
-- **Already-present keys**: properties you have already defined are excluded from suggestions
+- Properties added in a later OpenAPI version than the one your spec declares. For example, the 3.2 properties `$self`, `additionalOperations`, `itemSchema`, and the tag fields `summary`, `parent`, and `kind` only appear when the spec declares `openapi: 3.2.x`.
+- Properties the object already contains.
 
-Completions insert structured scaffolds: object properties get a block-style YAML skeleton, arrays get an item placeholder, and enums offer a choice list.
+Selecting a completion also inserts a scaffold for its value. In YAML, an object property inserts an indented block and an array property inserts a first list item, and a property with a fixed set of values offers those values as a choice.
 
-## Trigger Characters
+## Value completions
 
-Completions activate automatically when you type any of these characters:
+When a property accepts a fixed set of values, such as `type`, `in`, or `style`, Nouto suggests those values. Values follow the same version rule as properties: `in: querystring` only appears in 3.2 specs.
 
-| Character | Context |
-|-----------|---------|
-| `:` | After a YAML key, to suggest values |
-| ` ` (space) | After a colon or dash, to suggest values or items |
-| `"` `'` | Inside quoted strings |
+## `$ref` completions
+
+Inside a `$ref` value, Nouto suggests targets that fit the surrounding object. A `$ref` in a schema suggests entries from `components/schemas`, and a `$ref` in a parameter suggests entries from `components/parameters`.
+
+- Internal references come from the current file, for example `#/components/schemas/User`.
+- Cross-file references require **Resolve external $refs**. Nouto suggests `./file.yaml#/...` targets from files your spec already references. After you type a file path followed by `#`, such as `./common.yaml#`, it suggests the targets inside that file. See [External references](/openapi/external-refs).
+
+## Trigger characters
+
+Completions open automatically after you type one of these characters. Press `Ctrl+Space` to open them anywhere else.
+
+| Character | Typical context |
+|-----------|-----------------|
+| `:` | After a key, to suggest values |
+| Space | After a colon or a list dash |
+| `"` or `'` | Inside a quoted string |
 | `-` | At the start of a YAML list item |
 | `/` | Inside a `$ref` path |
-| `#` | Inside a `$ref` pointer (triggers internal ref suggestions) |
+| `#` | Inside a `$ref`, before the JSON Pointer |
 
-You can also trigger completions manually with `Ctrl+Space`.
+In VS Code, starting a new line also opens completions.
 
-## Value Completions
+## Hover documentation
 
-When a property accepts a fixed set of values (such as `type`, `in`, or `style`), the editor suggests the valid enum values. Select one to insert it.
+Hover over a property key to see what the property does and which values it accepts. The text depends on the object the key belongs to, so `description` on an operation and `description` on a schema show different documentation.
 
-## $ref Completions
+## Go to definition
 
-When typing a `$ref` value, the editor suggests:
+Hold `Ctrl` (`Cmd` on macOS) and click a `$ref` value to jump to its target. In VS Code, `F12` also works.
 
-- **Internal references**: all components defined in the current spec (e.g. `#/components/schemas/User`)
-- **Cross-file references**: when [External References](/openapi/external-refs) are enabled, typing a relative path like `./common.yaml#/` suggests the ref targets available in that file
-
-Cross-file suggestions draw from the cached analysis of files your spec already references, without extra disk reads.
-
-## Hover Documentation
-
-Hover over any property key to see curated documentation in a tooltip. The documentation explains what the property does and its valid values, scoped to the node kind your cursor is in.
-
-## Go to Definition
-
-Hold `Ctrl` (or `Cmd` on macOS) and click a `$ref` value to navigate to the referenced component:
-
-- **Internal refs** (e.g. `#/components/schemas/User`): jumps to the target within the same file
-- **External refs** (e.g. `./common.yaml#/components/schemas/Address`): opens the referenced file and reveals the target. Requires [External References](/openapi/external-refs) to be enabled
+- An internal reference such as `#/components/schemas/User` moves the cursor to the target in the same file.
+- An external reference such as `./common.yaml#/components/schemas/Address` opens the referenced file and reveals the target. This requires **Resolve external $refs**. The desktop app opens the file in its own tab, or switches to that tab if the file is already open.

@@ -1,97 +1,85 @@
 ---
-title: .env File Linking
-description: Link a .env file from your project to Nouto so its variables are available in all request fields automatically.
+title: Link a .env file
+description: Load variables from your project's .env file into Nouto, keep them in sync when the file changes, and learn which .env syntax Nouto supports.
 sidebar:
   order: 3
 ---
 
-Nouto can link a `.env` file from your project directory and load its variables alongside your environment variables. The file is watched for changes and reloads automatically whenever you save it.
+Link a `.env` file to use the variables your application already reads, without copying them into a Nouto environment. Nouto reads the file into memory, reloads it when you save it, and never writes to it.
 
-## Linking a .env File
+## Link the file
 
-1. Open the **Variables** tab in the Nouto sidebar.
-2. In the **.env File** section, click **Link .env File**.
-3. Select your `.env` file from the file picker.
-4. The file's variables appear immediately in the panel.
+1. Open the Environments panel. In VS Code, click **Environments** in the Nouto sidebar's action bar. In the desktop app, click **Environments** in the left rail.
+2. Select **Environments**.
+3. In the **.env File** section above the environment list, click **Link .env file**.
+4. Select your `.env` file.
 
-## Unlinking
+The section then shows the file name, the number of variables Nouto read from it, and **Linked**.
 
-Click **Unlink** next to the file name. All variables from the file are removed immediately. Your environments and global variables are unaffected.
+In the desktop app, the file picker shows only files whose names end in `.env`, such as `.env` or `local.env`. To pick a file named differently, such as `.env.local`, use the VS Code extension, whose picker also offers **All Files**.
 
-## Supported Format
+## Use the variables
 
-Nouto parses standard `.env` file syntax:
+Reference a `.env` variable like any other variable. The variables are available whichever environment is active:
 
-```dotenv
-# Comments are ignored
-DB_HOST=localhost
-DB_PORT=5432
-DB_NAME=myapp
-
-# Quoted values
-API_KEY="sk-abc123"
-DESCRIPTION='A literal string with no escapes'
-
-# Double-quoted values support escape sequences
-MULTILINE="Line one\nLine two"
-
-# Inline comments (unquoted values only)
-TIMEOUT=30 # seconds
-
-# Variable with underscores and numbers
-RETRY_COUNT_MAX=3
-```
-
-### Parsing Rules
-
-| Feature | Behavior |
-|---------|----------|
-| `#` comment lines | Ignored entirely |
-| Empty lines | Skipped |
-| Unquoted values | Trimmed; trailing `# comment` stripped |
-| Double-quoted values | Supports `\n`, `\t`, `\"`, `\\` escape sequences |
-| Single-quoted values | Literal strings, no escape processing |
-| Key format | Must start with a letter or underscore, followed by letters, digits, or underscores |
-
-## Auto-Reload
-
-Nouto watches the linked file for changes. When you edit and save it in any editor, the variables update within seconds. There is no need to re-link or restart. If the file is deleted, its variables are cleared. If it reappears, the variables reload automatically.
-
-## Priority
-
-`.env` file variables have the lowest priority in Nouto's resolution chain. When the same key exists in multiple sources, the active environment or global variables take precedence:
-
-| Priority | Source |
-|----------|--------|
-| Highest | Active environment |
-| | Global variables |
-| Lowest | Linked `.env` file |
-
-This means you can define a default value in `.env` (e.g., `API_URL=http://localhost:3000`) and override it in a specific environment (e.g., Production: `API_URL=https://api.example.com`) without touching the file.
-
-## Using .env Variables
-
-Use `.env` variables the same way as any other variable:
-
-```
+```http
 GET {{API_URL}}/users/{{USER_ID}}
 Authorization: Bearer {{API_KEY}}
 ```
 
-## Persistence
+The linked file has the lowest priority. If the active environment, the request's collection or folder, or the global variables define the same name, their value wins. For example, keep `API_URL=http://localhost:3000` in `.env` and define `API_URL` as `https://api.example.com` in a `Production` environment. Activating `Production` then switches the URL without editing the file. See [Resolution order](/variables/variable-substitution#resolution-order).
 
-The linked file path is saved as part of your Nouto workspace configuration. When you reopen the workspace, the file is re-linked automatically.
+## Supported syntax
 
-## Common Use Case
+Nouto reads the file one line at a time. This example shows the syntax it understands:
 
-Link the `.env` file already present in your project root. This gives Nouto access to the same configuration your application reads, so you can test against the same endpoints without duplicating variables.
+```dotenv title=".env"
+# Comment lines are ignored
+DB_HOST=localhost
+DB_PORT=5432
 
-```dotenv
-# Your project's .env
-DATABASE_URL=postgres://localhost/mydb
-REDIS_URL=redis://localhost:6379
-AUTH_SERVICE_URL=http://localhost:4000
-JWT_SECRET=dev-secret-not-for-prod
+# Text after " #" is a comment in unquoted values
+TIMEOUT=30 # seconds
+
+# Quotes are removed from quoted values
+API_KEY="sk-abc123"
+GREETING='Hello, world'
 ```
 
-Nouto picks up all of these. Switch to a different environment for production values without editing this file.
+Each line is read according to these rules:
+
+| Line | Result |
+|------|--------|
+| `KEY=value` | Variable `KEY` with the value `value`. Spaces around the key and the value are removed. |
+| Starts with `#` | Comment. Nouto ignores the line. |
+| Empty, or without `=` | Ignored |
+| `KEY=value # note` | In an unquoted value, everything from a space followed by `#` is removed. `URL=http://host/#top` keeps `#top`, because no space precedes the `#`. |
+| `KEY="value"` | The double quotes are removed. The VS Code extension turns `\n`, `\t`, `\"`, and `\\` into a newline, a tab, a quote, and a backslash. The desktop app keeps them as written. |
+| `KEY='value'` | The single quotes are removed. Nothing inside is escaped. |
+
+Keep these limits in mind when you write the file:
+
+- Start variable names with a letter or underscore, and use only letters, digits, and underscores.
+- Keep each value on one line. Nouto doesn't read values that span several lines.
+- Don't write `export` before a variable. Nouto doesn't make variables declared that way available.
+- Don't put a comment after a quoted value. Nouto then keeps the quotes as part of the value.
+
+## Reload after changes
+
+Nouto watches the linked file. When you save it in any editor, Nouto reads it again, so the next request uses the new values. You don't need to link it again.
+
+If you delete the file, the VS Code extension clears its variables and reads them again if the file comes back. The desktop app keeps the values it read last.
+
+## Unlink the file
+
+In the **.env File** section, click **Unlink**. Nouto removes the file's variables. Your environments and global variables don't change.
+
+## After a restart
+
+In the desktop app, the link lasts until you close the app. In VS Code, Nouto saves the file path and links the file again at startup if it still exists.
+
+If the **.env File** section shows **Link .env file** after a restart, link the file again.
+
+## Values aren't masked
+
+Nouto shows `.env` values in plain text, for example in autocomplete. Keep the file out of version control. For a pattern to share variable names with your team without sharing values, see [Secrets and sensitive data](/variables/secrets).

@@ -1,50 +1,69 @@
 ---
-title: Timing Breakdown
-description: Inspect per-phase HTTP timing in Nouto including DNS lookup, TCP handshake, TLS negotiation, TTFB, and content transfer.
+title: Timing breakdown
+description: See where the time for an HTTP request went in Nouto's Timing tab, from DNS lookup and connection setup to waiting for the server and downloading the body.
 sidebar:
   order: 3
 ---
 
-The **Timing** tab in the response panel breaks down where the total response time was spent. Each phase is shown as a labeled bar with a millisecond value.
+The **Timing** tab in the response panel shows where the time for the last request went. It draws a waterfall chart with one bar per phase and lists the timeout and redirect settings the request used.
 
-## Opening the Timing Tab
+## Read the waterfall
 
-Send a request and click the **Timing** tab in the response panel. The breakdown is available for every successful HTTP response.
+Send a request and click the **Timing** tab. The top of the tab shows the total **Response Time**. Below it, each phase has a bar and a duration:
 
-## Timing Phases
+| Phase | What it covers |
+|-------|----------------|
+| **DNS Lookup** | Resolving the hostname to an IP address |
+| **TCP Handshake** | Opening the TCP connection to the server |
+| **TLS Handshake** | Negotiating TLS for an HTTPS request |
+| **Waiting (TTFB)** | Time to first byte: from sending the request until the response starts to arrive |
+| **Download** | Receiving the response body |
 
-| Phase | What it measures |
-|-------|-----------------|
-| **DNS** | Time to resolve the hostname to an IP address |
-| **TCP** | Time to establish the TCP connection (three-way handshake) |
-| **TLS** | Time for the TLS/SSL handshake (HTTPS only; zero for HTTP) |
-| **TTFB** | Time to first byte: from request sent to first byte of response received |
-| **Transfer** | Time to download the response body after the first byte |
+Each bar starts where the previous one ends. A phase that took 0 ms shows **Cache** instead of a duration. Expect this for **DNS Lookup**, **TCP Handshake**, and **TLS Handshake** when a request reuses an open connection, and for **TLS Handshake** on plain HTTP requests.
 
-The phases are sequential. The total response time shown in the status bar equals the sum of all phases.
+If the request failed before the server responded, the tab shows `No timing data available` instead of the chart.
 
-## Interpreting Results
+## Request config
 
-**High DNS**: The hostname is not cached. Subsequent requests to the same host will typically be faster. Seeing high DNS on repeated requests may indicate a short TTL on the server's DNS records.
+Below the chart, **Request Config** lists the settings that applied to the request:
 
-**High TCP**: Network latency to the server is significant. Geographic distance or network routing are common causes.
+| Setting | Value shown |
+|---------|-------------|
+| **Timeout** | The request's timeout, or `30000ms (default)` |
+| **Follow Redirects** | **On** or **Off** |
+| **Max Redirects** | The redirect limit, or `10 (default)`. Shown only when **Follow Redirects** is on. |
 
-**High TLS**: The TLS handshake is slow. This is usually a one-time cost per connection; subsequent requests over the same connection skip this phase.
+To change these settings, see [Timeouts and redirects](/building-requests/timeouts-redirects).
 
-**High TTFB**: The server took a long time to generate the response. This is server-side processing time: database queries, computation, queuing. It is independent of network conditions.
+## How each platform measures timing
 
-**High Transfer**: The response body is large, or the download bandwidth is limited. Check the response size in the status bar.
+The VS Code extension and the desktop app measure the phases differently, so compare timings within one platform.
 
-## Platform Notes
+In the VS Code extension, Nouto records each phase from the events of the connection itself:
 
-Timing data is collected by the HTTP client on each platform:
+- When the request is redirected, or when Digest auth sends it a second time, the phases describe the final request only. **Response Time** covers the whole exchange.
+- NTLM requests have no phase breakdown. The whole duration appears as **Waiting (TTFB)**.
+- When a request goes through a proxy, **DNS Lookup** and **TCP Handshake** measure the connection to the proxy, not to the origin server.
 
-| Phase | VS Code extension | Desktop app (Rust) |
-|-------|------------------|--------------------|
-| DNS | Supported | Supported |
-| TCP | Supported | Supported |
-| TLS | Supported | Supported |
-| TTFB | Supported | Supported |
-| Transfer | Supported | Supported |
+In the desktop app, only **DNS Lookup**, **Waiting (TTFB)**, and **Download** are measured:
 
-When a request goes through a proxy, the DNS and TCP phases reflect the time to connect to the proxy, not the origin server.
+- **DNS Lookup** is a separate lookup of the hostname that Nouto runs just before it sends the request.
+- **Waiting (TTFB)** runs from sending the first request until its response headers arrive. It therefore includes setting up the connection.
+- **TCP Handshake** and **TLS Handshake** are estimates. Nouto takes the **Waiting (TTFB)** time minus the **DNS Lookup** time and splits it 40% to TCP and 60% to TLS for HTTPS. For plain HTTP, all of it goes to TCP.
+- Time spent following redirects counts toward **Response Time** but not toward any phase.
+
+Because of the estimates, the desktop bars can add up to more than the **Response Time**.
+
+## Find the slow phase
+
+A long phase points to where to look:
+
+| Long phase | Where to look |
+|------------|---------------|
+| **DNS Lookup** | The DNS resolver, or a hostname that isn't cached yet |
+| **TCP Handshake** | Network distance or routing to the server |
+| **TLS Handshake** | The TLS setup. A reused connection skips this phase. |
+| **Waiting (TTFB)** | The server's processing time for the request |
+| **Download** | The size of the response body or the available bandwidth. Compare it with the size in the status line. |
+
+On desktop, use **Waiting (TTFB)** rather than the TCP and TLS bars, because those are estimates.

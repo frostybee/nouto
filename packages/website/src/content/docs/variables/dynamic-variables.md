@@ -1,79 +1,79 @@
 ---
-title: Dynamic Variables
-description: Use built-in dynamic variables in Nouto to generate UUIDs, timestamps, random data, hashes, and encoded values at request time.
+title: Dynamic variables
+description: Reference for Nouto's built-in dynamic variables that generate UUIDs, timestamps, random and fake data, hashes, and encoded values when you send a request.
 sidebar:
   order: 2
 ---
 
-Dynamic variables generate a fresh value every time a request is sent. No environment setup is required. Type `{{$` in any field, including the body editor, to see the autocomplete list.
+Dynamic variables are built-in placeholders that Nouto replaces with a generated value each time you send a request. They need no environment setup. Type `{{$` in the URL bar, a key-value table, or the body editor to browse them in autocomplete.
+
+For environment variables, response values, and cookies, see [Variable substitution](/variables/variable-substitution).
 
 ## Syntax
 
-Dynamic variables use a `$namespace.method` format with optional comma-separated arguments:
+A dynamic variable starts with `$`, followed by a namespace, a dot, and a method name. Arguments follow the name, separated by commas:
 
-```
+```text
 {{$uuid.v4}}
-{{$timestamp.iso}}
 {{$random.int, 1, 100}}
 {{$hash.sha256, my-value}}
-{{$encode.base64, user:password}}
-{{$faker.email}}
-{{$prompt.apiKey}}
-{{$file.read, /path/to/data.json}}
 ```
+
+Nouto trims spaces around each argument and reads arguments as literal text. This has three consequences:
+
+- An argument can't contain a comma, because commas separate arguments.
+- An argument can't contain `}`, because `}}` ends the placeholder. For example, `{{$json.minify, {"a": 1}}}` doesn't resolve.
+- A `{{variable}}` inside the arguments isn't resolved first. For example, `{{$encode.base64, {{USERNAME}}}}` doesn't encode the value of `USERNAME`. To send Base64-encoded credentials, use the [Basic auth](/authentication/basic) type instead.
+
+If Nouto can't produce a value, for example because the method name is misspelled or a required argument is missing, it sends the placeholder unchanged.
 
 ## UUID
 
 | Variable | Output |
 |----------|--------|
-| `{{$uuid.v4}}` | Random UUID v4: `550e8400-e29b-41d4-a716-446655440000` |
-| `{{$uuid.v7}}` | Time-ordered UUID v7 (monotonically increasing) |
-
-Use `{{$uuid.v4}}` for random IDs and `{{$uuid.v7}}` when you need UUIDs that sort by creation time.
+| `{{$uuid.v4}}` | Random UUID version 4, for example `550e8400-e29b-41d4-a716-446655440000` |
+| `{{$uuid.v7}}` | UUID version 7. The first 48 bits hold the current time in milliseconds, so values sort by creation time. |
 
 ## Timestamps
 
 | Variable | Output |
 |----------|--------|
-| `{{$timestamp.unix}}` | Seconds since epoch: `1706886400` |
-| `{{$timestamp.millis}}` | Milliseconds since epoch: `1706886400000` |
-| `{{$timestamp.iso}}` | ISO 8601: `2024-02-02T12:00:00.000Z` |
-| `{{$timestamp.offset, 30, m}}` | Unix seconds 30 minutes from now |
-| `{{$timestamp.offset, -1, d}}` | Unix seconds 1 day ago |
-| `{{$timestamp.format, YYYY-MM-DD}}` | Formatted date: `2024-02-02` |
+| `{{$timestamp.unix}}` | Current time in seconds since the Unix epoch, for example `1706886400` |
+| `{{$timestamp.millis}}` | Current time in milliseconds since the Unix epoch, for example `1706886400000` |
+| `{{$timestamp.iso}}` | Current time in ISO 8601 format, in UTC, for example `2024-02-02T12:00:00.000Z` |
+| `{{$timestamp.offset, amount, unit}}` | Unix seconds offset from now. `{{$timestamp.offset, 30, m}}` is 30 minutes from now, and `{{$timestamp.offset, -1, d}}` is one day ago. |
+| `{{$timestamp.format, format}}` | Current local time in a custom format, for example `{{$timestamp.format, YYYY-MM-DD}}` gives `2024-02-02` |
 
-**Offset units:** `s` (seconds), `m` (minutes), `h` (hours), `d` (days).
+The `offset` units are `s` (seconds), `m` (minutes), `h` (hours), and `d` (days). The unit defaults to `s`.
 
-**Format tokens:** `YYYY` (year), `MM` (month), `DD` (day), `HH` (24h hour), `mm` (minute), `ss` (second).
+The `format` tokens are `YYYY` (year), `MM` (month), `DD` (day), `HH` (hour, 24-hour clock), `mm` (minute), and `ss` (second). Without a format argument, Nouto uses `YYYY-MM-DDTHH:mm:ss`. The output uses your computer's time zone.
 
-## Random Data
+## Random values
 
 | Variable | Output |
 |----------|--------|
-| `{{$random.int}}` | Integer 0–1000 |
-| `{{$random.int, 1, 100}}` | Integer between 1 and 100 |
-| `{{$random.number, 0.5, 9.5}}` | Float with 2 decimal places |
-| `{{$random.string}}` | 16-character alphanumeric string |
-| `{{$random.string, 32}}` | 32-character string (1–256) |
+| `{{$random.int}}` | Whole number from 0 to 1000 |
+| `{{$random.int, min, max}}` | Whole number from `min` to `max`, inclusive |
+| `{{$random.number, min, max}}` | Number between `min` and `max`. If either bound has a decimal part, the result has two decimal places, for example `{{$random.number, 0.5, 9.5}}` gives `4.73`. Otherwise the result is a whole number. Defaults to 0 and 1000. |
+| `{{$random.string}}` | 16 random letters and digits, for example `aB3kR9mPqX2wNv7L` |
+| `{{$random.string, length}}` | Random letters and digits of the given length, from 1 to 256 |
 | `{{$random.bool}}` | `true` or `false` |
-| `{{$random.enum, dev, staging, prod}}` | Random pick from the list |
-| `{{$random.name}}` | Random full name: `Jennifer Garcia` |
-| `{{$random.email}}` | Random email: `jennifer.garcia482@example.com` |
+| `{{$random.enum, a, b, c}}` | One of the listed values, for example `{{$random.enum, dev, staging, prod}}` |
+| `{{$random.name}}` | First and last name, for example `Jennifer Garcia` |
+| `{{$random.email}}` | Email address at `example.com`, `example.org`, or `test.com`, for example `jennifer.garcia482@example.com` |
 
-`$random.int` produces integers. `$random.number` produces floats when either bound is a float.
+## Hashes and HMAC
 
-## Hashing
-
-All hash variables take the input value as the first argument:
+Hash variables take the input text as the first argument and return a lowercase hex string:
 
 | Variable | Algorithm |
 |----------|-----------|
-| `{{$hash.md5, input}}` | MD5 (hex string) |
-| `{{$hash.sha1, input}}` | SHA-1 (hex string) |
-| `{{$hash.sha256, input}}` | SHA-256 (hex string) |
-| `{{$hash.sha512, input}}` | SHA-512 (hex string) |
+| `{{$hash.md5, input}}` | MD5 |
+| `{{$hash.sha1, input}}` | SHA-1 |
+| `{{$hash.sha256, input}}` | SHA-256 |
+| `{{$hash.sha512, input}}` | SHA-512 |
 
-HMAC variants take input and key:
+HMAC variables take the input text and a key, and also return a lowercase hex string:
 
 | Variable | Algorithm |
 |----------|-----------|
@@ -82,204 +82,211 @@ HMAC variants take input and key:
 | `{{$hmac.sha256, input, key}}` | HMAC-SHA256 |
 | `{{$hmac.sha512, input, key}}` | HMAC-SHA512 |
 
-Combine with environment variables for signing:
+Both arguments are literal text, so you can't pass the request body or an environment variable as the input or key. See [Syntax](#syntax).
 
-```
-X-Signature: {{$hmac.sha256, {{requestBody}}, {{API_SECRET}}}}
-```
+## Encoding and decoding
 
-## Encoding and Decoding
+| Variable | Output |
+|----------|--------|
+| `{{$encode.base64, input}}` | Base64 |
+| `{{$encode.base64url, input}}` | URL-safe Base64 without `=` padding |
+| `{{$encode.url, input}}` | Percent-encoded text, for example `hello world` becomes `hello%20world` |
+| `{{$encode.html, input}}` | HTML entities for `&`, `<`, `>`, `"`, `'`, and characters outside ASCII |
+| `{{$decode.base64, input}}` | Decoded Base64 or URL-safe Base64 |
+| `{{$decode.url, input}}` | Decoded percent-encoding |
 
-| Variable | Description |
-|----------|-------------|
-| `{{$encode.base64, input}}` | Base64 encode |
-| `{{$encode.base64url, input}}` | Base64url encode (URL-safe, no padding) |
-| `{{$encode.url, input}}` | URL percent-encode |
-| `{{$encode.html, input}}` | HTML entity encode (`<` → `&lt;`) |
-| `{{$decode.base64, input}}` | Base64 decode |
-| `{{$decode.url, input}}` | URL percent-decode |
+## Regex and JSON
 
-## String Operations
+| Variable | Output |
+|----------|--------|
+| `{{$regex.match, input, pattern, flags}}` | First match of `pattern` in `input`, or an empty string if nothing matches. `flags` is optional, for example `i`. |
+| `{{$regex.replace, input, pattern, replacement, flags}}` | `input` with matches of `pattern` replaced. Pass `g` as `flags` to replace every match. |
+| `{{$json.escape, input}}` | `input` escaped for use inside a JSON string, without surrounding quotes |
+| `{{$json.minify, input}}` | `input` parsed as JSON and printed without whitespace |
 
-| Variable | Description |
-|----------|-------------|
-| `{{$regex.match, input, pattern, flags}}` | First match of `pattern` in `input` |
-| `{{$regex.replace, input, pattern, replacement, flags}}` | Replace `pattern` in `input` with `replacement` |
-| `{{$json.escape, input}}` | Escape a string for safe embedding in a JSON value |
-| `{{$json.minify, input}}` | Minify a JSON string (remove whitespace) |
+Patterns follow JavaScript regular expression syntax. Because arguments can't contain `,` or `}`, quantifiers such as `\d{3}` don't work in a pattern. The same rule means `$json.minify` can't receive a JSON object.
 
-## Mock Data (Faker)
+## Fake data
 
-Generate realistic fake data powered by [Faker](https://fakerjs.dev/). All values are random and change on every send.
+The `$faker` namespace generates realistic test data with the [Faker](https://fakerjs.dev/) library. Every value is new on each send. The tables below list every `$faker` method. Methods with arguments show their defaults.
 
 ### Person
 
 | Variable | Example output |
-|----------|---------------|
-| `{{$faker.firstName}}` | `Sarah` |
-| `{{$faker.lastName}}` | `Johnson` |
-| `{{$faker.fullName}}` | `Sarah Johnson` |
-| `{{$faker.jobTitle}}` | `Senior Software Engineer` |
+|----------|----------------|
+| `{{$faker.firstName}}` | `Martin` |
+| `{{$faker.lastName}}` | `Lind-Kuvalis` |
+| `{{$faker.fullName}}` | `Katie Schneider` |
+| `{{$faker.jobTitle}}` | `Senior Response Agent` |
 | `{{$faker.gender}}` | `Female` |
-| `{{$faker.prefix}}` | `Dr.` |
+| `{{$faker.prefix}}` | `Ms.` |
+| `{{$faker.suffix}}` | `DVM` |
 
 ### Internet
 
 | Variable | Example output |
-|----------|---------------|
-| `{{$faker.email}}` | `sarah.johnson@example.com` |
-| `{{$faker.username}}` | `sarah_j92` |
-| `{{$faker.url}}` | `https://example.com` |
-| `{{$faker.ip}}` | `192.168.1.42` |
-| `{{$faker.ipv6}}` | `2001:0db8:85a3::8a2e:0370:7334` |
-| `{{$faker.mac}}` | `00:1A:2B:3C:4D:5E` |
-| `{{$faker.password}}` | `xK9$mP2vL` |
-| `{{$faker.userAgent}}` | `Mozilla/5.0 (Windows NT 10.0; ...)` |
+|----------|----------------|
+| `{{$faker.email}}` | `Danyka75@gmail.com` |
+| `{{$faker.username}}` | `Jacky.Bednar45` |
+| `{{$faker.url}}` | `https://limited-tributary.name/` |
+| `{{$faker.domainName}}` | `key-sand.net` |
+| `{{$faker.ip}}` | `52.112.253.111` |
+| `{{$faker.ipv6}}` | `a8a8:ca6c:697e:8af9:d3a9:9db9:02fb:fff1` |
+| `{{$faker.mac}}` | `49:3f:fd:7d:24:7b` |
+| `{{$faker.password, length}}` | `R5u2yF7d1KrY0Q2s` (length defaults to 16) |
+| `{{$faker.userAgent}}` | `Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) ...` |
 
 ### Location
 
 | Variable | Example output |
-|----------|---------------|
-| `{{$faker.city}}` | `San Francisco` |
-| `{{$faker.country}}` | `Canada` |
-| `{{$faker.countryCode}}` | `CA` |
-| `{{$faker.state}}` | `California` |
-| `{{$faker.streetAddress}}` | `742 Evergreen Terrace` |
-| `{{$faker.zipCode}}` | `94107` |
-| `{{$faker.latitude}}` | `37.7749` |
-| `{{$faker.longitude}}` | `-122.4194` |
-| `{{$faker.timeZone}}` | `America/New_York` |
+|----------|----------------|
+| `{{$faker.city}}` | `Shaynachester` |
+| `{{$faker.state}}` | `Arizona` |
+| `{{$faker.country}}` | `Sierra Leone` |
+| `{{$faker.countryCode}}` | `UY` |
+| `{{$faker.street}}` | `Boyle Extension` |
+| `{{$faker.streetAddress}}` | `347 Chestnut Street` |
+| `{{$faker.zipCode}}` | `03845-7870` |
+| `{{$faker.latitude}}` | `-2.9453` |
+| `{{$faker.longitude}}` | `-28.7075` |
+| `{{$faker.timeZone}}` | `America/Yakutat` |
+
+### Phone and company
+
+| Variable | Example output |
+|----------|----------------|
+| `{{$faker.phone}}` | `1-588-410-5542 x54927` |
+| `{{$faker.company}}` | `Shields - Fay` |
+| `{{$faker.catchPhrase}}` | `Persevering cohesive product` |
+| `{{$faker.buzzPhrase}}` | `orchestrate compelling convergence` |
 
 ### Finance
 
 | Variable | Example output |
-|----------|---------------|
-| `{{$faker.creditCard}}` | `4532015112830366` |
-| `{{$faker.iban}}` | `DE89370400440532013000` |
-| `{{$faker.currencyCode}}` | `USD` |
-| `{{$faker.currencyName}}` | `US Dollar` |
-| `{{$faker.amount}}` | `42.99` |
-| `{{$faker.bitcoinAddress}}` | `1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa` |
+|----------|----------------|
+| `{{$faker.amount, min, max, decimals}}` | `993.88` (defaults to 0, 1000, and 2) |
+| `{{$faker.currencyCode}}` | `TRY` |
+| `{{$faker.currencyName}}` | `Kwanza` |
+| `{{$faker.iban}}` | `LV57UZHEX486O08000615` |
+| `{{$faker.creditCard}}` | `4208-9478-6802-2199` |
+| `{{$faker.bitcoinAddress}}` | `15mqbwxjJacmncVQ7neshvVoDAK4KWBh` |
 
-### Text and Data
+### Lorem text
 
 | Variable | Example output |
-|----------|---------------|
-| `{{$faker.uuid}}` | `550e8400-e29b-41d4-a716-446655440000` |
+|----------|----------------|
+| `{{$faker.word}}` | `arx` |
+| `{{$faker.words, count}}` | `aliqua ad turpis` (count defaults to 3) |
+| `{{$faker.sentence}}` | `Spargo decretum terror vito compello solus defero.` |
+| `{{$faker.paragraph}}` | Three Lorem sentences |
+| `{{$faker.slug}}` | `adversus-conduco-officia` |
+
+### Strings and identifiers
+
+| Variable | Example output |
+|----------|----------------|
+| `{{$faker.uuid}}` | `2d948a4d-6ed1-4a4c-a87e-0850c8e95f10` |
+| `{{$faker.nanoid}}` | `ZZc4f5csT_m9lfOf_F_kd` |
+| `{{$faker.alpha, length}}` | `tsTrUHrd` (length defaults to 8) |
+| `{{$faker.alphanumeric, length}}` | `fYp9iTaM` (length defaults to 8) |
+| `{{$faker.numeric, length}}` | `19509375` (length defaults to 8) |
+| `{{$faker.hexadecimal, length}}` | `0xFd9B9BCF` (length defaults to 8, not counting the `0x` prefix) |
 | `{{$faker.boolean}}` | `true` |
-| `{{$faker.word}}` | `synergy` |
-| `{{$faker.words}}` | `innovative digital platform` |
-| `{{$faker.sentence}}` | `The quick brown fox jumps over the lazy dog.` |
-| `{{$faker.paragraph}}` | A full paragraph of lorem-style text |
-| `{{$faker.slug}}` | `innovative-digital-platform` |
 
-### Other
+### Dates
 
 | Variable | Example output |
-|----------|---------------|
-| `{{$faker.phone}}` | `+1-555-0123` |
-| `{{$faker.company}}` | `Acme Corp` |
-| `{{$faker.colorHex}}` | `#e04f2b` |
-| `{{$faker.colorName}}` | `cerulean` |
-| `{{$faker.imageUrl}}` | A random image URL |
-| `{{$faker.avatar}}` | A random avatar URL |
+|----------|----------------|
+| `{{$faker.past}}` | ISO 8601 date within the past year, for example `2026-09-25T03:47:13.911Z` |
+| `{{$faker.future}}` | ISO 8601 date within the next year, for example `2026-11-13T08:40:29.486Z` |
+| `{{$faker.recent}}` | ISO 8601 date within the past day, for example `2026-10-04T19:10:37.979Z` |
+| `{{$faker.birthdate}}` | `1979-02-25` |
+| `{{$faker.weekday}}` | `Monday` |
+| `{{$faker.month}}` | `April` |
 
-:::tip
-Type `{{$faker.` to see the full list in autocomplete. Over 60 faker functions are available.
-:::
+### Colors and images
 
-## Prompt at Send Time
+| Variable | Example output |
+|----------|----------------|
+| `{{$faker.colorName}}` | `yellow` |
+| `{{$faker.colorHex}}` | `#ac28ad` |
+| `{{$faker.colorRgb}}` | `rgb(170, 205, 112)` |
+| `{{$faker.imageUrl}}` | `https://picsum.photos/seed/Syeu3n/549/788` |
+| `{{$faker.avatar}}` | `https://avatars.githubusercontent.com/u/47297999` |
 
-Prompt the user for a value when the request is sent. The value is used once and not saved.
+### Hacker, database, and system
 
-| Variable | Description |
-|----------|-------------|
-| `{{$prompt.keyName}}` | Shows a dialog prompting for "keyName" before sending |
+| Variable | Example output |
+|----------|----------------|
+| `{{$faker.hackerPhrase}}` | `I'll bypass the back-end SSL hard drive, that should transmitter the IB sensor!` |
+| `{{$faker.hackerAbbr}}` | `THX` |
+| `{{$faker.dbColumn}}` | `password` |
+| `{{$faker.dbType}}` | `enum` |
+| `{{$faker.dbEngine}}` | `MyISAM` |
+| `{{$faker.fileName}}` | `till_brook_where.jsonld` |
+| `{{$faker.fileExt}}` | `html` |
+| `{{$faker.mimeType}}` | `application/epub+zip` |
+| `{{$faker.semver}}` | `6.3.7` |
 
-When a request contains `$prompt` variables, a dialog appears before the request is sent with an input field for each unique key. If the same key appears multiple times, only one field is shown.
+## Prompt for a value at send time
+
+Use `{{$prompt.name}}` for a value you want to type each time you send, such as a one-time code. Replace `name` with a label of your choice. The label can't contain spaces, commas, or `}`.
 
 ```json
 {
-  "token": "{{$prompt.apiToken}}",
-  "environment": "{{$prompt.targetEnv}}"
+  "username": "{{username}}",
+  "otp": "{{$prompt.otp}}"
 }
 ```
 
-- **Cancel** aborts the request. Nothing is sent.
-- **Multiple keys** are collected in a single dialog.
-- Values are not stored anywhere. They are discarded after the request completes.
+When you send the request, Nouto scans the URL, query parameters, headers, body, GraphQL variables, and the username, password, token, and API key fields of the **Auth** tab. If it finds `$prompt` placeholders, it opens an **Enter values** dialog with one field per label. A label used several times gets one field.
 
-## File Read
+- Click **Send** in the dialog to send the request with the values you entered.
+- Click **Cancel** to stop. Nouto doesn't send the request.
 
-Read file content at send time and substitute it inline.
+Nouto uses the values for that one send and doesn't save them. The [Collection Runner](/testing/collection-runner) doesn't prompt, so it sends `{{$prompt.name}}` unchanged.
 
-| Variable | Description |
-|----------|-------------|
-| `{{$file.read, /path/to/file.txt}}` | Replaced with the file's text content |
+## Read a file at send time
 
-Use this to inject certificates, configuration files, or large payloads without pasting them into the editor.
+Use `{{$file.read, path}}` to insert the text content of a file when you send the request. Use an absolute path:
 
-```
+```http
 Authorization: Bearer {{$file.read, /home/user/.secrets/token.txt}}
 ```
 
-```json
-{
-  "config": {{$file.read, C:/projects/config.json}}
-}
-```
+The file is read as UTF-8 text, and its full content replaces the placeholder, including any trailing newline. If the file can't be read, for example because it doesn't exist, Nouto sends the placeholder unchanged.
 
-If the file cannot be read (not found or permission error), the token is left unresolved and a warning is logged to the console.
+:::note
+`$file.read` resolves in the VS Code extension. In the desktop app and the Collection Runner, Nouto sends the placeholder unchanged.
+:::
 
 ## Examples
 
-**Generate a Basic auth header:**
-```
-Authorization: Basic {{$encode.base64, {{USERNAME}}:{{PASSWORD}}}}
-```
+These examples combine several dynamic variables in one request.
 
-**Create an expiring token timestamp:**
-```json
-{
-  "issued_at": "{{$timestamp.unix}}",
-  "expires_at": "{{$timestamp.offset, 1, h}}"
-}
-```
+Generate test data for a user creation request:
 
-**Sign a webhook payload:**
-```
-X-Hub-Signature-256: sha256={{$hmac.sha256, {{body}}, {{WEBHOOK_SECRET}}}}
-```
-
-**Generate test data for a user creation request:**
 ```json
 {
   "id": "{{$uuid.v4}}",
-  "name": "{{$random.name}}",
-  "email": "{{$random.email}}",
+  "name": "{{$faker.fullName}}",
+  "email": "{{$faker.email}}",
   "role": "{{$random.enum, admin, editor, viewer}}",
   "createdAt": "{{$timestamp.iso}}"
 }
 ```
 
-**Generate realistic fake data with Faker:**
+Send a token that expires in one hour:
+
 ```json
 {
-  "id": "{{$faker.uuid}}",
-  "name": "{{$faker.fullName}}",
-  "email": "{{$faker.email}}",
-  "phone": "{{$faker.phone}}",
-  "address": "{{$faker.streetAddress}}, {{$faker.city}}, {{$faker.country}}",
-  "bio": "{{$faker.sentence}}"
+  "issued_at": {{$timestamp.unix}},
+  "expires_at": {{$timestamp.offset, 1, h}}
 }
 ```
 
-**Prompt for credentials at send time:**
-```
-Authorization: Bearer {{$prompt.apiToken}}
-```
+Send a unique idempotency key with each request:
 
-**Inject a file as the request body:**
-```
-{{$file.read, /path/to/payload.json}}
+```http
+Idempotency-Key: {{$uuid.v7}}
 ```

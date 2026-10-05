@@ -1,72 +1,42 @@
 ---
-title: Digest Authentication
-description: Configure HTTP Digest auth (RFC 7616) in Nouto for servers that require challenge-response credential verification.
+title: Digest authentication
+description: Configure HTTP Digest auth (RFC 7616) in Nouto for servers that respond with a Digest challenge.
 sidebar:
   order: 7
 ---
 
-HTTP Digest authentication (RFC 7616) is a challenge-response protocol that avoids sending passwords in plaintext. Unlike Basic auth, which base64-encodes credentials, Digest auth hashes the password with a server-provided nonce. This makes it more secure over unencrypted connections.
+HTTP Digest authentication (RFC 7616) is a challenge-response scheme. Instead of sending the password, Nouto sends a hash computed from the password, a server-provided nonce, and the request. Use it for servers that respond to an unauthenticated request with `WWW-Authenticate: Digest`.
 
-## Setup
+## Set up Digest auth
 
-1. Open a request and click the **Auth** tab.
-2. Select **Digest** from the type dropdown.
-3. Enter your **Username** and **Password**.
+1. Open a request and select the **Auth** tab.
+2. Select **Digest** from the **Type** dropdown.
+3. Enter the **Username** and **Password**.
 
-Nouto handles the two-request handshake automatically when you click **Send**.
+Both fields resolve `{{variable}}` references at send time.
 
-## How It Works
+## Digest handshake
 
-The Digest flow is transparent. You only see the final response:
+Each time you click **Send**, Nouto runs the handshake:
 
-1. Nouto sends the initial request without credentials.
-2. The server responds with `401 Unauthorized` and a `WWW-Authenticate: Digest` header containing a challenge: realm, nonce, qop, and algorithm.
-3. Nouto computes a hash from your username, password, the challenge parameters, and the request method and URI.
-4. Nouto resends the request with an `Authorization: Digest` header containing the computed hash.
-5. The server validates the hash and returns the actual response.
+1. Nouto sends the request without credentials.
+2. The server responds with `401 Unauthorized` and a `WWW-Authenticate: Digest` header that contains the realm, nonce, and the supported `qop` and algorithm.
+3. Nouto computes the response hash from your username and password, the challenge, and the request method and URI.
+4. Nouto sends the request again with an `Authorization: Digest` header that contains the hash.
 
-## Supported Algorithms
+The response panel shows the server's response to the second request. If the first response isn't a `401` with a Digest challenge, Nouto shows that response and doesn't retry.
 
-The algorithm is determined by the server's challenge. Nouto supports:
+Every send makes two requests, so a Digest request takes one more round trip than a request with Basic auth.
+
+## Supported algorithms and qop
+
+The server's challenge selects the algorithm. Both the VS Code extension and the desktop app support:
 
 | Algorithm | Notes |
 |-----------|-------|
-| MD5 | Default, most widely supported |
-| SHA-256 | More secure, defined in RFC 7616 |
-| MD5-sess | Session-based MD5 variant |
-| SHA-256-sess | Session-based SHA-256 variant |
+| `MD5` | Used when the challenge doesn't name an algorithm |
+| `SHA-256` | Defined in RFC 7616 |
+| `MD5-sess` | Session variant of MD5 |
+| `SHA-256-sess` | Session variant of SHA-256 |
 
-## Supported QOP
-
-| QOP value | Notes |
-|-----------|-------|
-| `auth` | Authentication only. Most servers use this. |
-| (none) | Legacy mode without QOP, for older servers |
-
-`auth-int` (body integrity protection) is not currently supported.
-
-## Variable Support
-
-Both fields accept `{{variable}}` syntax:
-
-| Field | Example |
-|-------|---------|
-| Username | `{{DIGEST_USERNAME}}` |
-| Password | `{{DIGEST_PASSWORD}}` |
-
-## When to Use Digest Auth
-
-Digest auth is common on:
-
-- Network equipment: routers, IP cameras, NAS devices, and IoT hardware
-- Older enterprise web servers and appliances
-- Systems that cannot use HTTPS but require more protection than Basic auth
-
-If the server supports HTTPS and a modern auth method, prefer Bearer tokens or OAuth 2.0. Digest auth adds two HTTP round-trips per request, which increases latency compared to stateless methods.
-
-## Platform Support
-
-| Platform | Digest auth |
-|----------|-------------|
-| VS Code extension | Supported (MD5, SHA-256) |
-| Desktop app | Supported (MD5, SHA-256) |
+Nouto uses `qop=auth` when the challenge offers it, and the legacy calculation without `qop` when the challenge has no `qop`. Nouto doesn't support `qop=auth-int`, which also hashes the request body.

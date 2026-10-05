@@ -33,23 +33,23 @@ export default defineConfig({
 			customCss: ['./src/styles/custom.css'],
 			sidebar: [
 				{
-					label: 'Getting Started',
+					label: 'Getting started',
 					collapsed: true,
 					items: [
 						{ label: 'Installation', slug: 'getting-started/installation' },
-						{ label: 'Quick Start', slug: 'getting-started/quick-start' },
-						{ label: 'VS Code vs Desktop', slug: 'getting-started/platforms' },
+						{ label: 'Quick start', slug: 'getting-started/quick-start' },
+						{ label: 'VS Code vs desktop', slug: 'getting-started/platforms' },
 					],
 				},
 				{
-					label: 'API Client',
+					label: 'API client',
 					collapsed: false,
 					items: [
 						{
-							label: 'Protocols & Collections',
+							label: 'Protocols & collections',
 							collapsed: true,
 							items: [
-								{ label: 'HTTP Requests', slug: 'features/http-requests' },
+								{ label: 'HTTP requests', slug: 'features/http-requests' },
 								{ label: 'GraphQL', slug: 'features/graphql' },
 								{ label: 'WebSocket', slug: 'features/websocket' },
 								{ label: 'Server-Sent Events', slug: 'features/sse' },
@@ -59,7 +59,7 @@ export default defineConfig({
 							],
 						},
 						{
-							label: 'Building Requests',
+							label: 'Building requests',
 							collapsed: true,
 							items: [{ autogenerate: { directory: 'building-requests' } }],
 						},
@@ -69,27 +69,27 @@ export default defineConfig({
 							items: [{ autogenerate: { directory: 'authentication' } }],
 						},
 						{
-							label: 'Environments & Variables',
+							label: 'Environments & variables',
 							collapsed: true,
 							items: [{ autogenerate: { directory: 'variables' } }],
 						},
 						{
-							label: 'Testing & Scripts',
+							label: 'Testing & scripts',
 							collapsed: true,
 							items: [{ autogenerate: { directory: 'testing' } }],
 						},
 						{
-							label: 'Response & Inspection',
+							label: 'Response & inspection',
 							collapsed: true,
 							items: [{ autogenerate: { directory: 'response' } }],
 						},
 						{
-							label: 'OpenAPI Editor',
+							label: 'OpenAPI editor',
 							collapsed: true,
 							items: [{ autogenerate: { directory: 'openapi' } }],
 						},
 						{
-							label: 'Import & Export',
+							label: 'Import & export',
 							collapsed: true,
 							items: [{ autogenerate: { directory: 'import-export' } }],
 						},
@@ -106,7 +106,7 @@ export default defineConfig({
 					],
 				},
 				{
-					label: 'JSON Explorer Extension',
+					label: 'JSON Explorer extension',
 					collapsed: true,
 					items: [{ autogenerate: { directory: 'json-explorer' } }],
 				},
@@ -116,7 +116,7 @@ export default defineConfig({
 					items: [{ autogenerate: { directory: 'cli' } }],
 				},
 				{
-					label: 'Desktop App',
+					label: 'Desktop app',
 					collapsed: true,
 					items: [{ autogenerate: { directory: 'desktop' } }],
 				},
@@ -124,7 +124,7 @@ export default defineConfig({
 					label: 'Compare',
 					collapsed: true,
 					items: [
-						{ label: 'Feature Comparison', slug: 'compare' },
+						{ label: 'Feature comparison', slug: 'compare' },
 					],
 				},
 				{ label: 'Changelog', slug: 'changelog' },

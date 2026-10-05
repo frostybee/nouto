@@ -1,39 +1,38 @@
 ---
-title: "CLI: Code Generation"
-description: Generate code snippets from Nouto collection requests using the CLI.
+title: "CLI: Code generation"
+description: Generate a code snippet for a saved request with the Nouto CLI, in one of 12 targets such as cURL, Python Requests, or Go.
 sidebar:
   order: 4
 ---
 
-The `nouto codegen` command generates a code snippet from a request in a collection file.
+The `nouto codegen` command prints a code snippet that sends a saved request from a collection file. It uses the same generators as [code generation](/tools/code-generation) in the app.
 
 ## Usage
 
 ```bash
-nouto codegen <collection-file> --request <name-or-id> --target <lang> [options]
+nouto codegen <collection-file> --request <name-or-id> --target <target> [options]
+nouto codegen --list-targets
 ```
 
 ## Options
 
+`nouto codegen` accepts these options:
+
 | Option | Description | Default |
 |--------|-------------|---------|
-| `--request <name-or-id>` | Request name or ID (required) | |
-| `-t, --target <lang>` | Target language (required) | |
-| `-o, --output <file>` | Output file (stdout if omitted) | stdout |
-| `--list-targets` | List all available targets | |
+| `--request <name-or-id>` | Request to generate code for. Required. Matches the request ID first, then the name, ignoring case. | None |
+| `-t, --target <target>` | Target ID from `--list-targets`. Required. | None |
+| `-o, --output <file>` | Write the snippet to this file | stdout |
+| `--list-targets` | Print the available targets and exit. Needs no collection file. | Off |
 
-## List Available Targets
+## Targets
 
-```bash
-node packages/cli/dist/bin/cli.js codegen --list-targets
-```
+`nouto codegen --list-targets` prints the target IDs and labels:
 
-Output:
-
-```
+```text
   Available code generation targets:
 
-    curl                 Shell - cURL
+    curl                 cURL
     javascript-fetch     JavaScript - Fetch
     javascript-axios     JavaScript - Axios
     python-requests      Python - Requests
@@ -47,47 +46,37 @@ Output:
     typescript-types     TypeScript Types
 ```
 
+Pass the ID in the first column to `--target`. The command doesn't validate the ID: an unknown target prints `// Unknown target: <id>` and exits with `0`.
+
 ## Examples
 
-### Generate cURL
+Print a cURL command for the `Create User` request:
 
 ```bash
-node packages/cli/dist/bin/cli.js codegen api.nouto.json --request "Create User" --target curl
+nouto codegen api.nouto.json --request "Create User" --target curl
 ```
 
-### Generate Python and save to file
+Save a Python snippet to a file:
 
 ```bash
-node packages/cli/dist/bin/cli.js codegen api.nouto.json \
+nouto codegen api.nouto.json \
   --request "Create User" \
   --target python-requests \
   --output create_user.py
 ```
 
-### Generate Go code
+## What the snippet contains
 
-```bash
-node packages/cli/dist/bin/cli.js codegen api.nouto.json --request "List Users" --target go
-```
+The snippet includes the request's method, URL, and body, and the auth configured on the request itself. Basic, Bearer Token, API Key, OAuth 2.0, AWS Signature v4, Digest, and NTLM auth appear in the snippet when the selected target supports them. Auth inherited from a folder or the collection isn't included.
 
-## What Gets Included
+:::caution
+The CLI leaves the entries from the request's **Query** and **Headers** tabs out of the snippet. Headers that come from the auth settings and the body type, such as `Authorization` and `Content-Type`, are still included. To get a snippet with every header and query parameter, use [code generation](/tools/code-generation) in the app.
+:::
 
-The generated code includes:
+The CLI doesn't resolve variables. A `{{variable}}` reference appears in the snippet as written.
 
-- HTTP method and full URL (with query parameters)
-- All enabled headers
-- Request body (JSON, form data, URL-encoded, text)
-- Authentication supported by the selected target, including Basic, Bearer, API Key, OAuth 2.0, AWS Signature v4, Digest, and NTLM
-- TypeScript interface output when the selected target is `typescript-types`
+The `typescript-types` target generates TypeScript interfaces from the request's JSON body instead of a code snippet. If the request has no JSON body, the output is a comment that says so.
 
-Variable placeholders (`{{variable}}`) are left as-is in the generated code since the CLI does not resolve them during code generation.
+## Exit codes
 
-## Exit Codes
-
-| Code | Meaning |
-|------|---------|
-| `0` | Success |
-| `2` | Collection file not found |
-| `4` | Invalid collection format |
-| `5` | Request not found |
-| `7` | Other error (missing arguments, invalid target) |
+`nouto codegen` exits with `5` when no request matches `--request`, and with `7` when the collection file, `--request`, or `--target` is missing. [Exit codes](/cli/#exit-codes) lists the other codes.
