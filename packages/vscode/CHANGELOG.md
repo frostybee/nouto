@@ -2,7 +2,7 @@
 
 All notable changes to the Nouto VS Code extension will be documented in this file.
 
-## [1.6.2] - 2026-10-05
+## [1.6.3] - 2026-10-05
 
 ### Added
 
@@ -11,13 +11,22 @@ All notable changes to the Nouto VS Code extension will be documented in this fi
 
 ### Changed
 
-- The environment picker, Cookie Jars, Mock Server, and Settings moved from the vertical rail on the sidebar's left edge to icons in the API Testing view's title bar, so collections and history use the full sidebar width. The title bar also shows the name of the active environment. About is still available from the view's `...` menu and from Settings.
+- The toolbar above the New Request button is replaced by icons in the API Testing view's title bar: the environment picker, Cookie Jars, Mock Server, and Settings. The title bar also shows the name of the active environment.
+
+### Fixed
+
+- The response panel shows the HTTP reason phrase for every status code, for example `406 Not Acceptable`, and the server's own phrase when it sends one ([#1](https://github.com/frostybee/nouto/issues/1)).
+
+## [1.6.2] - 2026-10-05
+
+### Changed
+
+- Environments, Cookie Jars, Mock Server, and Settings moved from the vertical rail on the sidebar's left edge to a toolbar above the New Request button, so collections and history use the full sidebar width. About is still available from the view's `...` menu and from Settings.
 - The collection and folder context menus group the request types under a New Request submenu, and the collection menu groups the Postman, Nouto, and OpenAPI exports under an Export submenu. When the sidebar is too narrow to show a submenu beside the menu, the submenu opens in place with a back row.
 
 ### Fixed
 
 - Context menus in the sidebar are no longer cut off at the bottom of a short window. They stay inside the view and scroll when they are taller than it.
-- The response panel shows the HTTP reason phrase for every status code, for example `406 Not Acceptable`, and the server's own phrase when it sends one ([#1](https://github.com/frostybee/nouto/issues/1)).
 
 ## [1.6.1] - 2026-09-22
 
