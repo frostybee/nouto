@@ -5,3 +5,9 @@ export function registerOpenEnvironmentsCommand(
 ): vscode.Disposable {
   return vscode.commands.registerCommand('nouto.openEnvironments', openFn);
 }
+
+export function registerOpenCookieJarsCommand(
+  openFn: () => Promise<void>
+): vscode.Disposable {
+  return vscode.commands.registerCommand('nouto.openCookieJars', openFn);
+}

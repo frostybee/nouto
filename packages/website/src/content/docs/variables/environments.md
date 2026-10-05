@@ -11,7 +11,7 @@ An environment is a named set of variables, such as `Local`, `Staging`, or `Prod
 
 You manage environments and global variables in the Environments panel:
 
-- In VS Code, click **Environments** in the toolbar at the top of the Nouto sidebar, or run **Nouto: Environments** from the Command Palette.
+- In VS Code, click **Environments** in the API Testing view's title bar, or run **Nouto: Environments** from the Command Palette. VS Code shows the title bar icons when you hover over or focus the view.
 - In the desktop app, click **Environments** in the left rail.
 
 The panel has three sections: **Global Variables**, **Environments**, and **Cookie Jar**. For cookie jars, see [Cookie jars](/tools/cookie-jars).
@@ -47,7 +47,7 @@ Only one environment is active at a time. To activate one, use any of these cont
 
 The active environment has a check mark in the Environments panel. To send requests without an environment, select **No Environment**.
 
-In VS Code, hover **Environments** in the sidebar toolbar to see the name of the active environment. A dot on the icon means you have environments but none of them is active.
+In VS Code, the API Testing view's title bar shows the name of the active environment, or **No environment** when none is active.
 
 ## Use variables in a request
 

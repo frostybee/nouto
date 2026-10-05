@@ -228,6 +228,50 @@ describe('SidebarViewProvider', () => {
     });
   });
 
+  describe('view description', () => {
+    function resolveView(): any {
+      const mockView: any = {
+        webview: {
+          options: {},
+          html: '',
+          onDidReceiveMessage: jest.fn(),
+          postMessage: jest.fn(),
+          asWebviewUri: jest.fn((uri: any) => uri.fsPath),
+          cspSource: 'csp',
+        },
+      };
+      provider.resolveWebviewView(mockView, {} as any, {} as any);
+      return mockView;
+    }
+
+    const prod = { id: 'e1', name: 'Production', variables: [] };
+
+    it('shows the active environment name', () => {
+      const view = resolveView();
+      provider.updateEnvironments({ environments: [prod], activeId: 'e1' } as any);
+      expect(view.description).toBe('Production');
+    });
+
+    it('shows "No environment" when environments exist but none is active', () => {
+      const view = resolveView();
+      provider.updateEnvironments({ environments: [prod], activeId: null } as any);
+      expect(view.description).toBe('No environment');
+    });
+
+    it('shows nothing when there are no environments', () => {
+      const view = resolveView();
+      provider.updateEnvironments({ environments: [prod], activeId: 'e1' } as any);
+      provider.updateEnvironments({ environments: [], activeId: null } as any);
+      expect(view.description).toBeUndefined();
+    });
+
+    it('applies already loaded environments when the view resolves', () => {
+      provider.updateEnvironments({ environments: [prod], activeId: 'e1' } as any);
+      const view = resolveView();
+      expect(view.description).toBe('Production');
+    });
+  });
+
   describe('setPanelManager', () => {
     it('should set panel manager without error', () => {
       const mockPM: any = { broadcastCollections: jest.fn() };

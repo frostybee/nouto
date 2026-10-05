@@ -9,7 +9,7 @@ The Settings page holds Nouto's app-wide preferences. Request-level settings, su
 
 ## Open Settings
 
-- In VS Code, click the gear icon in the toolbar at the top of the Nouto sidebar, or run **Nouto: Settings** from the Command Palette.
+- In VS Code, click the gear icon in the API Testing view's title bar, or run **Nouto: Settings** from the Command Palette.
 - In the desktop app, click the gear icon in the top toolbar or **Settings** in the left rail. Settings opens in its own window.
 
 The sections available depend on the platform:

@@ -499,6 +499,12 @@
         "icon": "$(symbol-variable)"
       },
       {
+        "command": "nouto.openCookieJars",
+        "title": "Cookie Jars",
+        "category": "Nouto",
+        "icon": "$(globe)"
+      },
+      {
         "command": "nouto.openAbout",
         "title": "About",
         "category": "Nouto",
@@ -653,17 +659,22 @@
         {
           "command": "nouto.openEnvironments",
           "when": "view == nouto.sidebar",
-          "group": "1_panels"
+          "group": "navigation@1"
         },
         {
-          "command": "nouto.openSettings",
+          "command": "nouto.openCookieJars",
           "when": "view == nouto.sidebar",
-          "group": "1_panels"
+          "group": "navigation@2"
         },
         {
           "command": "nouto.openMockServer",
           "when": "view == nouto.sidebar",
-          "group": "1_panels"
+          "group": "navigation@3"
+        },
+        {
+          "command": "nouto.openSettings",
+          "when": "view == nouto.sidebar",
+          "group": "navigation@4"
         },
         {
           "command": "nouto.importAuto",

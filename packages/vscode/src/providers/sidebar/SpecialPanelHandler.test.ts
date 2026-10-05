@@ -68,7 +68,6 @@ function createMockContext(overrides: Partial<ISpecialPanelContext> = {}): ISpec
     registerAuxPanel: jest.fn(),
     unregisterAuxPanel: jest.fn(),
     openEnvironmentsPanel: jest.fn().mockResolvedValue(undefined),
-    postToSidebar: jest.fn(),
     uiService: undefined,
     ...overrides,
   };

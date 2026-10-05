@@ -11,6 +11,8 @@ Nouto saves the cookies that servers set with `Set-Cookie` headers and sends the
 
 Open the Environments panel and select the **Cookie Jar** tab. See [Environments](/variables/environments) for how to open the panel.
 
+In VS Code, you can also click **Cookie Jars** (the globe icon) in the API Testing view's title bar, or run **Nouto: Cookie Jars** from the Command Palette. Both open the Environments panel on the **Cookie Jar** tab.
+
 The tab lists your jars, with the cookie count of each. Nouto starts with one jar named `Default`. A check mark shows the active jar.
 
 ## Create and switch jars

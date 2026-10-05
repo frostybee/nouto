@@ -134,7 +134,6 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
       unregisterAuxPanel: (panel) => self._auxPanels.delete(panel),
       openEnvironmentsPanel: () => self._openEnvironmentsPanel(),
       get uiService() { return self._uiService; },
-      postToSidebar: (msg: any) => self._view?.webview.postMessage(msg),
     };
     this._specialPanelHandler = new SpecialPanelHandler(specialCtx, this._benchmarkService, this._mockServerService, this._mockStorageService);
 
@@ -166,7 +165,6 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
       setEnvironments: (data) => { self._environments = data; },
       hydrateSecrets: async (data) => { if (self._panelManager) await self._panelManager.hydrateSecrets(data); },
       persistSecrets: (data) => self._panelManager ? self._panelManager.persistSecrets(data) : Promise.resolve(),
-      postToSidebar: (msg: any) => self._view?.webview.postMessage(msg),
     };
     this._envPanelHandler = new EnvironmentsPanelHandler(this._envPanelCtx);
 
@@ -183,7 +181,6 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
       switchStorageMode: (mode) => self._storageService.switchStorageMode(mode),
       notifyCollectionsUpdated: async () => { self._notifyCollectionsUpdated(); },
       openEnvironmentsPanel: (tab) => self._openEnvironmentsPanel(tab),
-      postToSidebar: (msg: any) => self._view?.webview.postMessage(msg),
     };
     this._globalSettingsHandler = new GlobalSettingsPanelHandler(globalSettingsCtx);
 
@@ -221,6 +218,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
         await this._storageService.saveEnvironments(this._environments);
       }
     }
+    this._updateViewDescription();
   }
 
   /**
@@ -331,6 +329,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
     _token: vscode.CancellationToken
   ): void {
     this._view = webviewView;
+    this._updateViewDescription();
 
     webviewView.webview.options = {
       enableScripts: true,
@@ -818,7 +817,16 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
     this._panelManager?.broadcastCollections(this._collections);
   }
 
+  /** Shows the active environment next to the view title. */
+  private _updateViewDescription(): void {
+    if (!this._view) return;
+    const { environments, activeId } = this._environments;
+    const active = activeId ? environments.find(e => e.id === activeId) : undefined;
+    this._view.description = active?.name ?? (environments.length > 0 ? 'No environment' : undefined);
+  }
+
   private _notifyEnvironmentsUpdated(): void {
+    this._updateViewDescription();
     this._view?.webview.postMessage({
       type: 'environmentsUpdated',
       data: this._environments,

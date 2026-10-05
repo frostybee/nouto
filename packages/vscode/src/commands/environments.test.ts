@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { registerOpenEnvironmentsCommand } from './environments';
+import { registerOpenCookieJarsCommand, registerOpenEnvironmentsCommand } from './environments';
 
 describe('registerOpenEnvironmentsCommand', () => {
   const mockRegisterCommand = vscode.commands.registerCommand as jest.Mock;
@@ -18,5 +18,19 @@ describe('registerOpenEnvironmentsCommand', () => {
     mockRegisterCommand.mockReturnValue({ dispose: jest.fn() });
     const result = registerOpenEnvironmentsCommand(jest.fn());
     expect(result).toHaveProperty('dispose');
+  });
+});
+
+describe('registerOpenCookieJarsCommand', () => {
+  const mockRegisterCommand = vscode.commands.registerCommand as jest.Mock;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('should register nouto.openCookieJars command', () => {
+    const openFn = jest.fn();
+    registerOpenCookieJarsCommand(openFn);
+    expect(mockRegisterCommand).toHaveBeenCalledWith('nouto.openCookieJars', openFn);
   });
 });

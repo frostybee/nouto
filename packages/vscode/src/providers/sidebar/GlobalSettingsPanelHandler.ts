@@ -13,7 +13,6 @@ export interface IGlobalSettingsPanelContext {
   switchStorageMode(mode: 'global' | 'workspace'): Promise<boolean>;
   notifyCollectionsUpdated(): Promise<void>;
   openEnvironmentsPanel(tab?: string): Promise<void>;
-  postToSidebar?: (msg: any) => void;
 }
 
 const SETTINGS_KEY = 'nouto.settings';
@@ -142,7 +141,6 @@ export class GlobalSettingsPanelHandler {
       disposable.dispose();
       settingsChangedSub.dispose();
       this._panel = undefined;
-      this.ctx.postToSidebar?.({ type: 'actionPanelClosed', data: { panel: 'settings' } });
     });
   }
 

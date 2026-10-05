@@ -15,7 +15,7 @@ import { registerBenchmarkCommand } from './benchmark';
 import { registerOpenCommandPaletteCommand } from './palette';
 import { registerExportHistoryCommand, registerImportHistoryCommand } from './history';
 import { registerExportBackupCommand, registerImportBackupCommand } from './backup';
-import { registerOpenEnvironmentsCommand } from './environments';
+import { registerOpenCookieJarsCommand, registerOpenEnvironmentsCommand } from './environments';
 import { registerOpenInJsonExplorerCommand } from './json-explorer';
 import {
   registerGenerateCollectionFromOpenApiCommand,
@@ -85,6 +85,7 @@ export function registerAllCommands(
     registerOpenMockServerCommand(() => sidebarProvider._openMockServerPanel()),
     registerBenchmarkCommand((requestId, collectionId) => sidebarProvider._openBenchmarkPanel(requestId, collectionId)),
     registerOpenEnvironmentsCommand(() => sidebarProvider._openEnvironmentsPanel()),
+    registerOpenCookieJarsCommand(() => sidebarProvider._openEnvironmentsPanel('cookieJar')),
     registerExportHistoryCommand(() => sidebarProvider.getHistoryService()),
     registerImportHistoryCommand(
       () => sidebarProvider.getHistoryService(),

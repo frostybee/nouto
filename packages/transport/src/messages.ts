@@ -1499,11 +1499,6 @@ export interface WorkspaceMetaLoadedMessage {
   data: WorkspaceMeta | null;
 }
 
-export interface ActionPanelClosedMessage {
-  type: 'actionPanelClosed';
-  data: { panel: string };
-}
-
 // --- Desktop-only events with typed payloads ---
 
 export interface SecretStoredMessage {
@@ -1836,7 +1831,6 @@ export type IncomingMessage =
   | FileContentReadMessage
   | FileContentErrorMessage
   | WorkspaceMetaLoadedMessage
-  | ActionPanelClosedMessage
   | OpenApiInitMessage
   | OpenApiDocumentChangedMessage
   | OpenApiEditRejectedMessage

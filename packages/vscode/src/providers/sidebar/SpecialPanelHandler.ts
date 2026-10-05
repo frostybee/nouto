@@ -21,7 +21,6 @@ export interface ISpecialPanelContext {
   unregisterAuxPanel(panel: vscode.WebviewPanel): void;
   openEnvironmentsPanel?(): Promise<void>;
   uiService?: UIService;
-  postToSidebar?: (msg: any) => void;
 }
 
 export class SpecialPanelHandler {
@@ -152,7 +151,6 @@ export class SpecialPanelHandler {
 
     panel.onDidDispose(() => {
       settingsMsgDisposable.dispose();
-      this.ctx.postToSidebar?.({ type: 'actionPanelClosed', data: { panel: 'settings' } });
     });
   }
 
@@ -273,7 +271,6 @@ export class SpecialPanelHandler {
       this.ctx.unregisterAuxPanel(panel);
       this.mockServerService.setStatusChangeHandler(undefined as any);
       this.mockServerService.setLogHandler(undefined as any);
-      this.ctx.postToSidebar?.({ type: 'actionPanelClosed', data: { panel: 'mockServer' } });
     });
   }
 

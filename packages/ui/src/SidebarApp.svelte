@@ -4,15 +4,12 @@
   import CollectionsTab from './components/sidebar/CollectionsTab.svelte';
   import HistoryTab from './components/sidebar/HistoryTab.svelte';
   import TrashTab from './components/sidebar/TrashTab.svelte';
-  import { loadEnvironments, loadEnvFileVariables, activeEnvironment, environments } from './stores/environment.svelte';
-  import { activeCookieJar } from './stores/cookieJar.svelte';
+  import { loadEnvironments, loadEnvFileVariables } from './stores/environment.svelte';
   import { collections as collectionsStore, initCollections, duplicateRequest, selectedRequestId, revealActiveRequest } from './stores/collections.svelte';
   import { setDirtyRequestIds } from './stores/dirtyState.svelte';
   import { initHistory, setHistoryStats, setHistoryStatsLoading } from './stores/history.svelte';
   import { ui, setSidebarTab, type SidebarTab } from './stores/ui.svelte';
   import Tooltip from './components/shared/Tooltip.svelte';
-  import SidebarToolbar from './components/sidebar/SidebarToolbar.svelte';
-  import type { ActionPanel } from './components/sidebar/SidebarToolbar.svelte';
   import NotificationStack from './components/shared/NotificationStack.svelte';
   import InputBoxModal from './components/shared/InputBoxModal.svelte';
   import QuickPickModal from './components/shared/QuickPickModal.svelte';
@@ -47,11 +44,6 @@
 
   let activeTab = $derived(ui.sidebarTab);
   let isLoading = $state(true);
-  let activeActionPanel = $state<ActionPanel | null>(null);
-
-  // Toolbar badge state
-  const hasNoEnv = $derived(environments().length > 0 && !activeEnvironment());
-  const cookieCount = $derived(activeCookieJar()?.cookieCount ?? 0);
 
   // Auto-scroll during drag near edges
   // NOTE: .tab-content itself never scrolls. The actual scrollable element is
@@ -221,13 +213,6 @@
       case 'revealActiveRequest':
         revealActiveRequest(message.data?.requestId);
         break;
-      case 'actionPanelClosed': {
-        const p = message.data?.panel;
-        if (p === activeActionPanel || (p === 'environments' && activeActionPanel === 'cookieJar')) {
-          activeActionPanel = null;
-        }
-        break;
-      }
     }
     } catch (err) {
       console.error('[Nouto] Error handling sidebar message:', message?.type, err);
@@ -260,26 +245,6 @@
 
   function postMessage(message: any) {
     busPostMessage(message);
-  }
-
-  function openActionPanel(panel: ActionPanel) {
-    if (activeActionPanel === panel) {
-      activeActionPanel = null;
-      return;
-    }
-    activeActionPanel = panel;
-    switch (panel) {
-      case 'environments':
-      case 'cookieJar':
-        postMessage({ type: 'openEnvironmentsPanel', data: { tab: panel } });
-        break;
-      case 'mockServer':
-        postMessage({ type: 'openMockServer' });
-        break;
-      case 'settings':
-        postMessage({ type: 'openSettings' });
-        break;
-    }
   }
 
   let newRequestDropdownOpen = $state(false);
@@ -377,14 +342,6 @@
 
 <div class="sidebar">
   <div class="sidebar-main">
-  <SidebarToolbar
-    activePanel={activeActionPanel}
-    activeEnvironmentName={activeEnvironment()?.name}
-    {hasNoEnv}
-    {cookieCount}
-    onselect={openActionPanel}
-  />
-
   <div class="new-request-bar">
     <div class="new-request-dropdown">
       <Tooltip text="New Request (Ctrl+N)">
@@ -550,7 +507,7 @@
     display: flex;
     align-items: center;
     gap: 0.462rem;
-    padding: 0.462rem 0.769rem;
+    padding: 0.769rem 0.769rem 0.462rem;
     flex-shrink: 0;
   }
 
