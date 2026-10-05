@@ -37,16 +37,16 @@ export interface HttpResponse {
   redirectChain?: RedirectHop[];
 }
 
-const HTTP_STATUS_TEXT: Record<number, string> = {
-  200: 'OK', 201: 'Created', 202: 'Accepted', 204: 'No Content',
-  301: 'Moved Permanently', 302: 'Found', 303: 'See Other',
-  304: 'Not Modified', 307: 'Temporary Redirect', 308: 'Permanent Redirect',
-  400: 'Bad Request', 401: 'Unauthorized', 403: 'Forbidden',
-  404: 'Not Found', 405: 'Method Not Allowed', 408: 'Request Timeout',
-  409: 'Conflict', 410: 'Gone', 422: 'Unprocessable Entity',
-  429: 'Too Many Requests', 500: 'Internal Server Error',
-  502: 'Bad Gateway', 503: 'Service Unavailable', 504: 'Gateway Timeout',
-};
+/** A response as read off the wire, before body parsing and timing. */
+interface RawResponse {
+  status: number;
+  /** HTTP/1.x reason phrase as sent by the server. HTTP/2 has none. */
+  statusMessage?: string;
+  headers: Record<string, string>;
+  body: Buffer;
+  httpVersion: string;
+  remoteAddress?: string;
+}
 
 function buildRequestUrl(baseUrl: string, params: Record<string, string>): URL {
   // Strip leading/trailing whitespace (common when pasting) so the scheme check below is anchored correctly
@@ -161,7 +161,7 @@ function executeHttp2(
   timeline: TimelineEvent[],
   ssl?: { rejectUnauthorized?: boolean; ca?: Buffer; cert?: Buffer; key?: Buffer; passphrase?: string },
   onDownloadProgress?: (loaded: number, total: number | null) => void,
-): Promise<{ status: number; headers: Record<string, string>; body: Buffer; httpVersion: string; remoteAddress?: string }> {
+): Promise<RawResponse> {
   return new Promise((resolve, reject) => {
     const hostname = url.hostname;
     const port = parseInt(url.port, 10) || 443;
@@ -325,7 +325,7 @@ function executeHttp1(
   ssl?: { rejectUnauthorized?: boolean; ca?: Buffer; cert?: Buffer; key?: Buffer; passphrase?: string },
   onDownloadProgress?: (loaded: number, total: number | null) => void,
   proxyAgent?: http.Agent | https.Agent,
-): Promise<{ status: number; headers: Record<string, string>; body: Buffer; httpVersion: string; remoteAddress?: string }> {
+): Promise<RawResponse> {
   return new Promise((resolve, reject) => {
     const isHttps = url.protocol === 'https:';
     const requestFn = isHttps ? https.request : http.request;
@@ -375,6 +375,7 @@ function executeHttp1(
         timestamps.end = Date.now();
         resolve({
           status: statusCode,
+          statusMessage: res.statusMessage,
           headers: resHeaders,
           body: Buffer.concat(chunks),
           httpVersion,
@@ -501,7 +502,7 @@ export async function executeRequest(config: HttpRequestConfig): Promise<HttpRes
   let currentMethod = method;
   let currentBody = body;
   let redirectCount = 0;
-  let result: { status: number; headers: Record<string, string>; body: Buffer; httpVersion: string; remoteAddress?: string };
+  let result: RawResponse;
 
   // Accumulate Set-Cookie headers from intermediate redirect responses
   const redirectSetCookies: string[] = [];
@@ -618,7 +619,7 @@ export async function executeRequest(config: HttpRequestConfig): Promise<HttpRes
 
   return {
     status: result.status,
-    statusText: HTTP_STATUS_TEXT[result.status] || '',
+    statusText: result.statusMessage || http.STATUS_CODES[result.status] || '',
     headers: result.headers,
     data: parsedData,
     httpVersion: result.httpVersion,

@@ -1,4 +1,5 @@
 import * as http from 'http';
+import * as net from 'net';
 import * as zlib from 'zlib';
 import { executeRequest, HttpRequestConfig } from './HttpClient';
 
@@ -64,6 +65,21 @@ function createTestServer(): http.Server {
       case '/status/500':
         res.writeHead(500, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: 'Internal Server Error' }));
+        break;
+
+      case '/status/406':
+        res.writeHead(406, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Invalid Media Type.' }));
+        break;
+
+      case '/status/406-custom-reason':
+        res.writeHead(406, 'Invalid Media Type', { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Invalid Media Type.' }));
+        break;
+
+      case '/status/418':
+        res.writeHead(418, { 'Content-Type': 'text/plain' });
+        res.end('teapot');
         break;
 
       case '/echo-url':
@@ -346,6 +362,39 @@ describe('HttpClient - executeRequest', () => {
 
     const res500 = await executeRequest(makeConfig({ path: '/status/500' }));
     expect(res500.statusText).toBe('Internal Server Error');
+  });
+
+  it('statusText carries the reason phrase for less common codes', async () => {
+    const res406 = await executeRequest(makeConfig({ path: '/status/406' }));
+    expect(res406.statusText).toBe('Not Acceptable');
+
+    const res418 = await executeRequest(makeConfig({ path: '/status/418' }));
+    expect(res418.statusText).toBe("I'm a Teapot");
+  });
+
+  it('statusText uses the reason phrase the server sends', async () => {
+    const res = await executeRequest(makeConfig({ path: '/status/406-custom-reason' }));
+    expect(res.status).toBe(406);
+    expect(res.statusText).toBe('Invalid Media Type');
+  });
+
+  it('statusText falls back to the standard phrase when the server sends none', async () => {
+    // Node's http server always fills in a phrase, so write the status line by hand
+    const raw = net.createServer((socket) => {
+      socket.once('data', () => {
+        socket.end('HTTP/1.1 406 \r\nContent-Length: 0\r\nConnection: close\r\n\r\n');
+      });
+    });
+    const rawPort = await new Promise<number>((resolve) => {
+      raw.listen(0, '127.0.0.1', () => resolve((raw.address() as net.AddressInfo).port));
+    });
+    try {
+      const res = await executeRequest(makeConfig({ url: `http://127.0.0.1:${rawPort}/` }));
+      expect(res.status).toBe(406);
+      expect(res.statusText).toBe('Not Acceptable');
+    } finally {
+      await new Promise<void>((resolve) => raw.close(() => resolve()));
+    }
   });
 
   it('POST with Buffer body arrives correctly', async () => {

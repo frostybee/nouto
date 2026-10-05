@@ -17,6 +17,7 @@ All notable changes to the Nouto VS Code extension will be documented in this fi
 ### Fixed
 
 - Context menus in the sidebar are no longer cut off at the bottom of a short window. They stay inside the view and scroll when they are taller than it.
+- The response panel shows the HTTP reason phrase for every status code, for example `406 Not Acceptable`, and the server's own phrase when it sends one ([#1](https://github.com/frostybee/nouto/issues/1)).
 
 ## [1.6.1] - 2026-09-22
 
