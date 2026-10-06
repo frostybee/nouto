@@ -12,7 +12,7 @@
 
 <p align="center">
   <strong>An open source API client for VS Code and the desktop.</strong><br>
-  <em>"Nouto" (NOH-u-to) is Finnish for "fetch" or "pick up."</em>
+  <em>"Nouto" (NOH-u-to) is Finnish for "pickup", from noutaa, "to fetch."</em>
 </p>
 
 <p align="center">
@@ -23,7 +23,7 @@
   <a href="https://github.com/frostybee/nouto/issues/new/choose">Report a bug</a>
 </p>
 
-Nouto is an API client that runs inside VS Code or as its own desktop app. It sends HTTP, GraphQL, WebSocket, SSE, and gRPC requests, keeps them in collections you can commit to git, and lets you script and assert on responses. It also includes an OpenAPI editor with completions, linting, and a live documentation preview. It sits in the same space as Postman and Thunder Client. The VS Code extension and the desktop app are built from one codebase, so they look and behave the same.
+Nouto is an API client that runs inside VS Code or as its own desktop app. It sends HTTP, GraphQL, WebSocket, SSE, and gRPC requests, keeps them in collections you can commit to git, and lets you script and assert on responses. It also includes an OpenAPI editor with completions, linting, and a live documentation preview. It sits in the same space as Postman and Thunder Client. The VS Code extension and the desktop app are built from one codebase and share the same UI.
 
 <p align="center">
   <img src="media/screenshots/nouto-vscode.png" alt="Nouto running inside VS Code" width="800">
@@ -44,7 +44,7 @@ Nouto is an API client that runs inside VS Code or as its own desktop app. It se
 
 - HTTP with GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS, and custom methods
 - GraphQL over HTTP with variables, operation names, and schema introspection
-- GraphQL subscriptions over WebSocket (graphql-ws)
+- GraphQL subscriptions over WebSocket (`graphql-transport-ws` protocol)
 - WebSocket client with binary frames and auto-reconnect
 - Server-Sent Events with event filtering
 - gRPC with server reflection, proto file loading, unary and streaming calls
@@ -52,7 +52,7 @@ Nouto is an API client that runs inside VS Code or as its own desktop app. It se
 ### Collections and environments
 
 - Collections nest as deep as you want, with drag-and-drop reordering
-- Folders can carry auth, headers, and variables that requests inherit
+- Collections and folders can carry auth, headers, variables, scripts, and assertions that requests inherit
 - Environments with `{{variable}}` substitution, dynamic values, and response chaining
 - Link a `.env` file so its values are available in every request
 - Request history with full response data
@@ -61,7 +61,7 @@ Nouto is an API client that runs inside VS Code or as its own desktop app. It se
 ### Authentication
 
 - Basic, Bearer, API Key
-- OAuth 2.0 with PKCE
+- OAuth 2.0 with Authorization Code (optional PKCE), Client Credentials, Implicit, and Password grants
 - AWS Signature v4, NTLM, Digest
 
 ### Testing and automation
@@ -92,13 +92,14 @@ Nouto is an API client that runs inside VS Code or as its own desktop app. It se
 - Import from Postman, Insomnia, Thunder Client, Hoppscotch, Bruno, OpenAPI, HAR, and cURL
 - Mock server, cookie jar, command palette
 - SSL/TLS client certificates and proxy support
-- 26 built-in themes, and global or workspace storage for solo or team use
+- Global or workspace storage for solo or team use
+- 26 built-in themes in the desktop app (the VS Code extension follows your editor theme)
 
 ## Install
 
 ### VS Code
 
-Install from the [Marketplace](https://marketplace.visualstudio.com/items?itemName=frostybee-dev.nouto), or open the command palette and run:
+Install from the [Marketplace](https://marketplace.visualstudio.com/items?itemName=frostybee-dev.nouto), or open Quick Open (`Ctrl+P`, or `Cmd+P` on macOS) and run:
 
 ```text
 ext install frostybee-dev.nouto
@@ -122,7 +123,7 @@ node packages/cli/dist/bin/cli.js --help
 
 ## Usage
 
-Open the Nouto view from the activity bar. Type a URL, pick a method, and send. Save the request to a collection when you want to keep it. Add an environment to swap base URLs and tokens between local and production without editing requests.
+Open the Nouto view from the activity bar and click **New Request**. In VS Code, choose where to save the request first, or pick **No Collection (Quick Request)**. Type a URL, pick a method, and send. Save the request to a collection when you want to keep it. Add an environment to swap base URLs and tokens between local and production without editing requests.
 
 ### CLI commands
 

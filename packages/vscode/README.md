@@ -6,7 +6,7 @@
 
 <p align="center">
   <a href="https://marketplace.visualstudio.com/items?itemName=frostybee-dev.nouto"><img src="https://img.shields.io/visual-studio-marketplace/v/frostybee-dev.nouto" alt="VS Marketplace Version"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT"></a>
+  <a href="https://github.com/frostybee/nouto/blob/main/packages/vscode/LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT"></a>
   <img src="https://img.shields.io/badge/VS%20Code-%E2%89%A51.74.0-007acc" alt="VS Code Version">
 </p>
 
@@ -14,125 +14,143 @@
   <a href="https://github.com/frostybee/nouto"><strong>Repository</strong></a> ·
   <a href="https://github.com/frostybee/nouto/issues">Issues</a> ·
   <a href="https://marketplace.visualstudio.com/items?itemName=frostybee-dev.nouto">Marketplace</a> ·
-  <a href="https://nouto.dev">Documentation</a>
+  <a href="https://nouto.frostybee.dev">Documentation</a>
 </p>
 
 An open source API client for VS Code. Send HTTP, GraphQL, WebSocket, SSE, and gRPC requests, organize collections, chain responses, and test APIs without leaving your editor.
 
-> "Nouto" is Finnish for "fetch" or "pick up."
+> "Nouto" is Finnish for "pickup", from *noutaa*, "to fetch."
 
-![Nouto REST Client](https://raw.githubusercontent.com/frostybee/nouto/main/media/screenshots/nouto-vscode.png)
+![Nouto in VS Code: the collections sidebar, a GET request to the TVmaze API, and its JSON response](https://raw.githubusercontent.com/frostybee/nouto/main/media/screenshots/nouto-vscode.png)
+
+## Get started
+
+1. Install Nouto: search for **Nouto** in the Extensions view, or run `code --install-extension frostybee-dev.nouto`.
+2. Click the Nouto icon in the activity bar.
+3. Click **New Request**, then choose a collection to save it in, or **No Collection (Quick Request)**.
+4. Enter a URL and click **Send**, or press `Ctrl+Enter` (`Cmd+Enter` on macOS).
 
 ## Features
 
-### HTTP Requests
+### HTTP requests
 
-Any standard method or custom method. Body types: JSON, XML, form data, URL encoded, binary, plain text, and GraphQL. Query params, headers, and path params include autocomplete. Type `{{` in the body editor for variable autocomplete. `Ctrl+Enter` sends the request from any body editor.
+Send requests with any standard method or a custom one. Body types are JSON, Text, XML, Form Data, URL Encoded, Binary, and GraphQL. Header names autocomplete with descriptions, and typing `{{` in the URL, params, headers, or the JSON, Text, and XML body editors lists your variables. `Ctrl+Enter` (`Cmd+Enter` on macOS) sends the request from anywhere in the request panel.
 
-Authentication: Basic, Bearer, API Key, OAuth 2.0 (PKCE), AWS Signature v4, Digest, and NTLM. Auth defined at collection or folder level is inherited by child requests.
+Authentication types are Basic, Bearer, API Key, OAuth 2.0 (Authorization Code with optional PKCE, Client Credentials, Implicit, and Password), AWS Signature v4, Digest, and NTLM. A request inside a collection inherits auth from its folders and collection unless it sets its own.
 
 ![Sending a GET request, folding the JSON response, and opening the Headers, Timing, and Timeline tabs](https://raw.githubusercontent.com/frostybee/nouto/main/media/gifs/nouto-vscode/send-request.gif)
 
 ### Collections
 
-Unlimited folder nesting with drag-and-drop reordering. Collections define variables, headers, auth, and scripts that child requests inherit.
+Collections nest folders to any depth, and you can drag and drop requests and folders to reorganize them. Collections and folders define variables, headers, auth, scripts, and assertions that the requests inside them inherit.
 
-Two storage modes: **global** (VS Code global storage) or **workspace** (`.nouto/` directory, one file per request for clean git diffs). Undo/redo for request editing and collection tree operations. Soft delete with trash and 30-day auto-purge.
+Collections use one of two storage modes: **global** (VS Code global storage) or **workspace**, which saves each request as its own file under `.nouto/` for clean git diffs. Environments stay in global storage in both modes. Undo and redo cover request edits and collection tree changes. Deleted items go to the trash, which keeps them for 30 days.
 
 ![Creating a folder in a collection, dragging requests into it, reordering them, and adding a sub-folder](https://raw.githubusercontent.com/frostybee/nouto/main/media/gifs/nouto-vscode/collections.gif)
 
-### Environment Variables
+### Environment variables
 
-`{{variableName}}` substitution in URLs, headers, params, and bodies. Scope resolves from request to folder to collection to global. Secrets stored in VS Code SecretStorage. The status bar shows the active environment; click it to switch.
+Use `{{variableName}}` in URLs, params, headers, and bodies. When a name is defined in more than one place, the active environment takes precedence, then folder and collection variables, then global variables, then a linked `.env` file. Secret values are stored in VS Code SecretStorage. The status bar shows the active environment; click it to switch.
 
 ![A request using {{baseUrl}} fails on the Local environment, then succeeds after switching to Production from the status bar](https://raw.githubusercontent.com/frostybee/nouto/main/media/gifs/nouto-vscode/environments.gif)
 
-Dynamic variables: `{{$uuid.v4}}`, `{{$timestamp.unix}}`, `{{$random.int, 0, 100}}`, 60+ `{{$faker.*}}` generators for realistic mock data, `{{$prompt.keyName}}` for send-time input dialogs, and `{{$file.read, /path}}` for file content. Chain responses with `{{$response.body.token}}`. Import from `.env` files with live reload.
+Dynamic variables generate a value when the request is sent: `{{$uuid.v4}}`, `{{$timestamp.unix}}`, `{{$random.int, 0, 100}}`, more than 60 `{{$faker.*}}` generators for mock data, hashing and encoding helpers, `{{$prompt.keyName}}` to ask for a value before sending, and `{{$file.read, /path}}` to insert a file's content. `{{$response.body.token}}` reads a value from the previous response in the same tab, and the collection runner passes values between the requests it runs. Link a `.env` file to use its variables; Nouto reloads them when the file changes.
 
 ![Declaring baseUrl and showId in an environment, inserting them in the URL with {{ autocomplete, adding a {{$uuid.v4}} header, and the sent request showing the generated UUID](https://raw.githubusercontent.com/frostybee/nouto/main/media/gifs/nouto-vscode/variables.gif)
 
-### Real-time Protocols
+### Real-time protocols
 
-- **WebSocket:** text and binary messages, auto-reconnect, message history with search
-- **Server-Sent Events:** live event streams with type filtering and auto-reconnect
-- **GraphQL over HTTP:** queries and mutations with variables, operation names, and schema introspection
-- **GraphQL subscriptions:** over WebSocket (`graphql-ws` protocol)
-- **gRPC:** server reflection, proto file loading, all four call types, TLS/mTLS
+Besides HTTP, Nouto connects over these protocols:
+
+- WebSocket with text and binary messages, auto-reconnect, and session recording and replay
+- Server-Sent Events with event type filtering and auto-reconnect
+- GraphQL over HTTP with variables, operation names, and schema introspection
+- GraphQL subscriptions over WebSocket, using the `graphql-transport-ws` protocol of the graphql-ws library
+- gRPC with server reflection, proto file loading, all four call types, and TLS/mTLS
 
 ![Fetching a GraphQL schema, typing a query with schema-based completions, and sending it](https://raw.githubusercontent.com/frostybee/nouto/main/media/gifs/nouto-vscode/graphql.gif)
 
 ![Connecting to a WebSocket echo server, sending two messages, and disconnecting](https://raw.githubusercontent.com/frostybee/nouto/main/media/gifs/nouto-vscode/websocket.gif)
 
-### Testing and Automation
+### Testing and automation
 
-Pre-request and post-response JavaScript scripts with `nt.sendRequest()`, `nt.setVar()`, and `nt.test()`. Scripts inherit from parent collections.
+Pre-request and post-response scripts are written in JavaScript with the `nt` API, for example `nt.setVar()` and `nt.test()`. Scripts set on a collection or folder apply to every request inside it unless a request opts out.
 
-No code assertion editor covering status codes, headers, body, JSONPath, response time, and JSON Schema. The collection runner supports iterations, CSV/JSON data files, stop on failure, and exports as JUnit XML, JSON, CSV, or HTML. The benchmarking tool reports percentiles from p50 through p99, concurrency, and requests per second.
+A no-code assertion editor checks the status code, response time, response size, body, headers, content type, JSONPath values, and JSON Schema, and can save a response value to a variable. The collection runner runs every request in a collection, optionally once per row of a CSV or JSON data file. It can stop on the first failure and exports results as JUnit XML, JSON, CSV, or HTML. The benchmarking tool sends a request repeatedly at the concurrency you set and reports requests per second and latency percentiles from p50 to p99.
 
 ![Adding status code and response time tests, sending the request, and both tests passing](https://raw.githubusercontent.com/frostybee/nouto/main/media/gifs/nouto-vscode/assertions.gif)
 
-### Response Viewer
+### Response viewer
 
-Auto-detects content type: JSON and XML (collapsible tree), HTML (rendered), images, PDF, binary (hex dump). Download progress bar for large responses. Timing breakdown, redirect chain, and response examples.
+The viewer shows JSON and XML as collapsible trees, renders HTML (with a toggle to view the source), and displays images. PDF and other binary responses show their type and size and can be saved to a file. A progress bar tracks large downloads. Separate tabs show the timing breakdown, the redirect chain, and the request timeline, and you can save a response as an example on its request.
 
 ![The Timing tab breaking a response down into DNS lookup, TCP and TLS handshakes, waiting, and download](https://raw.githubusercontent.com/frostybee/nouto/main/media/gifs/nouto-vscode/timing.gif)
 
-JSON Explorer: tree and table views with virtual scrolling, query filter (`Ctrl+Shift+K`), JSONPath filter (`Ctrl+/`), compare/diff against a pasted document, type generation (TypeScript, Zod, Rust, Go, Python, JSON Schema), statistics panel, minimap, bookmarks, pinned nodes with live value previews, timestamp detection, multi-select with bulk copy/bookmark, and copy as JSON, YAML, CSV, TypeScript, Python, PHP array, or Markdown table.
+The JSON Explorer opens a JSON response in its own panel. It has:
+
+- Tree and table views; the tree uses virtual scrolling for large documents
+- A query filter (`Ctrl+Shift+K`) and a JSONPath filter (`Ctrl+/`); use `Cmd` instead of `Ctrl` on macOS
+- Comparison with a pasted document or a file
+- Type generation for TypeScript, Zod, Rust, Go, Python, and JSON Schema
+- A statistics panel, a minimap, bookmarks, and pinned nodes that show live values
+- Timestamp detection
+- Multi-select with bulk copy and bookmark
+- Copy as JSON, YAML, CSV, TypeScript, Python, PHP array, or Markdown table
 
 ### OpenAPI
 
-Author and preview OpenAPI 3.0, 3.1, and 3.2 specifications without leaving VS Code.
+Author and preview OpenAPI 3.0, 3.1, and 3.2 specifications in YAML or JSON:
 
-- **Editing**: schema-aware autocomplete with required-key scaffolding, hover documentation, go-to-definition for `$ref` (internal and external files), and document symbols for `Ctrl+Shift+O`
-- **Diagnostics**: YAML syntax errors, schema validation, semantic checks (duplicate operationId, missing path params), and 65 lint rules across eleven groups including OWASP API security checks. Each rule's severity is configurable; opt-in rules stay off until you enable them
-- **Quick fixes**: one-click code actions to resolve diagnostics inline, covering missing responses, unbounded parameters, insecure URLs, unused components, and more
-- **CodeLens**: a "Nouto: Try It" lens above every operation sends the request through the extension
-- **Outline sidebar**: structural tree with context-menu editing: add/delete paths, operations, servers, tags, security schemes (presets for API Key, Bearer, Basic, OAuth2, OpenID Connect), components, and webhooks. Explains parse failures inline and retains the last good tree
-- **Preview panel**: rendered API docs via Swagger UI or RapiDoc with built-in Try It (bypasses browser CORS) and theme control
-- **Example specs**: open a bundled Swagger Petstore spec (3.0 or 3.2) from the command palette or the outline
-- **Generation**: create a collection from an OpenAPI spec, generate a spec from a collection or a HAR file, infer JSON Schema from response bodies
+- Schema-aware autocomplete (in YAML it also fills in required keys), hover documentation, go-to-definition for `$ref` across files, and document symbols for `Ctrl+Shift+O` (`Cmd+Shift+O` on macOS)
+- Diagnostics for YAML syntax, schema validation, semantic checks (duplicate operationId, missing path parameters), and 65 lint rules in eleven groups, including OWASP API security checks. Set each rule's severity in Nouto's Settings; opt-in rules stay off until you give them one
+- Quick fixes for missing responses, unbounded parameters, insecure server URLs, unused components, and more
+- A **Nouto: Try It** CodeLens above every operation, which opens the operation as a new request
+- An outline view with context-menu editing for paths, operations, servers, tags, security schemes (API Key, HTTP Bearer, HTTP Basic, OAuth2 Authorization Code, and OpenID Connect presets), components, and webhooks. When the spec doesn't parse, the outline explains why and keeps the last valid tree
+- A preview panel that renders the spec with Swagger UI or RapiDoc, in a theme that follows VS Code or is set to light or dark. Its Try It requests go through the extension, so browser CORS rules don't block them
+- Bundled Swagger Petstore examples (3.0 and 3.2), opened from the Command Palette or the outline
+- Generators that create a collection from a spec, a spec from a collection or a HAR file, and a JSON Schema from a response body
 
 ![Adding an operation to an OpenAPI spec with completions, the outline updating, and the new operation in the Swagger UI preview](https://raw.githubusercontent.com/frostybee/nouto/main/media/gifs/nouto-vscode/openapi.gif)
 
-### Import and Export
+### Import and export
 
-Import from Postman, Insomnia, OpenAPI v3, HAR, cURL, Hoppscotch, Thunder Client, Bruno, Nouto native format, and URL (auto-detect). Export to Postman, HAR, and Nouto native format, with bulk export. Full backup and restore saves all app data (collections, environments, cookies, history, settings) to a single `.nouto-backup` file. Request history is also importable and exportable independently.
+Import collections from Postman, Insomnia, OpenAPI 3, HAR, cURL, Hoppscotch, Thunder Client, Bruno, and Nouto files, or from a URL; Nouto detects the format. Postman environments can be imported too.
+
+Export a collection to Postman, Nouto, or OpenAPI format from its context menu, or as HAR with the Export as HAR command in the Command Palette. Bulk export writes several collections to Postman or Nouto format.
+
+A backup saves collections, environments, cookies, history, settings, drafts, trash, runner history, and mock server routes to one `.nouto-backup` file, and you choose which parts to include. Secrets in VS Code SecretStorage are not included. History can also be exported (JSON or CSV) and imported (JSON) on its own.
 
 ![Importing a Postman collection file and sending one of its requests](https://raw.githubusercontent.com/frostybee/nouto/main/media/gifs/nouto-vscode/postman-import.gif)
 
-### Developer Tools
+### Developer tools
 
-- Code generation: cURL, JavaScript Fetch, JavaScript Axios, Python, C#, Go, Java, PHP, Swift, Dart, PowerShell, and TypeScript types
-- Command palette with fuzzy search and frecency-based ranking
-- Request history with search, filtering, sort, and export
-- Cookie jar with multiple named jars and domain matching
-- Mock server with configurable routes, response headers, and latency simulation
-- Onboarding: welcome screen with a sample httpbin.org collection and contextual hints
+Nouto also includes:
+
+- Code generation for cURL, JavaScript (Fetch and Axios), Python (Requests), C# (HttpClient), Go (net/http), Java (HttpClient), PHP (cURL), Swift (URLSession), Dart (http), PowerShell, and TypeScript types
+- A command palette with fuzzy search that ranks items by how often and how recently you use them
+- Request history with search, filters, sorting, and export
+- Multiple named cookie jars with domain matching
+- A mock server with configurable routes, response headers, and simulated latency
+- A welcome screen with a sample httpbin.org collection, and contextual hints for first-time use
 - Customizable keyboard shortcuts
 
 ![Generating code for a request in cURL, Python, JavaScript, and C#](https://raw.githubusercontent.com/frostybee/nouto/main/media/gifs/nouto-vscode/codegen.gif)
 
 ### Configuration
 
-- SSL/TLS: custom CA, client certificates, mTLS, global `rejectUnauthorized` toggle with per-request override
-- Proxy: HTTP, HTTPS, SOCKS5 with authentication and per-request override
-- URL auto-correction for malformed URLs
-- Configurable timeouts and redirect behavior
+These options live in Nouto's Settings page (the gear icon in the API Testing view's title bar). Each request can override the certificate, proxy, timeout, and redirect settings in its Settings tab.
 
-## Installation
+- Custom CA certificates, client certificates for mTLS, and certificate verification on or off
+- HTTP, HTTPS, and SOCKS5 proxies with authentication and a bypass list
+- Timeouts, and whether to follow redirects and how many
+- URL correction that adds a missing `https://` or fixes `http:/`, offered as a suggestion unless you turn on automatic correction
 
-Search for **Nouto** in the VS Code Extensions view, or run:
+## Desktop app
 
-```bash
-code --install-extension frostybee-dev.nouto
-```
-
-## Desktop App
-
-Nouto also ships as a standalone desktop app built with Tauri 2.0, running natively on Windows, macOS, and Linux.
+Nouto also ships as a standalone desktop app built with Tauri 2.0. Download it for Windows (x64), macOS (Apple Silicon and Intel), or Linux (x64) from the [releases page](https://github.com/frostybee/nouto/releases).
 
 ## License
 
 Copyright (c) 2026 FrostyBee.
 
-Nouto is licensed under the [MIT License](LICENSE).
+Nouto is licensed under the [MIT License](https://github.com/frostybee/nouto/blob/main/packages/vscode/LICENSE).
