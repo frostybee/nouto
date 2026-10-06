@@ -45,9 +45,11 @@ Two storage modes: **global** (VS Code global storage) or **workspace** (`.nouto
 
 `{{variableName}}` substitution in URLs, headers, params, and bodies. Scope resolves from request to folder to collection to global. Secrets stored in VS Code SecretStorage. The status bar shows the active environment; click it to switch.
 
+![A request using {{baseUrl}} fails on the Local environment, then succeeds after switching to Production from the status bar](https://raw.githubusercontent.com/frostybee/nouto/main/media/gifs/nouto-vscode/environments.gif)
+
 Dynamic variables: `{{$uuid.v4}}`, `{{$timestamp.unix}}`, `{{$random.int, 0, 100}}`, 60+ `{{$faker.*}}` generators for realistic mock data, `{{$prompt.keyName}}` for send-time input dialogs, and `{{$file.read, /path}}` for file content. Chain responses with `{{$response.body.token}}`. Import from `.env` files with live reload.
 
-![A request using {{baseUrl}} fails on the Local environment, then succeeds after switching to Production from the status bar](https://raw.githubusercontent.com/frostybee/nouto/main/media/gifs/nouto-vscode/environments.gif)
+![Declaring baseUrl and showId in an environment, inserting them in the URL with {{ autocomplete, adding a {{$uuid.v4}} header, and the sent request showing the generated UUID](https://raw.githubusercontent.com/frostybee/nouto/main/media/gifs/nouto-vscode/variables.gif)
 
 ### Real-time Protocols
 

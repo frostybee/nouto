@@ -562,3 +562,127 @@ test('#10 response timing breakdown', async () => {
     await recording.stop('vscode-timing', { holdMs: 1500 });
   });
 });
+
+test('#11 declaring and using variables', async () => {
+  // An active environment with no variables yet: the GIF declares them. The
+  // Environments panel's own "Set active" doesn't reach requests, so seed it
+  const tvmaze = environment('TVmaze', {}, '#2196F3');
+
+  await withVsCode(
+    'vscode-variables',
+    { collapseSample: true, environments: { environments: [tvmaze], activeId: tvmaze.id } },
+    async (page, sidebar) => {
+      await placeCursor(page, 760, 360);
+      const recording = await startRecording(page);
+      await pause(page, 600);
+
+      // 1. Open the Environments panel from the status bar picker
+      await click(page, page.locator('.statusbar-item', { hasText: 'TVmaze' }).first(), 20);
+      const manage = page.locator('.quick-input-widget .monaco-list-row', { hasText: 'Manage Environments' });
+      await manage.waitFor();
+      await pause(page, 400);
+      await click(page, manage, 14);
+      const envPanel = await frameWith(page, '.env-item');
+      const tvmazeItem = envPanel.locator('.env-item', { hasText: 'TVmaze' }).first();
+      if (!(await tvmazeItem.evaluate((el) => el.classList.contains('selected')))) await click(page, tvmazeItem, 16);
+      await pause(page, 400);
+
+      // 2. Declare baseUrl and showId, then save
+      await click(page, envPanel.locator('.add-btn', { hasText: 'Add Item' }), 14);
+      const rows = envPanel.locator('.kv-row');
+      await click(page, rows.nth(0).locator('input.key-input'), 10);
+      await typeText(page, 'baseUrl', 80);
+      await click(page, rows.nth(0).locator('.col-value input[placeholder="Value"]'), 10);
+      await pasteText(page, 'https://api.tvmaze.com');
+      await pause(page, 400);
+      // Enter in the last row adds a row and focuses its name
+      await page.keyboard.press('Enter');
+      await rows.nth(1).waitFor();
+      await typeText(page, 'showId', 80);
+      await click(page, rows.nth(1).locator('.col-value input[placeholder="Value"]'), 10);
+      await typeText(page, '1', 80);
+      await pause(page, 300);
+      const save = envPanel.locator('button.save-btn');
+      await click(page, save, 14);
+      await expect(save).toBeDisabled();
+      await pause(page, 600);
+
+      // 3. A new request
+      await click(page, sidebar.locator('.new-request-button'), 18);
+      const quickRequest = quickRequestItem(page);
+      await quickRequest.waitFor();
+      await pause(page, 300);
+      await click(page, quickRequest, 12);
+      const panel = await frameWith(page, '.url-input');
+      await expect(panel.locator('.url-input')).toBeVisible();
+      await pause(page, 300);
+      if (await panel.locator('.panels.horizontal').count()) {
+        await click(page, panel.locator('.layout-toggle-btn'), 14);
+        await pause(page, 400);
+      }
+
+      // 4. {{ lists the environment's variables with their values
+      const urlInput = panel.locator('.url-input');
+      await click(page, urlInput, 14);
+      await typeText(page, '{{', 120);
+      await panel.locator('.url-var-item.selected', { hasText: 'baseUrl' }).waitFor();
+      await pause(page, 900);
+      await page.keyboard.press('Enter');
+      await typeText(page, '/shows/', 70);
+      await typeText(page, '{{sh', 100);
+      await panel.locator('.url-var-item.selected', { hasText: 'showId' }).waitFor();
+      await pause(page, 600);
+      await page.keyboard.press('Enter');
+      await expect(urlInput).toHaveValue('{{baseUrl}}/shows/{{showId}}');
+      await pause(page, 300);
+
+      // 5. The indicator turns green; its tooltip names the resolved variables
+      await moveTo(page, panel.locator('.url-input-wrapper .variable-indicator'), 12);
+      await expect(
+        panel.locator('.url-input-wrapper .tooltip-wrapper:has(.variable-indicator) .tooltip.ready')
+      ).toContainText('Resolved: baseUrl, showId');
+      await pause(page, 1300);
+
+      // 6. A header with a dynamic variable. New requests start with a
+      // User-Agent header, so the editor shows "Add" below the rows
+      await click(page, panel.locator('section.request-panel .panel-tab', { hasText: /^\s*Headers/ }).first(), 16);
+      await pause(page, 300);
+      const addHeader = panel.locator('section.request-panel .add-row-btn, section.request-panel .add-btn:has-text("Add Item")').first();
+      await click(page, addHeader, 12);
+      const headerRow = panel.locator('section.request-panel .kv-row').last();
+      const headerName = headerRow.locator('input[placeholder="Header"]');
+      await click(page, headerName, 10);
+      await typeText(page, 'X-Req', 100);
+      await panel.locator('.autocomplete-dropdown .suggestion-item', { hasText: 'X-Request-ID' }).first().waitFor();
+      await pause(page, 400);
+      await page.keyboard.press('ArrowDown');
+      await pause(page, 200);
+      await page.keyboard.press('Enter');
+      await expect(headerName).toHaveValue('X-Request-ID');
+      const headerValue = headerRow.locator('.col-value input[placeholder="Value"]');
+      await click(page, headerValue, 10);
+      await typeText(page, '{{$uuid', 100);
+      await panel.locator('.var-dropdown .var-item.selected', { hasText: '$uuid.v4' }).waitFor();
+      await pause(page, 800);
+      await page.keyboard.press('Enter');
+      await expect(headerValue).toHaveValue('{{$uuid.v4}}');
+      await moveTo(page, headerRow.locator('.col-indicator .variable-indicator'), 12);
+      await pause(page, 1100);
+
+      // 7. Send; the request headers show the UUID that was generated
+      await click(page, panel.locator('.send-button-wrapper .send-button'), 16);
+      await expect(panel.locator('.response-header .status')).toHaveText(/200\s+OK/, { timeout: 30000 });
+      await pause(page, 700);
+      await click(page, panel.locator('.response-panel .panel-tab', { hasText: /^\s*Headers\b/ }).first(), 14);
+      const requestHeaders = panel.locator('.response-panel .section-header', { hasText: 'Request Headers' }).first();
+      await requestHeaders.waitFor();
+      await pause(page, 300);
+      await requestHeaders.evaluate((el) => el.scrollIntoView({ block: 'start', behavior: 'smooth' }));
+      await pause(page, 700);
+      await moveTo(page, panel.locator('tr.header-row', { hasText: 'X-Request-ID' }).first().locator('td.header-value'), 12);
+      await pause(page, 1800);
+
+      await recording.stop('vscode-variables', { holdMs: 1500 });
+    }
+  );
+});
