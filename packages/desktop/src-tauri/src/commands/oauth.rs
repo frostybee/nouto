@@ -3,6 +3,7 @@
 
 use crate::error::AppError;
 use crate::models::types::{OAuth2Config, OAuth2GrantType, OAuthToken};
+use crate::services::request_error::describe_reqwest_error;
 use chrono::Utc;
 use serde_json::json;
 use std::sync::Arc;
@@ -295,7 +296,12 @@ async fn exchange_code_for_token(
         .form(&params)
         .send()
         .await
-        .map_err(|e| AppError::OAuth(format!("Token exchange failed: {}", e)))?;
+        .map_err(|e| {
+            AppError::OAuth(format!(
+                "Token exchange failed: {}",
+                describe_reqwest_error(&e)
+            ))
+        })?;
 
     let json: serde_json::Value = resp
         .json()
@@ -538,7 +544,12 @@ async fn handle_client_credentials_flow(
         .form(&params)
         .send()
         .await
-        .map_err(|e| AppError::OAuth(format!("Client credentials request failed: {}", e)))?;
+        .map_err(|e| {
+            AppError::OAuth(format!(
+                "Client credentials request failed: {}",
+                describe_reqwest_error(&e)
+            ))
+        })?;
 
     let json: serde_json::Value = resp
         .json()
@@ -602,7 +613,12 @@ async fn handle_password_flow(config: OAuth2Config, app: AppHandle) -> Result<()
         .form(&params)
         .send()
         .await
-        .map_err(|e| AppError::OAuth(format!("Password grant request failed: {}", e)))?;
+        .map_err(|e| {
+            AppError::OAuth(format!(
+                "Password grant request failed: {}",
+                describe_reqwest_error(&e)
+            ))
+        })?;
 
     let json: serde_json::Value = resp
         .json()
@@ -660,7 +676,12 @@ pub async fn refresh_oauth_token(
         .form(&params)
         .send()
         .await
-        .map_err(|e| AppError::OAuth(format!("Token refresh failed: {}", e)))?;
+        .map_err(|e| {
+            AppError::OAuth(format!(
+                "Token refresh failed: {}",
+                describe_reqwest_error(&e)
+            ))
+        })?;
 
     let json: serde_json::Value = resp
         .json()

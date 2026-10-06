@@ -5,6 +5,7 @@ use crate::models::types::{
     ContentCategory, HttpMethod, KeyValue, ProxyConfig, ProxyProtocol, RedirectHop, ResponseData,
     SslConfig, TimelineEvent, TimelineEventCategory, TimingData,
 };
+use crate::services::request_error::describe_reqwest_error;
 use base64::{engine::general_purpose::STANDARD as BASE64, Engine as _};
 use futures::StreamExt;
 use reqwest::{Client, Method, Request, Response, StatusCode};
@@ -295,7 +296,7 @@ impl HttpClient {
         let mut response = effective_client
             .execute(request)
             .await
-            .map_err(|e| format!("Request failed: {}", e))?;
+            .map_err(|e| format!("Request failed: {}", describe_reqwest_error(&e)))?;
 
         timing.ttfb = ttfb_start.elapsed().as_millis() as i64;
 
@@ -405,7 +406,7 @@ impl HttpClient {
             response = effective_client
                 .execute(redirect_request)
                 .await
-                .map_err(|e| format!("Redirect request failed: {}", e))?;
+                .map_err(|e| format!("Redirect request failed: {}", describe_reqwest_error(&e)))?;
 
             redirect_count += 1;
         }

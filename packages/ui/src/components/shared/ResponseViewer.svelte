@@ -195,7 +195,8 @@
   // Extract failed hostname from raw error for contextual display
   const failedHost = $derived.by(() => {
     if (!error || !data || typeof data !== 'string') return null;
-    const hostMatch = data.match(/(?:ENOTFOUND|ECONNREFUSED|ECONNRESET|ETIMEDOUT|ENETUNREACH)\s+(\S+)/i);
+    // Several failed addresses are joined with "; " (localhost tries ::1 and 127.0.0.1)
+    const hostMatch = data.match(/(?:ENOTFOUND|ECONNREFUSED|ECONNRESET|ETIMEDOUT|ENETUNREACH)\s+([^\s;]+)/i);
     return hostMatch ? hostMatch[1] : null;
   });
 

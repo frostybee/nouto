@@ -3,6 +3,7 @@ import * as https from 'https';
 import * as crypto from 'crypto';
 import { URL, URLSearchParams } from 'url';
 import type { OAuth2Config, OAuthToken } from '../types';
+import { toReadableError } from '../utils/errors';
 
 export class OAuthService {
   private callbackServer: http.Server | null = null;
@@ -278,7 +279,7 @@ export class OAuthService {
         (res) => {
           let data = '';
           res.on('data', (chunk: Buffer) => { data += chunk.toString(); });
-          res.on('error', (err: Error) => reject(err));
+          res.on('error', (err: Error) => reject(toReadableError(err)));
           res.on('end', () => {
             try {
               const json = JSON.parse(data);
@@ -303,7 +304,7 @@ export class OAuthService {
         }
       );
 
-      req.on('error', reject);
+      req.on('error', (err) => reject(toReadableError(err)));
       req.write(body);
       req.end();
     });

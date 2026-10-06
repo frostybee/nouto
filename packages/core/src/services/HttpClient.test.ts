@@ -260,6 +260,18 @@ describe('HttpClient - executeRequest', () => {
     })).rejects.toThrow();
   });
 
+  it('names a refused connection to localhost', async () => {
+    // localhost resolves to ::1 and 127.0.0.1; Node reports both failures as
+    // an AggregateError with an empty message
+    await expect(executeRequest({
+      method: 'GET',
+      url: 'http://localhost:1',
+      headers: {},
+      params: {},
+      timeout: 5000,
+    })).rejects.toThrow(/ECONNREFUSED/);
+  }, 10000);
+
   it('follows redirects (302 -> 200)', async () => {
     const res = await executeRequest(makeConfig({ path: '/redirect' }));
     expect(res.status).toBe(200);

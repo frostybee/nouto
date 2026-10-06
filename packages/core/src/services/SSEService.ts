@@ -2,6 +2,7 @@ import * as http from 'http';
 import * as https from 'https';
 import type { SSEConfig, SSEEvent, SSEConnectionStatus } from '../types';
 import { generateId } from '../types';
+import { describeError } from '../utils/errors';
 
 export class SSEService {
   private request: http.ClientRequest | null = null;
@@ -89,7 +90,7 @@ export class SSEService {
         if (failedRequest) {
           failedRequest.destroy();
         }
-        this.setStatus('error', err.message);
+        this.setStatus('error', describeError(err));
         if (config.autoReconnect) {
           this.scheduleReconnect();
         }
@@ -97,7 +98,7 @@ export class SSEService {
 
       this.request.end();
     } catch (err: any) {
-      this.setStatus('error', err?.message || 'Connection failed');
+      this.setStatus('error', err ? describeError(err) : 'Connection failed');
     }
   }
 

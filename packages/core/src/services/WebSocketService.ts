@@ -1,5 +1,6 @@
 import type { WebSocketConfig, WebSocketMessage, WebSocketMessageType, WebSocketConnectionStatus } from '../types';
 import { generateId } from '../types';
+import { describeError } from '../utils/errors';
 import WebSocket from 'ws';
 
 export class WebSocketService {
@@ -57,12 +58,12 @@ export class WebSocketService {
       });
 
       this.ws.on('error', (err: Error) => {
-        this.setStatus('error', err.message);
+        this.setStatus('error', describeError(err));
         this.intentionalDisconnect = true;
         this.ws?.close();
       });
     } catch (err: any) {
-      this.setStatus('error', err?.message || 'Connection failed');
+      this.setStatus('error', err ? describeError(err) : 'Connection failed');
     }
   }
 

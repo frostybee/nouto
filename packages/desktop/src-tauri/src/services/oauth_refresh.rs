@@ -1,3 +1,4 @@
+use crate::services::request_error::describe_reqwest_error;
 use chrono::Utc;
 
 /// Refresh an OAuth2 access token using the refresh_token grant
@@ -24,7 +25,12 @@ pub async fn refresh_oauth_token(
         .form(&params)
         .send()
         .await
-        .map_err(|e| format!("Token refresh request failed: {}", e))?;
+        .map_err(|e| {
+            format!(
+                "Token refresh request failed: {}",
+                describe_reqwest_error(&e)
+            )
+        })?;
 
     let json: serde_json::Value = resp
         .json()

@@ -1,5 +1,6 @@
 import type { GqlSubConfig, GqlSubStatus, GqlSubEvent } from '../types';
 import { generateId } from '../types';
+import { describeError } from '../utils/errors';
 import WebSocket from 'ws';
 
 // graphql-ws protocol message types (https://github.com/enisdenjo/graphql-ws/blob/master/PROTOCOL.md)
@@ -103,11 +104,11 @@ export class GraphQLSubscriptionService {
 
       this.ws.on('error', (err: Error) => {
         this.clearAckTimer();
-        this.setStatus('error', err.message);
+        this.setStatus('error', describeError(err));
         this.ws?.close();
       });
     } catch (err: any) {
-      this.setStatus('error', err?.message || 'Connection failed');
+      this.setStatus('error', err ? describeError(err) : 'Connection failed');
     }
   }
 

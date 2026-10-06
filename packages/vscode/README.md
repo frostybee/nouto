@@ -31,17 +31,23 @@ Any standard method or custom method. Body types: JSON, XML, form data, URL enco
 
 Authentication: Basic, Bearer, API Key, OAuth 2.0 (PKCE), AWS Signature v4, Digest, and NTLM. Auth defined at collection or folder level is inherited by child requests.
 
+![Sending a GET request, folding the JSON response, and opening the Headers, Timing, and Timeline tabs](https://raw.githubusercontent.com/frostybee/nouto/main/media/gifs/nouto-vscode/send-request.gif)
+
 ### Collections
 
 Unlimited folder nesting with drag-and-drop reordering. Collections define variables, headers, auth, and scripts that child requests inherit.
 
 Two storage modes: **global** (VS Code global storage) or **workspace** (`.nouto/` directory, one file per request for clean git diffs). Undo/redo for request editing and collection tree operations. Soft delete with trash and 30-day auto-purge.
 
+![Creating a folder in a collection, dragging requests into it, reordering them, and adding a sub-folder](https://raw.githubusercontent.com/frostybee/nouto/main/media/gifs/nouto-vscode/collections.gif)
+
 ### Environment Variables
 
 `{{variableName}}` substitution in URLs, headers, params, and bodies. Scope resolves from request to folder to collection to global. Secrets stored in VS Code SecretStorage. The status bar shows the active environment; click it to switch.
 
 Dynamic variables: `{{$uuid.v4}}`, `{{$timestamp.unix}}`, `{{$random.int, 0, 100}}`, 60+ `{{$faker.*}}` generators for realistic mock data, `{{$prompt.keyName}}` for send-time input dialogs, and `{{$file.read, /path}}` for file content. Chain responses with `{{$response.body.token}}`. Import from `.env` files with live reload.
+
+![A request using {{baseUrl}} fails on the Local environment, then succeeds after switching to Production from the status bar](https://raw.githubusercontent.com/frostybee/nouto/main/media/gifs/nouto-vscode/environments.gif)
 
 ### Real-time Protocols
 
@@ -51,15 +57,23 @@ Dynamic variables: `{{$uuid.v4}}`, `{{$timestamp.unix}}`, `{{$random.int, 0, 100
 - **GraphQL subscriptions:** over WebSocket (`graphql-ws` protocol)
 - **gRPC:** server reflection, proto file loading, all four call types, TLS/mTLS
 
+![Fetching a GraphQL schema, typing a query with schema-based completions, and sending it](https://raw.githubusercontent.com/frostybee/nouto/main/media/gifs/nouto-vscode/graphql.gif)
+
+![Connecting to a WebSocket echo server, sending two messages, and disconnecting](https://raw.githubusercontent.com/frostybee/nouto/main/media/gifs/nouto-vscode/websocket.gif)
+
 ### Testing and Automation
 
 Pre-request and post-response JavaScript scripts with `nt.sendRequest()`, `nt.setVar()`, and `nt.test()`. Scripts inherit from parent collections.
 
 No code assertion editor covering status codes, headers, body, JSONPath, response time, and JSON Schema. The collection runner supports iterations, CSV/JSON data files, stop on failure, and exports as JUnit XML, JSON, CSV, or HTML. The benchmarking tool reports percentiles from p50 through p99, concurrency, and requests per second.
 
+![Adding status code and response time tests, sending the request, and both tests passing](https://raw.githubusercontent.com/frostybee/nouto/main/media/gifs/nouto-vscode/assertions.gif)
+
 ### Response Viewer
 
 Auto-detects content type: JSON and XML (collapsible tree), HTML (rendered), images, PDF, binary (hex dump). Download progress bar for large responses. Timing breakdown, redirect chain, and response examples.
+
+![The Timing tab breaking a response down into DNS lookup, TCP and TLS handshakes, waiting, and download](https://raw.githubusercontent.com/frostybee/nouto/main/media/gifs/nouto-vscode/timing.gif)
 
 JSON Explorer: tree and table views with virtual scrolling, query filter (`Ctrl+Shift+K`), JSONPath filter (`Ctrl+/`), compare/diff against a pasted document, type generation (TypeScript, Zod, Rust, Go, Python, JSON Schema), statistics panel, minimap, bookmarks, pinned nodes with live value previews, timestamp detection, multi-select with bulk copy/bookmark, and copy as JSON, YAML, CSV, TypeScript, Python, PHP array, or Markdown table.
 
@@ -76,9 +90,13 @@ Author and preview OpenAPI 3.0, 3.1, and 3.2 specifications without leaving VS C
 - **Example specs**: open a bundled Swagger Petstore spec (3.0 or 3.2) from the command palette or the outline
 - **Generation**: create a collection from an OpenAPI spec, generate a spec from a collection or a HAR file, infer JSON Schema from response bodies
 
+![Adding an operation to an OpenAPI spec with completions, the outline updating, and the new operation in the Swagger UI preview](https://raw.githubusercontent.com/frostybee/nouto/main/media/gifs/nouto-vscode/openapi.gif)
+
 ### Import and Export
 
 Import from Postman, Insomnia, OpenAPI v3, HAR, cURL, Hoppscotch, Thunder Client, Bruno, Nouto native format, and URL (auto-detect). Export to Postman, HAR, and Nouto native format, with bulk export. Full backup and restore saves all app data (collections, environments, cookies, history, settings) to a single `.nouto-backup` file. Request history is also importable and exportable independently.
+
+![Importing a Postman collection file and sending one of its requests](https://raw.githubusercontent.com/frostybee/nouto/main/media/gifs/nouto-vscode/postman-import.gif)
 
 ### Developer Tools
 
@@ -89,6 +107,8 @@ Import from Postman, Insomnia, OpenAPI v3, HAR, cURL, Hoppscotch, Thunder Client
 - Mock server with configurable routes, response headers, and latency simulation
 - Onboarding: welcome screen with a sample httpbin.org collection and contextual hints
 - Customizable keyboard shortcuts
+
+![Generating code for a request in cURL, Python, JavaScript, and C#](https://raw.githubusercontent.com/frostybee/nouto/main/media/gifs/nouto-vscode/codegen.gif)
 
 ### Configuration
 

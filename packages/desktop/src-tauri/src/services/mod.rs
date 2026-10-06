@@ -9,6 +9,7 @@ pub mod history_storage;
 pub mod http_client;
 pub mod ntlm_auth;
 pub mod oauth_refresh;
+pub mod request_error;
 pub mod request_executor;
 pub mod runner_history;
 pub mod script_engine;

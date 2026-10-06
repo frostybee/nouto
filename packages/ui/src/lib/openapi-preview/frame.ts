@@ -122,7 +122,8 @@ export function buildFrameDocument(assets: FrameAssets, channel: string, hostNon
     var entry = pending[data.id];
     if (!entry) return;
     delete pending[data.id];
-    if (data.error) { entry.reject(new TypeError(String(data.error))); return; }
+    // An empty error message is still an error; never fake a 200 for it
+    if (data.error != null || !data.response) { entry.reject(new TypeError(String(data.error || 'Request failed'))); return; }
     var res = data.response || {};
     var bodyInit;
     if (res.bodyEncoding === 'base64') {

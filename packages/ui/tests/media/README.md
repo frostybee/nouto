@@ -84,6 +84,8 @@ GIFs are written to `tests/media/output/` (ignored by git), one per test in `gif
    pnpm -F @nouto/ui run media:vscode-gifs -g "#3"
    ```
 
+The extension README shows these GIFs from `media/gifs/nouto-vscode/` at the repository root, loaded from GitHub's `main` branch. After re-recording one, copy it there under its README name (for example `output/vscode-environments.gif` to `environments.gif`) and push it.
+
 Each test seeds Nouto's data before it opens a window (`state.ts`): the baseline collections and environments from `fixtures/nouto-state/`, empty Drafts and history, plus any collections, environments, or workspace files the GIF needs from `fixtures/workspace/`. The run then trusts the demo folder, marks onboarding as done, and closes leftover editors and notifications. The OpenAPI GIF also turns off OpenAPI linting in Nouto's settings, so lint squiggles don't cover the demo.
 
 Playwright keeps its browser profile in `D:\tmp\nouto-media\browser`. Under serve-web, Nouto's settings and the workbench layout are stored in that profile too, so the preparation steps are quick after the first run. If a run fails, it saves `output/<name>.failure.png`. Override the server URL, browser profile, Nouto storage folder, or workspace folder with `NOUTO_MEDIA_VSCODE_URL`, `NOUTO_MEDIA_BROWSER_DIR`, `NOUTO_MEDIA_STORAGE_DIR`, and `NOUTO_MEDIA_WORKSPACE_DIR`.

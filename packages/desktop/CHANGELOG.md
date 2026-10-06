@@ -25,6 +25,8 @@ All notable changes to the Nouto desktop app will be documented in this file.
 
 - Response JSON key order is now preserved from the wire (enabled `serde_json` `preserve_order`); previously the Rust backend silently alphabetized all object keys
 - Benchmark now correctly substitutes collection-scoped and folder-scoped variables
+- A request that can't connect shows the categorized error view, for example **Connection refused** with a suggestion, and its error text names the cause instead of stopping at "error sending request for url". OAuth token requests and OpenAPI preview requests report the cause the same way
+- The GraphQL query editor no longer overlaps the Variables section when the request pane is short; the tab content scrolls instead
 - Various UI improvements and bug fixes
 
 ## [0.0.1] - 2026-03-23

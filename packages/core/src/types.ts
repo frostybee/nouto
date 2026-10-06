@@ -757,6 +757,15 @@ export interface RedirectHop {
   timestamp: number;
 }
 
+export type ErrorCategory = 'network' | 'timeout' | 'dns' | 'ssl' | 'connection' | 'server' | 'unknown';
+
+/** What went wrong with a failed request, shown in the response panel's error view. */
+export interface ErrorInfo {
+  category: ErrorCategory;
+  message: string;
+  suggestion: string;
+}
+
 export interface ResponseData {
   status: number;
   statusText: string;
@@ -765,6 +774,7 @@ export interface ResponseData {
   duration: number;
   size: number;
   error?: boolean;
+  errorInfo?: ErrorInfo;
   timing?: TimingData;
   contentCategory?: ContentCategory;
   httpVersion?: string;

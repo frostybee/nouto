@@ -2,6 +2,14 @@
 
 All notable changes to the Nouto VS Code extension will be documented in this file.
 
+## [1.6.4] - 2026-10-06
+
+### Fixed
+
+- A request to a `localhost` port where nothing is listening shows **Connection refused** with the error text and a suggestion, instead of "An unknown error occurred". The collection runner, benchmarks, GraphQL schema fetches, OAuth token requests, and WebSocket and SSE connections also report the cause instead of an empty error.
+- **Try it** in the OpenAPI preview reports a failed connection as an error instead of an empty `200` response.
+- The GraphQL query editor no longer overlaps the Variables section when the request pane is short. The tab content scrolls instead.
+
 ## [1.6.3] - 2026-10-05
 
 ### Added

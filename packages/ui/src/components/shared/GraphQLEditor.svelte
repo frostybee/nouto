@@ -316,7 +316,9 @@
   .graphql-content {
     display: flex;
     flex: 1;
-    min-height: 0;
+    /* Room for the query editor, variables, and operation name. A shorter pane
+       scrolls the tab content, as the other body editors do */
+    min-height: 24rem;
     gap: 0.615rem;
   }
 
@@ -339,6 +341,9 @@
     gap: 0.923rem;
     flex: 1;
     min-height: 0;
+    /* In a short pane the sections scroll as a group instead of overlapping */
+    overflow-x: hidden;
+    overflow-y: auto;
   }
 
   .section {
@@ -348,8 +353,7 @@
   }
 
   .section:first-child {
-    flex: 1;
-    min-height: 0;
+    flex: 1 0 auto;
   }
 
   .section-header {
@@ -373,8 +377,8 @@
   }
 
   .cm-query-container {
-    flex: 1;
-    min-height: 9.231rem;
+    /* A definite basis, so a long query scrolls inside CodeMirror instead of growing the section */
+    flex: 1 0 9.231rem;
     overflow: hidden;
     border: 1px solid var(--hf-input-border, var(--hf-panel-border));
     border-radius: 0.308rem;

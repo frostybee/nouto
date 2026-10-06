@@ -8,6 +8,7 @@ import { HttpProxyAgent } from 'http-proxy-agent';
 import { HttpsProxyAgent } from 'https-proxy-agent';
 import { SocksProxyAgent } from 'socks-proxy-agent';
 import type { TimingData, TimelineEvent, RedirectHop } from '../types';
+import { toReadableError } from '../utils/errors';
 
 export interface HttpRequestConfig {
   method: string;
@@ -450,7 +451,20 @@ function executeHttp1(
 
 // ---------- Public API ----------
 
+/**
+ * Sends a request. Rejects with an Error that always has a message: Node's
+ * empty-message AggregateError for a refused multi-address connect (localhost)
+ * gets its inner errors' messages.
+ */
 export async function executeRequest(config: HttpRequestConfig): Promise<HttpResponse> {
+  try {
+    return await executeRequestImpl(config);
+  } catch (error) {
+    throw toReadableError(error);
+  }
+}
+
+async function executeRequestImpl(config: HttpRequestConfig): Promise<HttpResponse> {
   const url = buildRequestUrl(config.url, config.params);
   const method = config.method.toUpperCase();
   const headers = { ...config.headers };

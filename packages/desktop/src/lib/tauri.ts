@@ -7,6 +7,7 @@ import { readTextFile } from '@tauri-apps/plugin-fs';
 import type { IMessageBus } from '@nouto/transport';
 import type { OutgoingMessage, IncomingMessage } from '@nouto/transport';
 import type { ResponseData, Collection } from '@nouto/core';
+import { ensureErrorInfo } from '@nouto/core';
 import type { Cookie } from '@nouto/core/services';
 import type { RustEventName, RustEventPayloads } from './rust-events';
 import { TauriCookieJarService } from './cookie-store';
@@ -288,6 +289,9 @@ export class TauriMessageBus implements IMessageBus {
         } as RustEventPayloads[typeof eventType];
 
         if (message.type === 'requestResponse') {
+          // Rust sends failures as { error: message }; categorize them here so
+          // the response panel shows the same error view as in VS Code
+          message.data = ensureErrorInfo(message.data);
           this.handleResponseCookies(message.data);
         }
 

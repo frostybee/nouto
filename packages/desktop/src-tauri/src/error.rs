@@ -1,6 +1,6 @@
 #[derive(Debug, thiserror::Error)]
 pub enum AppError {
-    #[error("HTTP error: {0}")]
+    #[error("HTTP error: {}", crate::services::request_error::describe_reqwest_error(.0))]
     Http(#[from] reqwest::Error),
     #[error("IO error: {0}")]
     Io(#[from] std::io::Error),

@@ -1,5 +1,6 @@
 import { executeRequest } from '@nouto/core/services';
 import type { HttpRequestConfig, HttpResponse } from '@nouto/core/services';
+import { describeError } from '@nouto/core';
 import type { ProxyHttpRequest, ProxyHttpResponse } from '@nouto/transport';
 
 const PROXY_TIMEOUT_MS = 30000;
@@ -57,7 +58,7 @@ export async function runProxyRequest(
     // error post is harmless (dropped by the disposed guard or channel mismatch).
     host.post({
       type: 'openApiProxyResponse',
-      data: { requestId, error: error instanceof Error ? error.message : String(error) },
+      data: { requestId, error: describeError(error) },
     });
   } finally {
     host.controllers.delete(requestId);

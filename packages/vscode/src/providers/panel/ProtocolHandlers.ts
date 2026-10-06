@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { WebSocketService, SSEService, GraphQLSubscriptionService, GrpcService, WsSessionRecorder, normalizeWsSession, evaluateAssertions, resolveInheritedAssertions, deduplicateAssertions } from '@nouto/core/services';
 import type { GraphQLSchemaService, CookieJarService } from '@nouto/core/services';
 import type { KeyValue } from '@nouto/core';
-import { GRPC_STATUS_CODES } from '@nouto/core';
+import { GRPC_STATUS_CODES, describeError } from '@nouto/core';
 import type { StorageService } from '../../services/StorageService';
 import type { FileService } from '../../services/FileService';
 import { fireNoutoSettingsChanged } from '../../services/settingsEvents';
@@ -296,7 +296,7 @@ export class ProtocolHandlers {
       const schema = await this.graphqlSchemaService.introspect(data.url, data.headers || [], data.auth || { type: 'none' });
       webview.postMessage({ type: 'graphqlSchema', data: schema });
     } catch (error: any) {
-      webview.postMessage({ type: 'graphqlSchemaError', data: { message: error.message } });
+      webview.postMessage({ type: 'graphqlSchemaError', data: { message: describeError(error) } });
     }
   }
 
