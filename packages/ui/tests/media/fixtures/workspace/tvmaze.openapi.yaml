@@ -1,0 +1,26 @@
+openapi: 3.1.0
+info:
+  title: TVmaze API
+  version: 1.0.0
+  description: Public TV show data from TVmaze.
+servers:
+  - url: https://api.tvmaze.com
+paths:
+  /shows/{id}:
+    get:
+      summary: Get a show
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: The show
+  /people:
+    get:
+      summary: List people
+      responses:
+        '200':
+          description: A page of people

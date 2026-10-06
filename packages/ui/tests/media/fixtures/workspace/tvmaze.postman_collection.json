@@ -1,0 +1,86 @@
+{
+  "info": {
+    "_postman_id": "6f3c2a51-9b8e-4d1f-a7c4-2e5b8d9f0a13",
+    "name": "TVmaze API",
+    "description": "Public TV show data from https://www.tvmaze.com/api",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Shows",
+      "item": [
+        {
+          "name": "Search shows",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "https://api.tvmaze.com/search/shows?q=girls",
+              "protocol": "https",
+              "host": ["api", "tvmaze", "com"],
+              "path": ["search", "shows"],
+              "query": [{ "key": "q", "value": "girls" }]
+            }
+          }
+        },
+        {
+          "name": "Get show",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "https://api.tvmaze.com/shows/1",
+              "protocol": "https",
+              "host": ["api", "tvmaze", "com"],
+              "path": ["shows", "1"]
+            }
+          }
+        },
+        {
+          "name": "Show episodes",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "https://api.tvmaze.com/shows/1/episodes",
+              "protocol": "https",
+              "host": ["api", "tvmaze", "com"],
+              "path": ["shows", "1", "episodes"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "People",
+      "item": [
+        {
+          "name": "List people",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "https://api.tvmaze.com/people",
+              "protocol": "https",
+              "host": ["api", "tvmaze", "com"],
+              "path": ["people"]
+            }
+          }
+        },
+        {
+          "name": "Get person",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "https://api.tvmaze.com/people/1",
+              "protocol": "https",
+              "host": ["api", "tvmaze", "com"],
+              "path": ["people", "1"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

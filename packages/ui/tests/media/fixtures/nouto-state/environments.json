@@ -1,0 +1,24 @@
+{
+  "environments": [
+    {
+      "id": "34614342-3f66-421e-a3b6-eb466fcfa743",
+      "name": "Sample Environment",
+      "variables": [
+        {
+          "key": "baseUrl",
+          "value": "https://httpbin.org",
+          "enabled": true,
+          "description": "Base URL for httpbin.org API"
+        },
+        {
+          "key": "token",
+          "value": "my-sample-token",
+          "enabled": true,
+          "description": "Sample bearer token (replace with a real token)"
+        }
+      ],
+      "color": "#4CAF50"
+    }
+  ],
+  "activeId": "34614342-3f66-421e-a3b6-eb466fcfa743"
+}

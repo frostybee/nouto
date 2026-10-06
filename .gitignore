@@ -60,4 +60,5 @@ nul
 # playwright (security harness)
 test-results/
 playwright-report/
+packages/ui/tests/media/output/
 .playwright-mcp/

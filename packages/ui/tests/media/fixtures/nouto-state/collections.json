@@ -1,0 +1,410 @@
+[
+  {
+    "id": "__drafts__",
+    "name": "Drafts",
+    "items": [],
+    "expanded": true,
+    "builtin": "drafts",
+    "createdAt": "2026-10-05T23:58:41.864Z",
+    "updatedAt": "2026-10-06T01:24:19.413Z"
+  },
+  {
+    "id": "cdbb9530-c815-4a57-93ce-30fd87bbe969",
+    "name": "Sample Collection (httpbin.org)",
+    "items": [
+      {
+        "type": "folder",
+        "id": "f75fe125-e489-4fed-b55a-92076d4f762b",
+        "name": "Basics",
+        "children": [
+          {
+            "type": "request",
+            "id": "92889671-107d-4a58-8305-ec90b5e94f8c",
+            "name": "GET Request",
+            "method": "GET",
+            "url": "{{baseUrl}}/get",
+            "params": [
+              {
+                "id": "cdf09e20-1f04-40db-a172-847563941eff",
+                "key": "foo",
+                "value": "bar",
+                "enabled": true,
+                "description": ""
+              },
+              {
+                "id": "9f1bc2c6-dbd2-472f-9efa-88c77a2c456a",
+                "key": "search",
+                "value": "hello world",
+                "enabled": true,
+                "description": ""
+              }
+            ],
+            "headers": [],
+            "auth": {
+              "type": "none"
+            },
+            "body": {
+              "type": "none",
+              "content": ""
+            },
+            "createdAt": "2026-10-05T23:58:41.864Z",
+            "updatedAt": "2026-10-05T23:58:41.864Z",
+            "description": "A simple GET request with query parameters. The httpbin /get endpoint echoes back the request details."
+          },
+          {
+            "type": "request",
+            "id": "59b65f0d-e4fa-4df2-80db-d0292195ef1a",
+            "name": "POST with JSON",
+            "method": "POST",
+            "url": "{{baseUrl}}/post",
+            "params": [],
+            "headers": [
+              {
+                "id": "436bcbd4-9856-49cf-8d92-495c65cd765d",
+                "key": "Content-Type",
+                "value": "application/json",
+                "enabled": true,
+                "description": ""
+              }
+            ],
+            "auth": {
+              "type": "none"
+            },
+            "body": {
+              "type": "json",
+              "content": "{\n  \"name\": \"Nouto\",\n  \"version\": 1,\n  \"features\": [\n    \"REST\",\n    \"GraphQL\",\n    \"WebSocket\"\n  ]\n}"
+            },
+            "createdAt": "2026-10-05T23:58:41.865Z",
+            "updatedAt": "2026-10-05T23:58:41.865Z",
+            "description": "Send a POST request with a JSON body. The response will echo the sent data."
+          },
+          {
+            "type": "request",
+            "id": "cd2be5bd-7f51-4516-b924-9646108b82dc",
+            "name": "PUT Update",
+            "method": "PUT",
+            "url": "{{baseUrl}}/put",
+            "params": [],
+            "headers": [
+              {
+                "id": "4e4aa17c-a967-4865-9eb5-7b5edf691ac0",
+                "key": "Content-Type",
+                "value": "application/json",
+                "enabled": true,
+                "description": ""
+              }
+            ],
+            "auth": {
+              "type": "none"
+            },
+            "body": {
+              "type": "json",
+              "content": "{\n  \"id\": 1,\n  \"name\": \"Updated Item\",\n  \"active\": true\n}"
+            },
+            "createdAt": "2026-10-05T23:58:41.865Z",
+            "updatedAt": "2026-10-05T23:58:41.865Z",
+            "description": "Send a PUT request to update a resource."
+          },
+          {
+            "type": "request",
+            "id": "754b5d8e-d1b7-4f6f-abd2-92bd3e72e1a3",
+            "name": "DELETE Request",
+            "method": "DELETE",
+            "url": "{{baseUrl}}/delete",
+            "params": [],
+            "headers": [],
+            "auth": {
+              "type": "none"
+            },
+            "body": {
+              "type": "none",
+              "content": ""
+            },
+            "createdAt": "2026-10-05T23:58:41.865Z",
+            "updatedAt": "2026-10-05T23:58:41.865Z",
+            "description": "Send a DELETE request. The response echoes the request details."
+          },
+          {
+            "type": "request",
+            "id": "999a9629-39ad-4693-ad7d-8e636350f17c",
+            "name": "TV Shows (JSON Array)",
+            "method": "GET",
+            "url": "https://api.tvmaze.com/shows",
+            "params": [],
+            "headers": [],
+            "auth": {
+              "type": "none"
+            },
+            "body": {
+              "type": "none",
+              "content": ""
+            },
+            "createdAt": "2026-10-05T23:58:41.865Z",
+            "updatedAt": "2026-10-05T23:58:41.865Z",
+            "description": "Fetches a large JSON array of TV shows from TVmaze. Useful for testing the JSON Explorer with array data, filtering, and large response handling."
+          }
+        ],
+        "expanded": true,
+        "description": "Basic HTTP methods: GET, POST, PUT, DELETE, plus a JSON array example",
+        "createdAt": "2026-10-05T23:58:41.865Z",
+        "updatedAt": "2026-10-05T23:58:41.865Z"
+      },
+      {
+        "type": "folder",
+        "id": "1af78dc0-aae1-4b40-a1a2-8c6f4e483d59",
+        "name": "Authentication",
+        "children": [
+          {
+            "type": "request",
+            "id": "eab4c1c5-28a8-4b9d-9c3d-f1579ed4582a",
+            "name": "Bearer Token",
+            "method": "GET",
+            "url": "{{baseUrl}}/bearer",
+            "params": [],
+            "headers": [],
+            "auth": {
+              "type": "bearer",
+              "token": "{{token}}"
+            },
+            "body": {
+              "type": "none",
+              "content": ""
+            },
+            "createdAt": "2026-10-05T23:58:41.865Z",
+            "updatedAt": "2026-10-05T23:58:41.865Z",
+            "description": "Demonstrates Bearer token authentication. Set the {{token}} variable in your environment. The endpoint validates that a Bearer token is present."
+          },
+          {
+            "type": "request",
+            "id": "b6b363a7-7307-4f59-990f-479c4c6f3558",
+            "name": "Basic Auth",
+            "method": "GET",
+            "url": "{{baseUrl}}/basic-auth/user/passwd",
+            "params": [],
+            "headers": [],
+            "auth": {
+              "type": "basic",
+              "username": "user",
+              "password": "passwd"
+            },
+            "body": {
+              "type": "none",
+              "content": ""
+            },
+            "createdAt": "2026-10-05T23:58:41.865Z",
+            "updatedAt": "2026-10-05T23:58:41.865Z",
+            "description": "Demonstrates HTTP Basic authentication. The endpoint expects username \"user\" and password \"passwd\"."
+          }
+        ],
+        "expanded": true,
+        "description": "Authentication examples: Bearer token and Basic auth",
+        "createdAt": "2026-10-05T23:58:41.865Z",
+        "updatedAt": "2026-10-05T23:58:41.865Z"
+      },
+      {
+        "type": "folder",
+        "id": "52b7b7e4-449f-4d73-a27c-dbc11e602c8c",
+        "name": "Advanced",
+        "children": [
+          {
+            "type": "request",
+            "id": "3974fad1-895b-47a6-be71-50c9ce54cf6c",
+            "name": "Custom Headers",
+            "method": "GET",
+            "url": "{{baseUrl}}/headers",
+            "params": [],
+            "headers": [
+              {
+                "id": "52541ae7-e5a1-45b6-b5fa-ef0d4a520b04",
+                "key": "X-Custom-Header",
+                "value": "Nouto-Sample",
+                "enabled": true,
+                "description": ""
+              },
+              {
+                "id": "9151f401-5468-425c-8ba9-f52239b60121",
+                "key": "Accept-Language",
+                "value": "en-US",
+                "enabled": true,
+                "description": ""
+              }
+            ],
+            "auth": {
+              "type": "none"
+            },
+            "body": {
+              "type": "none",
+              "content": ""
+            },
+            "createdAt": "2026-10-05T23:58:41.865Z",
+            "updatedAt": "2026-10-05T23:58:41.865Z",
+            "description": "Send custom headers. The response echoes all received headers."
+          },
+          {
+            "type": "request",
+            "id": "3ca4cae7-7129-4588-850c-bf6a7560bd1a",
+            "name": "Status Code 418",
+            "method": "GET",
+            "url": "{{baseUrl}}/status/418",
+            "params": [],
+            "headers": [],
+            "auth": {
+              "type": "none"
+            },
+            "body": {
+              "type": "none",
+              "content": ""
+            },
+            "createdAt": "2026-10-05T23:58:41.865Z",
+            "updatedAt": "2026-10-05T23:58:41.865Z",
+            "description": "Returns HTTP 418 \"I'm a teapot\". Useful for testing how your client handles non-200 responses."
+          },
+          {
+            "type": "request",
+            "id": "aa7e7d40-4f62-4b86-aebd-0e7d039acec6",
+            "name": "Delayed Response",
+            "method": "GET",
+            "url": "{{baseUrl}}/delay/2",
+            "params": [],
+            "headers": [],
+            "auth": {
+              "type": "none"
+            },
+            "body": {
+              "type": "none",
+              "content": ""
+            },
+            "createdAt": "2026-10-05T23:58:41.865Z",
+            "updatedAt": "2026-10-05T23:58:41.865Z",
+            "description": "Returns after a 2-second delay. Useful for testing timeouts and loading states."
+          }
+        ],
+        "expanded": true,
+        "description": "Advanced examples: custom headers, status codes, delays",
+        "createdAt": "2026-10-05T23:58:41.865Z",
+        "updatedAt": "2026-10-05T23:58:41.865Z"
+      },
+      {
+        "type": "folder",
+        "id": "723ea08f-2e52-46ac-814f-865fdd741717",
+        "name": "GraphQL",
+        "children": [
+          {
+            "type": "request",
+            "id": "fe43a5e2-c20c-4d95-afec-b7e1fec57731",
+            "name": "Countries (GraphQL)",
+            "method": "POST",
+            "url": "https://countries.trevorblades.com/graphql",
+            "params": [],
+            "headers": [
+              {
+                "id": "603533bb-254b-4022-8e81-96d7e6c96477",
+                "key": "Content-Type",
+                "value": "application/json",
+                "enabled": true,
+                "description": ""
+              }
+            ],
+            "auth": {
+              "type": "none"
+            },
+            "body": {
+              "type": "graphql",
+              "content": "{\n  countries {\n    code\n    name\n    capital\n    currency\n    languages {\n      name\n    }\n  }\n}"
+            },
+            "createdAt": "2026-10-05T23:58:41.865Z",
+            "updatedAt": "2026-10-05T23:58:41.865Z",
+            "description": "Query the Countries GraphQL API. Returns all countries with their code, name, capital, currency, and languages. Try modifying the query to fetch only specific fields."
+          }
+        ],
+        "expanded": true,
+        "description": "GraphQL query examples",
+        "createdAt": "2026-10-05T23:58:41.865Z",
+        "updatedAt": "2026-10-05T23:58:41.865Z"
+      },
+      {
+        "type": "folder",
+        "id": "74fc3d6a-8cec-4a07-8ec5-a8eb1591dce4",
+        "name": "Real-Time",
+        "children": [
+          {
+            "type": "request",
+            "id": "2a9a0256-0c1c-42c4-98f3-266e73ce1a00",
+            "name": "WebSocket Echo",
+            "method": "GET",
+            "url": "wss://echo.websocket.org",
+            "params": [],
+            "headers": [],
+            "auth": {
+              "type": "none"
+            },
+            "body": {
+              "type": "none",
+              "content": ""
+            },
+            "createdAt": "2026-10-05T23:58:41.865Z",
+            "updatedAt": "2026-10-05T23:58:41.865Z",
+            "connectionMode": "websocket",
+            "description": "Classic echo server. Connect and send any message to see it echoed back. Great for testing WebSocket functionality."
+          },
+          {
+            "type": "request",
+            "id": "a51db2e5-a23a-49c5-975c-98a840fedaf5",
+            "name": "Binance BTC/USDT Trades",
+            "method": "GET",
+            "url": "wss://stream.binance.com:9443/ws/btcusdt@trade",
+            "params": [],
+            "headers": [],
+            "auth": {
+              "type": "none"
+            },
+            "body": {
+              "type": "none",
+              "content": ""
+            },
+            "createdAt": "2026-10-05T23:58:41.865Z",
+            "updatedAt": "2026-10-05T23:58:41.865Z",
+            "connectionMode": "websocket",
+            "description": "Binance live BTC/USDT trades. Connects via WebSocket and streams real-time trade data (read-only). No authentication required."
+          },
+          {
+            "type": "request",
+            "id": "a1dbb5db-1457-42b7-92e7-2967e1c48a4e",
+            "name": "Wikipedia Live Edits",
+            "method": "GET",
+            "url": "https://stream.wikimedia.org/v2/stream/recentchange",
+            "params": [],
+            "headers": [],
+            "auth": {
+              "type": "none"
+            },
+            "body": {
+              "type": "none",
+              "content": ""
+            },
+            "createdAt": "2026-10-05T23:58:41.865Z",
+            "updatedAt": "2026-10-05T23:58:41.865Z",
+            "connectionMode": "sse",
+            "description": "Live Wikipedia/Wikimedia edit stream via Server-Sent Events. Streams every edit across all Wikimedia projects in real-time (high volume)."
+          }
+        ],
+        "expanded": true,
+        "description": "Live data streams: WebSocket and SSE examples",
+        "createdAt": "2026-10-05T23:58:41.865Z",
+        "updatedAt": "2026-10-05T23:58:41.865Z"
+      }
+    ],
+    "expanded": true,
+    "variables": [
+      {
+        "key": "baseUrl",
+        "value": "https://httpbin.org",
+        "enabled": true,
+        "description": "Base URL for all requests"
+      }
+    ],
+    "description": "A sample collection using httpbin.org, a free HTTP testing service. These requests demonstrate common HTTP patterns including different methods, authentication, custom headers, and more.",
+    "createdAt": "2026-10-05T23:58:41.864Z",
+    "updatedAt": "2026-10-05T23:58:41.864Z"
+  }
+]

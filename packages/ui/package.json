@@ -10,7 +10,9 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:security": "playwright test",
-    "check": "svelte-check --tsconfig ./tsconfig.check.json"
+    "check": "svelte-check --tsconfig ./tsconfig.check.json",
+    "media:gifs": "playwright test -c playwright.media.config.ts",
+    "media:vscode-gifs": "playwright test -c playwright.vscode-media.config.ts"
   },
   "devDependencies": {
     "@playwright/test": "^1.61.1",
