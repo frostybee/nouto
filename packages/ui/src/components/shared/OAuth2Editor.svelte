@@ -318,12 +318,23 @@
 
   .secret-wrapper input { padding-right: 3.077rem; }
 
-  .toggle-btn {
+  /* Position the Tooltip wrapper, not the button inside it: an absolute button
+     would collapse the wrapper and hang from the field's middle */
+  .secret-wrapper > :global(.tooltip-wrapper) {
     position: absolute;
+    top: 0;
+    bottom: 0;
     right: 0.308rem;
+    align-items: center;
+  }
+
+  .toggle-btn {
+    display: flex;
+    align-items: center;
     padding: 0.308rem 0.615rem;
     background: transparent;
     border: none;
+    color: inherit;
     cursor: pointer;
     opacity: 0.7;
   }

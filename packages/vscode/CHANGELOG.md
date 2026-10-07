@@ -2,6 +2,14 @@
 
 All notable changes to the Nouto VS Code extension will be documented in this file.
 
+## [Unreleased]
+
+### Fixed
+
+- The Generate Code dialog no longer draws a box behind each line of the snippet, and the snippet uses the editor font and color.
+- cURL snippets keep each option on the same line as its value, for example `-X POST` and `-H 'Accept: application/json'`, in the Generate Code dialog and in Copy as cURL.
+- The show/hide button in password fields (OAuth 2.0 Client Secret, Basic, Digest, NTLM, and the AWS secret key) is centered in the field and visible on dark themes, and its tooltip points at the button.
+
 ## [1.6.4] - 2026-10-06
 
 ### Fixed

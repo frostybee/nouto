@@ -33,6 +33,8 @@ A typical setup defines the same variable names in each environment, with differ
 | `baseUrl` | `http://localhost:3000` | `https://staging.example.com` | `https://api.example.com` |
 | `apiKey` | `dev-key` | `stg-key-123` | `prod-key-456` |
 
+![The Environments panel with Local (active), Staging, and Production in the list, and Staging open in the editor with its baseUrl and apiKey variables](../../../assets/screenshots/variables/environments-panel.png)
+
 Use letters, digits, and underscores in variable names. The editor accepts dots and hyphens, but Nouto doesn't substitute names that contain them. See [Variable names](/variables/variable-substitution#variable-names).
 
 Each environment in the list also has buttons to **Duplicate**, **Export**, and **Delete** it.

@@ -17,6 +17,8 @@ The OAuth 2.0 auth type fetches an access token from your provider and sends it 
 
 For the Authorization Code and Implicit grants, Nouto opens your default browser at the provider's login page. After you sign in and approve access, the browser shows a success page and the token appears on the **Auth** tab. The Client Credentials and Password grants request the token directly, without a browser.
 
+![The Auth tab with OAuth 2.0 selected: the Authorization Code grant with Authorization URL, Token URL, Client ID, Client Secret, and Scope fields, Use PKCE checked, and the Get New Access Token button](../../../assets/screenshots/authentication/oauth2-panel.png)
+
 If the flow fails, the error message from Nouto or the provider appears below the button.
 
 ## Grant types

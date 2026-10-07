@@ -1,5 +1,6 @@
 import { target } from './curl';
 import type { CodegenRequest } from './index';
+import { parseCurl } from '../parsers/curl-parser';
 
 function makeRequest(overrides: Partial<CodegenRequest> = {}): CodegenRequest {
   return {
@@ -196,5 +197,53 @@ describe('cURL codegen', () => {
     expect(code).toContain('--cert');
     expect(code).toContain('--key');
     expect(code).toContain('--pass');
+  });
+});
+
+describe('cURL codegen layout', () => {
+  const jsonPost = makeRequest({
+    method: 'POST',
+    url: 'https://api.example.com/data',
+    headers: [{ id: '1', key: 'Accept', value: 'application/json', enabled: true }],
+    auth: { type: 'bearer', token: 'example-token' },
+    body: { type: 'json', content: '{\n  "name": "Example"\n}' },
+  });
+
+  it('puts each option on its own line, with its value', () => {
+    expect(target.generate(jsonPost)).toBe(
+      [
+        'curl \\',
+        '  -X POST \\',
+        '  https://api.example.com/data \\',
+        "  -H 'Accept: application/json' \\",
+        "  -H 'Authorization: Bearer example-token' \\",
+        "  -H 'Content-Type: application/json' \\",
+        "  -d '{",
+        '  "name": "Example"',
+        "}'",
+      ].join('\n')
+    );
+  });
+
+  it('keeps multi-token options on one line', () => {
+    const lines = (request: Partial<CodegenRequest>) => target.generate(makeRequest(request)).split(' \\\n  ');
+    expect(lines({ auth: { type: 'basic', username: 'user', password: 'pass' } })).toContain('-u user:pass');
+    expect(lines({ auth: { type: 'digest', username: 'user', password: 'pass' } as any })).toContain(
+      '--digest -u user:pass'
+    );
+    expect(lines({ ssl: { certPath: '/path/cert.pem', keyPath: '/path/key.pem' } })).toEqual(
+      expect.arrayContaining(['--cert /path/cert.pem', '--key /path/key.pem'])
+    );
+  });
+
+  it('parses back to the same request', () => {
+    const parsed = parseCurl(target.generate(jsonPost));
+    expect(parsed.method).toBe('POST');
+    expect(parsed.url).toBe('https://api.example.com/data');
+    expect(parsed.headers.map((h) => [h.key, h.value])).toEqual(
+      expect.arrayContaining([['Accept', 'application/json']])
+    );
+    expect(parsed.auth).toMatchObject({ type: 'bearer', token: 'example-token' });
+    expect(parsed.body).toMatchObject({ content: '{\n  "name": "Example"\n}' });
   });
 });

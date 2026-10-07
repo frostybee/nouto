@@ -194,6 +194,11 @@ test('#4 code generation', async () => {
     await panel.locator('.url-input').fill('https://api.tvmaze.com/shows/1');
     await panel.locator('.send-button-wrapper .send-button').click();
     await expect(panel.locator('.response-header .status')).toHaveText(/200\s+OK/, { timeout: 30000 });
+    // The dialog remembers the last language, so pick cURL off camera
+    await panel.locator('button.secondary-btn', { hasText: 'Code' }).click();
+    await panel.locator('.codegen-panel .lang-btn', { hasText: /^\s*cURL\s*$/ }).click();
+    await page.keyboard.press('Escape');
+    await expect(panel.locator('.codegen-panel')).toHaveCount(0);
     await placeCursor(page, 760, 400);
 
     const recording = await startRecording(page);

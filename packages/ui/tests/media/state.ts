@@ -40,6 +40,10 @@ export function request({ name, method, url }: SeedRequest) {
   };
 }
 
+export function folder(name: string, children: unknown[]) {
+  return { type: 'folder', id: id('fld'), name, children, expanded: true };
+}
+
 export function collection(name: string, items: unknown[]) {
   return { id: id('col'), name, items, expanded: true, createdAt: NOW, updatedAt: NOW };
 }

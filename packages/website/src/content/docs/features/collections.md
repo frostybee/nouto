@@ -16,6 +16,8 @@ Right-click a collection or folder and choose one of these:
 - **New Request** opens a submenu where you pick the request type: HTTP, GraphQL, GraphQL Subscription, WebSocket, SSE, or gRPC.
 - **New Folder** adds a subfolder.
 
+![The Collections sidebar with a My API collection containing an Auth folder (Login, Refresh Token) and a Users folder (Get All, Get One, Create)](../../../assets/screenshots/features/collections-sidebar.png)
+
 ## Save a request to a collection
 
 A request that isn't in a collection yet shows a **Save** button next to **Send**. Click it, then pick a collection or folder from the list. You can search the list or create a new collection from it.

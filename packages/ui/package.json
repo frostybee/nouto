@@ -12,7 +12,8 @@
     "test:security": "playwright test",
     "check": "svelte-check --tsconfig ./tsconfig.check.json",
     "media:gifs": "playwright test -c playwright.media.config.ts",
-    "media:vscode-gifs": "playwright test -c playwright.vscode-media.config.ts"
+    "media:vscode-gifs": "playwright test -c playwright.vscode-media.config.ts vscode-gifs",
+    "media:docs-shots": "playwright test -c playwright.vscode-media.config.ts vscode-docs"
   },
   "devDependencies": {
     "@playwright/test": "^1.61.1",

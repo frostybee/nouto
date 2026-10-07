@@ -82,3 +82,14 @@
 .site-footer {
 	width: 100%;
 }
+
+/* Screenshots in docs pages. A dark UI on the dark theme needs an edge.
+   Shots are captured at 2x; capping the height keeps tall, narrow ones (the
+   sidebar) near their real size. width: auto overrides the width attribute
+   so the aspect ratio holds. */
+.sl-markdown-content img {
+	width: auto;
+	max-height: 32rem;
+	border: 1px solid var(--sl-color-gray-5);
+	border-radius: 0.5rem;
+}

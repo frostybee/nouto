@@ -275,12 +275,23 @@
     padding-right: 3.077rem;
   }
 
-  .toggle-password-btn {
+  /* Position the Tooltip wrapper, not the button inside it: an absolute button
+     would collapse the wrapper and hang from the field's middle */
+  .password-input-wrapper > :global(.tooltip-wrapper) {
     position: absolute;
+    top: 0;
+    bottom: 0;
     right: 0.308rem;
+    align-items: center;
+  }
+
+  .toggle-password-btn {
+    display: flex;
+    align-items: center;
     padding: 0.308rem 0.615rem;
     background: transparent;
     border: none;
+    color: inherit;
     cursor: pointer;
     font-size: 1.077rem;
     opacity: 0.7;

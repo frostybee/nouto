@@ -58,6 +58,17 @@ select {
   font-size: inherit;
 }
 
+/* Code blocks: VS Code's default webview styles give every <code> a
+   background, color, and font. Inside <pre> that paints a box per line, so
+   let blocks inherit from the <pre> instead. */
+pre code {
+  background: transparent;
+  border-radius: 0;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+}
+
 /* Selection */
 ::selection {
   background: var(--hf-editor-selectionBackground);

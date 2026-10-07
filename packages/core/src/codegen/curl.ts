@@ -7,81 +7,83 @@ function shellEscape(str: string): string {
 
 function generate(request: CodegenRequest): string {
   const parts: string[] = ['curl'];
+  // One line per option: a flag stays on the same line as its value
+  const add = (...tokens: string[]) => parts.push(tokens.join(' '));
 
   if (request.method !== 'GET') {
-    parts.push('-X', request.method);
+    add('-X', request.method);
   }
 
   const fullUrl = getUrlWithApiKey(request);
-  parts.push(shellEscape(fullUrl));
+  add(shellEscape(fullUrl));
 
   // Headers (skip auth-related, handled below)
   const headers = getEffectiveHeaders(request);
   for (const h of headers) {
-    parts.push('-H', shellEscape(`${h.key}: ${h.value}`));
+    add('-H', shellEscape(`${h.key}: ${h.value}`));
   }
 
   // Basic auth
   const basicAuth = getBasicAuth(request);
   if (basicAuth) {
-    parts.push('-u', shellEscape(`${basicAuth.username}:${basicAuth.password}`));
+    add('-u', shellEscape(`${basicAuth.username}:${basicAuth.password}`));
   }
 
   // Digest auth
   const digestAuth = getDigestAuth(request);
   if (digestAuth) {
-    parts.push('--digest', '-u', shellEscape(`${digestAuth.username}:${digestAuth.password}`));
+    add('--digest', '-u', shellEscape(`${digestAuth.username}:${digestAuth.password}`));
   }
 
   // NTLM auth
   const ntlmAuth = getNtlmAuth(request);
   if (ntlmAuth) {
     const user = ntlmAuth.domain ? `${ntlmAuth.domain}\\${ntlmAuth.username}` : ntlmAuth.username;
-    parts.push('--ntlm', '-u', shellEscape(`${user}:${ntlmAuth.password}`));
+    add('--ntlm', '-u', shellEscape(`${user}:${ntlmAuth.password}`));
   }
 
   // AWS SigV4
   const awsAuth = getAwsAuth(request);
   if (awsAuth) {
-    parts.push('--aws-sigv4', shellEscape(`aws:amz:${awsAuth.region}:${awsAuth.service}`));
-    parts.push('-u', shellEscape(`${awsAuth.accessKey}:${awsAuth.secretKey}`));
+    add('--aws-sigv4', shellEscape(`aws:amz:${awsAuth.region}:${awsAuth.service}`));
+    add('-u', shellEscape(`${awsAuth.accessKey}:${awsAuth.secretKey}`));
     if (awsAuth.sessionToken) {
-      parts.push('-H', shellEscape(`X-Amz-Security-Token: ${awsAuth.sessionToken}`));
+      add('-H', shellEscape(`X-Amz-Security-Token: ${awsAuth.sessionToken}`));
     }
   }
 
   // Proxy
   const proxy = getProxy(request);
   if (proxy) {
-    parts.push('--proxy', shellEscape(buildProxyUrl(proxy)));
+    add('--proxy', shellEscape(buildProxyUrl(proxy)));
   }
 
   // SSL
   const ssl = getSsl(request);
   if (ssl) {
-    if (ssl.rejectUnauthorized === false) parts.push('--insecure');
-    if (ssl.certPath) parts.push('--cert', shellEscape(ssl.certPath));
-    if (ssl.keyPath) parts.push('--key', shellEscape(ssl.keyPath));
-    if (ssl.passphrase) parts.push('--pass', shellEscape(ssl.passphrase));
+    if (ssl.rejectUnauthorized === false) add('--insecure');
+    if (ssl.certPath) add('--cert', shellEscape(ssl.certPath));
+    if (ssl.keyPath) add('--key', shellEscape(ssl.keyPath));
+    if (ssl.passphrase) add('--pass', shellEscape(ssl.passphrase));
   }
 
   // Body
   if (request.body.type === 'binary' && request.body.fileName) {
-    parts.push('--data-binary', `@${shellEscape(request.body.content || request.body.fileName)}`);
+    add('--data-binary', `@${shellEscape(request.body.content || request.body.fileName)}`);
   } else if (request.body.type === 'form-data') {
     const items = getFormDataItems(request);
     for (const item of items) {
       if (item.fieldType === 'file' && item.fileName) {
         const mime = (item as any).fileMimeType ? `;type=${(item as any).fileMimeType}` : '';
-        parts.push('-F', shellEscape(`${item.key}=@${item.value}${mime}`));
+        add('-F', shellEscape(`${item.key}=@${item.value}${mime}`));
       } else {
-        parts.push('-F', shellEscape(`${item.key}=${item.value}`));
+        add('-F', shellEscape(`${item.key}=${item.value}`));
       }
     }
   } else {
     const body = getBodyContent(request);
     if (body) {
-      parts.push('-d', shellEscape(body));
+      add('-d', shellEscape(body));
     }
   }
 

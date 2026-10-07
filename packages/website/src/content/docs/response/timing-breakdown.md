@@ -21,6 +21,8 @@ Send a request and click the **Timing** tab. The top of the tab shows the total 
 
 Each bar starts where the previous one ends. A phase that took 0 ms shows **Cache** instead of a duration. Expect this for **DNS Lookup**, **TCP Handshake**, and **TLS Handshake** when a request reuses an open connection, and for **TLS Handshake** on plain HTTP requests.
 
+![The Timing tab: the response time, bars for DNS Lookup, TCP Handshake, TLS Handshake, Waiting (TTFB), and Download, and the Request Config section](../../../assets/screenshots/response/timing-breakdown.png)
+
 If the request failed before the server responded, the tab shows `No timing data available` instead of the chart.
 
 ## Request config

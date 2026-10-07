@@ -206,10 +206,11 @@ export const GIF_WINDOW: WindowSize = { width: 1280, height: 720, deviceScaleFac
 export async function withVsCode(
   name: string,
   seed: SeedOptions,
-  record: (page: Page, sidebar: Frame) => Promise<void>
+  record: (page: Page, sidebar: Frame) => Promise<void>,
+  size: WindowSize = GIF_WINDOW
 ): Promise<void> {
   seedNoutoState(seed);
-  const { context, page } = await launchVsCode(GIF_WINDOW);
+  const { context, page } = await launchVsCode(size);
   try {
     await record(page, await prepareWindow(page));
   } catch (error) {

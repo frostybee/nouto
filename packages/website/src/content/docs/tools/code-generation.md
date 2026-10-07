@@ -14,6 +14,8 @@ Nouto turns the open HTTP request into a snippet for one of 11 HTTP clients, so 
 3. In the **Generate Code** dialog, select a target.
 4. Click **Copy to Clipboard**.
 
+![The Generate Code dialog with cURL selected, showing the command for a POST request with a JSON body and a Bearer token](../../../assets/screenshots/tools/code-generation.png)
+
 In VS Code, **Open in New Tab** opens the snippet in an editor tab. In the desktop app, the same button copies the snippet to the clipboard. Nouto remembers the last target you selected.
 
 :::caution

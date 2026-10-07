@@ -15,6 +15,8 @@ This guide takes you from a fresh install to a saved request that reads its base
 
 The response panel shows the status `200 OK` and a JSON body with `userId`, `id`, `title`, and `body` fields.
 
+![Nouto in VS Code: a GET request to jsonplaceholder.typicode.com/posts/1 and its 200 OK response with the JSON body](../../../assets/screenshots/getting-started/quick-start.png)
+
 ## Save the request to a collection
 
 1. In the Collections toolbar of the sidebar, click **New Collection** (the `+` icon).

@@ -44,37 +44,39 @@ function buildUrl(baseUrl: string, params: KeyValue[]): string {
  */
 export function generateCurl(options: CurlOptions): string {
   const parts: string[] = ['curl'];
+  // One line per option: a flag stays on the same line as its value
+  const add = (...tokens: string[]) => parts.push(tokens.join(' '));
 
   // Add method (only if not GET)
   if (options.method !== 'GET') {
-    parts.push('-X', options.method);
+    add('-X', options.method);
   }
 
   // Build URL with query params
   const fullUrl = buildUrl(options.url, options.params);
-  parts.push(shellEscape(fullUrl));
+  add(shellEscape(fullUrl));
 
   // Add headers
   const enabledHeaders = options.headers.filter(h => h.enabled && h.key);
   enabledHeaders.forEach(h => {
-    parts.push('-H', shellEscape(`${h.key}: ${h.value}`));
+    add('-H', shellEscape(`${h.key}: ${h.value}`));
   });
 
   // Add authentication
   if (options.auth.type === 'basic' && options.auth.username) {
     const authString = `${options.auth.username}:${options.auth.password || ''}`;
-    parts.push('-u', shellEscape(authString));
+    add('-u', shellEscape(authString));
   } else if (options.auth.type === 'bearer' && options.auth.token) {
     // Check if Authorization header already exists
     const hasAuthHeader = enabledHeaders.some(h => h.key.toLowerCase() === 'authorization');
     if (!hasAuthHeader) {
-      parts.push('-H', shellEscape(`Authorization: Bearer ${options.auth.token}`));
+      add('-H', shellEscape(`Authorization: Bearer ${options.auth.token}`));
     }
   } else if (options.auth.type === 'oauth2') {
     // OAuth2: show bearer placeholder
     const hasAuthHeader = enabledHeaders.some(h => h.key.toLowerCase() === 'authorization');
     if (!hasAuthHeader) {
-      parts.push('-H', shellEscape('Authorization: Bearer <access_token>'));
+      add('-H', shellEscape('Authorization: Bearer <access_token>'));
     }
   } else if (options.auth.type === 'apikey' && options.auth.apiKeyName && options.auth.apiKeyValue) {
     if (options.auth.apiKeyIn === 'query') {
@@ -86,13 +88,13 @@ export function generateCurl(options: CurlOptions): string {
         parts[urlIndex] = shellEscape(newUrl);
       }
     } else {
-      parts.push('-H', shellEscape(`${options.auth.apiKeyName}: ${options.auth.apiKeyValue}`));
+      add('-H', shellEscape(`${options.auth.apiKeyName}: ${options.auth.apiKeyValue}`));
     }
   }
 
   // Add body
   if (options.body.type === 'binary' && options.body.content) {
-    parts.push('--data-binary', `@${shellEscape(options.body.content)}`);
+    add('--data-binary', `@${shellEscape(options.body.content)}`);
   } else if (options.body.type !== 'none' && options.body.content) {
     const method = options.method.toUpperCase();
     if (['POST', 'PUT', 'PATCH'].includes(method)) {
@@ -101,17 +103,17 @@ export function generateCurl(options: CurlOptions): string {
 
       if (options.body.type === 'json') {
         if (!hasContentType) {
-          parts.push('-H', shellEscape('Content-Type: application/json'));
+          add('-H', shellEscape('Content-Type: application/json'));
         }
-        parts.push('-d', shellEscape(options.body.content));
+        add('-d', shellEscape(options.body.content));
       } else if (options.body.type === 'text') {
         if (!hasContentType) {
-          parts.push('-H', shellEscape('Content-Type: text/plain'));
+          add('-H', shellEscape('Content-Type: text/plain'));
         }
-        parts.push('-d', shellEscape(options.body.content));
+        add('-d', shellEscape(options.body.content));
       } else if (options.body.type === 'x-www-form-urlencoded') {
         if (!hasContentType) {
-          parts.push('-H', shellEscape('Content-Type: application/x-www-form-urlencoded'));
+          add('-H', shellEscape('Content-Type: application/x-www-form-urlencoded'));
         }
         // Parse form data and convert to URL-encoded format
         try {
@@ -120,9 +122,9 @@ export function generateCurl(options: CurlOptions): string {
             .filter((item: any) => item.enabled && item.key)
             .map((item: any) => `${encodeURIComponent(item.key)}=${encodeURIComponent(item.value || '')}`)
             .join('&');
-          parts.push('-d', shellEscape(formData));
+          add('-d', shellEscape(formData));
         } catch {
-          parts.push('-d', shellEscape(options.body.content));
+          add('-d', shellEscape(options.body.content));
         }
       } else if (options.body.type === 'form-data') {
         // Parse form data items (supports file fields)
@@ -133,13 +135,13 @@ export function generateCurl(options: CurlOptions): string {
             .forEach((item: any) => {
               if (item.fieldType === 'file' && item.value) {
                 const mimeType = item.fileMimeType ? `;type=${item.fileMimeType}` : '';
-                parts.push('-F', shellEscape(`${item.key}=@${item.value}${mimeType}`));
+                add('-F', shellEscape(`${item.key}=@${item.value}${mimeType}`));
               } else {
-                parts.push('-F', shellEscape(`${item.key}=${item.value || ''}`));
+                add('-F', shellEscape(`${item.key}=${item.value || ''}`));
               }
             });
         } catch {
-          parts.push('-d', shellEscape(options.body.content));
+          add('-d', shellEscape(options.body.content));
         }
       }
     }

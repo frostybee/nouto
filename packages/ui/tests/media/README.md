@@ -90,6 +90,19 @@ Each test seeds Nouto's data before it opens a window (`state.ts`): the baseline
 
 Playwright keeps its browser profile in `D:\tmp\nouto-media\browser`. Under serve-web, Nouto's settings and the workbench layout are stored in that profile too, so the preparation steps are quick after the first run. If a run fails, it saves `output/<name>.failure.png`. Override the server URL, browser profile, Nouto storage folder, or workspace folder with `NOUTO_MEDIA_VSCODE_URL`, `NOUTO_MEDIA_BROWSER_DIR`, `NOUTO_MEDIA_STORAGE_DIR`, and `NOUTO_MEDIA_WORKSPACE_DIR`.
 
+## Docs screenshots
+
+`vscode-docs.spec.ts` captures still screenshots for the documentation site with the same VS Code for the Web setup, and writes them to `packages/website/src/assets/screenshots/<section>/<name>.png`. Each test seeds its data, brings the UI to the state a page describes, and crops to that part of the window with `captureShot` (`screenshots.ts`). Shots are 2x, the drawn cursor is hidden, and tests fail when the cropped content is taller than its pane.
+
+Refresh every shot after a UI change, or one by name:
+
+```bash
+pnpm -F @nouto/ui run media:docs-shots
+pnpm -F @nouto/ui run media:docs-shots -g "timing-breakdown"
+```
+
+To add a shot, add a test named after its file, then link it from the page with a relative path, for example `![The Timing tab ...](../../../assets/screenshots/response/timing-breakdown.png)`. Keep crops about 800 CSS px wide or less so they show near true size in the docs column. Run `pnpm -F @nouto/website build` afterwards; a wrong path fails the build.
+
 ## Add a GIF
 
 1. If the GIF needs different data, add a scene to `scenes` in `harness.ts` and its fixture to `fixtures/`.
