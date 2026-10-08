@@ -652,6 +652,9 @@ export class ProtocolHandlers {
       }
     }
     const collectedEvents: { content: string; size?: number }[] = [];
+    // Closing the panel cancels the call, and grpc-js reports that cancel on the next tick,
+    // after the panel is gone. Nothing from a closed panel's call is posted or recorded.
+    const panelGone = () => !this.ctx.isWebviewAlive(panelId) || this.grpcServices.get(panelId) !== service;
     await service.invoke({
       address: data.address,
       serviceName: data.serviceName,
@@ -669,10 +672,16 @@ export class ProtocolHandlers {
       timeout: data.timeout,
     }, {
       onConnectionStart: (conn) => {
+        if (panelGone()) return;
         this.activeGrpcConnectionIds.set(panelId, conn.id);
         webview.postMessage({ type: 'grpcConnectionStart', data: conn });
       },
+      onConnectionOpen: (conn) => {
+        if (panelGone()) return;
+        webview.postMessage({ type: 'grpcConnectionOpen', data: conn });
+      },
       onEvent: (event) => {
+        if (panelGone()) return;
         webview.postMessage({ type: 'grpcEvent', data: event });
         if (event.eventType === 'server_message') {
           collectedEvents.push({ content: event.content, size: event.size });
@@ -683,6 +692,7 @@ export class ProtocolHandlers {
         if (this.activeGrpcConnectionIds.get(panelId) === conn.id) {
           this.activeGrpcConnectionIds.delete(panelId);
         }
+        if (panelGone()) return;
 
         // Assertion evaluation (inherited from collection/folder + live from UI)
         let assertionResults: any[] | undefined;
@@ -838,8 +848,9 @@ export class ProtocolHandlers {
     this.activeGrpcConnectionIds.delete(panelId);
     const service = this.grpcServices.get(panelId);
     if (service) {
-      service.dispose();
+      // Forget the service first so its callbacks know the panel is gone before the cancel lands
       this.grpcServices.delete(panelId);
+      service.dispose();
     }
   }
 

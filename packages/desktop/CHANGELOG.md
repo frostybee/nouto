@@ -30,6 +30,8 @@ All notable changes to the Nouto desktop app will be documented in this file.
 - cURL snippets keep each option on the same line as its value, for example `-X POST` and `-H 'Accept: application/json'`
 - The show/hide button in password fields (OAuth 2.0 Client Secret, Basic, Digest, NTLM, and the AWS secret key) is centered in the field and visible on dark themes
 - **Send** no longer appears while a gRPC server streaming call is open; the URL bar shows only **Cancel**, because the server doesn't accept messages on that call
+- While a gRPC client or bidirectional stream is open with no server message yet, the Response tab says the stream is open instead of "Connecting..."
+- The gRPC **Invoke** button waits for the schema to finish loading, so client and bidirectional streams always get their **Send** and **Commit** buttons
 - Various UI improvements and bug fixes
 
 ## [0.0.1] - 2026-03-23

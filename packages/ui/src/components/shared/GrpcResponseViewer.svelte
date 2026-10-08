@@ -1,6 +1,6 @@
 <script lang="ts">
   import { GRPC_STATUS_CODES } from '../../types';
-  import { grpcConnection, grpcEvents, grpcConnectionHistory, selectPreviousConnection, grpcIsStreaming } from '../../stores/grpc.svelte';
+  import { grpcConnection, grpcEvents, grpcConnectionHistory, selectPreviousConnection, grpcIsStreaming, grpcActiveMethodType } from '../../stores/grpc.svelte';
   import { formatBytes } from '../../stores/response.svelte';
   import { ui, togglePanelLayout } from '../../stores/ui.svelte';
   import { resolvedShortcuts } from '../../stores/settings.svelte';
@@ -21,6 +21,15 @@
   const serverMessages = $derived(events.filter(e => e.eventType === 'server_message'));
   const responseEvent = $derived(serverMessages[serverMessages.length - 1]);
   const errorEvent = $derived(events.find(e => e.eventType === 'error'));
+
+  // What to show while a stream is open and the server has not answered yet.
+  // The host only reports 'connecting' and 'closed', so an open stream is the in-between.
+  const waitingText = $derived.by(() => {
+    if (!streaming) return 'Connecting...';
+    return grpcActiveMethodType() === 'client_streaming'
+      ? 'Stream open. Send messages, then Commit to receive the response.'
+      : 'Stream open. Waiting for server messages...';
+  });
 
   const statusLabel = $derived(
     connection ? (GRPC_STATUS_CODES[connection.status] || `Code ${connection.status}`) : ''
@@ -251,8 +260,8 @@
             language="json"
             readonly={true}
           />
-        {:else if connection.state === 'connecting'}
-          <div class="loading">Connecting...</div>
+        {:else if connection.state !== 'closed'}
+          <div class="loading">{waitingText}</div>
         {:else}
           <div class="empty">No response data</div>
         {/if}

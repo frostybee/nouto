@@ -21,15 +21,25 @@ async function startServer(): Promise<{ address: string; server: any }> {
   const testPkg = grpc.loadPackageDefinition(testDef);
   const extraType = protobuf.loadSync(EXTRA_PROTO).lookupType('nouto.extra.Extra');
 
+  // Every handler sends a trailer naming the call type, so tests can check trailers reach the caller
+  const trailer = (value: string) => {
+    const md = new grpc.Metadata();
+    md.set('x-test-trailer', value);
+    return md;
+  };
+
   const server = new grpc.Server();
   server.addService(testPkg.nouto.test.TestService.service, {
     echo(call: any, callback: any) {
-      callback(null, { message: `echo:${call.request.message}` });
+      const initial = new grpc.Metadata();
+      initial.set('x-test-initial', 'echo');
+      call.sendMetadata(initial);
+      callback(null, { message: `echo:${call.request.message}`, tags: call.request.tags }, trailer('unary'));
     },
     count(call: any) {
       const upTo = call.request.upTo || 0;
       for (let i = 1; i <= upTo; i++) call.write({ value: i });
-      call.end();
+      call.end(trailer('server-stream'));
     },
     wrapAny(call: any, callback: any) {
       // proto-loader hands the Any over as raw { type_url, value } (it only expands to
@@ -43,22 +53,22 @@ async function startServer(): Promise<{ address: string; server: any }> {
       callback(null, { typeUrl, label });
     },
     fail(_call: any, callback: any) {
-      callback(Object.assign(new Error('nope'), { code: grpc.status.NOT_FOUND }));
+      callback(Object.assign(new Error('nope'), { code: grpc.status.NOT_FOUND, metadata: trailer('fail') }));
     },
     sum(call: any, callback: any) {
       let total = 0;
       let count = 0;
       call.on('data', (m: any) => { total += m.value; count += 1; });
-      call.on('end', () => callback(null, { total, count }));
+      call.on('end', () => callback(null, { total, count }, trailer('client-stream')));
     },
     chat(call: any) {
       call.on('data', (m: any) => call.write({ text: `re:${m.text}` }));
-      call.on('end', () => call.end());
+      call.on('end', () => call.end(trailer('bidi')));
     },
     failStream(call: any) {
       call.write({ value: 1 });
-      // A grpc-js server stream ends with a non-OK status through an error event
-      call.emit('error', { code: grpc.status.INTERNAL, details: 'stream broke' });
+      // A grpc-js server stream ends with a non-OK status through an error event; its trailers ride on the error
+      call.emit('error', { code: grpc.status.INTERNAL, details: 'stream broke', metadata: trailer('fail-stream') });
     },
   });
 
@@ -268,6 +278,54 @@ describe('GrpcService', () => {
       expect(response.label).toBe('from-any');
     });
 
+    it('reports the trailers and initial metadata the server sends', async () => {
+      await service.reflect(address);
+      const invoke = (methodName: string, body: string) =>
+        runInvoke(service, { address, serviceName: 'nouto.test.TestService', methodName, body, useReflection: true });
+
+      const unary = await invoke('Echo', '{"message":"t"}');
+      expect(unary.end.trailers['x-test-trailer']).toBe('unary');
+      expect(unary.end.trailers['grpc-status']).toBe('0');
+      expect(unary.end.initialMetadata?.['x-test-initial']).toBe('echo');
+
+      const serverStream = await invoke('Count', '{"upTo": 2}');
+      expect(serverStream.end.trailers['x-test-trailer']).toBe('server-stream');
+
+      const failed = await invoke('Fail', '{}');
+      expect(failed.end.trailers['x-test-trailer']).toBe('fail');
+      expect(failed.end.trailers['grpc-status']).toBe(String(grpc.status.NOT_FOUND));
+    });
+
+    it('decodes map fields as objects over reflection, like the proto-file path', async () => {
+      const body = '{"message":"m","tags":{"plan":"pro","region":"eu"}}';
+
+      await service.reflect(address);
+      const reflected = await runInvoke(service, {
+        address, serviceName: 'nouto.test.TestService', methodName: 'Echo', body, useReflection: true,
+      });
+      expect(reflected.end.status).toBe(0);
+      expect(JSON.parse(reflected.serverMessages[0].content).tags).toEqual({ plan: 'pro', region: 'eu' });
+
+      await service.loadProto([TEST_PROTO], [FIXTURES]);
+      const fromFiles = await runInvoke(service, {
+        address, serviceName: 'nouto.test.TestService', methodName: 'Echo', body,
+        useReflection: false, protoPaths: [TEST_PROTO], importDirs: [FIXTURES],
+      });
+      expect(JSON.parse(fromFiles.serverMessages[0].content).tags).toEqual({ plan: 'pro', region: 'eu' });
+    });
+
+    it('describes map fields as objects in the input schema on both schema paths', async () => {
+      const mapSchema = { type: 'object', additionalProperties: { type: 'string' } };
+
+      const reflected = await service.reflect(address);
+      const reflectedEcho = reflected.services.find(s => s.name === 'nouto.test.TestService')!.methods.find(m => m.name === 'Echo');
+      expect(JSON.parse(reflectedEcho!.inputSchema!).properties.tags).toEqual(mapSchema);
+
+      const fromFiles = await service.loadProto([TEST_PROTO], [FIXTURES]);
+      const fileEcho = fromFiles.services.find(s => s.name === 'nouto.test.TestService')!.methods.find(m => m.name === 'Echo');
+      expect(JSON.parse(fileEcho!.inputSchema!).properties.tags).toEqual(mapSchema);
+    });
+
     describe('streaming calls', () => {
       const stream = (methodName: string, body: string) =>
         startStream(service, { address, serviceName: 'nouto.test.TestService', methodName, body, useReflection: true });
@@ -332,6 +390,78 @@ describe('GrpcService', () => {
         expect(() => service.sendMessage(chat.id(), '{"text": "late"}')).toThrow(/closed for sending/);
         const end = await chat.ended;
         expect(end.status).toBe(0);
+      });
+
+      it('reports the resolved method type when the call opens', async () => {
+        const opened: GrpcConnection[] = [];
+        const ends: GrpcConnection[] = [];
+        let id = '';
+        await service.invoke(
+          { address, serviceName: 'nouto.test.TestService', methodName: 'Chat', body: '{"text": "hi"}', useReflection: true },
+          {
+            onConnectionStart: c => { id = c.id; },
+            onConnectionOpen: c => { opened.push(c); },
+            onEvent: () => {},
+            onConnectionEnd: c => { ends.push(c); },
+          }
+        );
+        expect(opened).toHaveLength(1);
+        expect(opened[0]).toMatchObject({ id, state: 'connected', methodType: 'bidi' });
+        expect(ends).toHaveLength(0);
+        service.endStream(id);
+        await waitFor(() => ends.length === 1);
+      });
+
+      it('reports the trailers of client and bidirectional streams', async () => {
+        const sum = stream('Sum', '{"value": 1}');
+        await sum.invoked;
+        service.endStream(sum.id());
+        expect((await sum.ended).trailers['x-test-trailer']).toBe('client-stream');
+
+        const chat = stream('Chat', '{"text": "hi"}');
+        await chat.invoked;
+        service.endStream(chat.id());
+        expect((await chat.ended).trailers['x-test-trailer']).toBe('bidi');
+
+        const failing = stream('FailStream', '{}');
+        await failing.invoked;
+        expect((await failing.ended).trailers['x-test-trailer']).toBe('fail-stream');
+      });
+
+      it('queues Send and Commit that arrive while the schema is still loading', async () => {
+        // A fresh service has no cached schema, so invoke() must reflect before the call exists
+        const fresh = new GrpcService();
+        try {
+          const sum = startStream(fresh, { address, serviceName: 'nouto.test.TestService', methodName: 'Sum', body: '{"value": 2}', useReflection: true });
+          fresh.sendMessage(sum.id(), '{"value": 3}');
+          fresh.sendMessage(sum.id(), '{"value": 5}');
+          fresh.endStream(sum.id());
+          expect(() => fresh.sendMessage(sum.id(), '{"value": 7}')).toThrow(/closed for sending/);
+          await sum.invoked;
+          const end = await sum.ended;
+          await settle();
+          expect(sum.ends).toHaveLength(1);
+          expect(end.status).toBe(0);
+          expect(sum.serverMessages()).toEqual([{ total: 10, count: 3 }]);
+        } finally {
+          fresh.dispose();
+        }
+      });
+
+      it('reports a stream cancelled while the schema is still loading as CANCELLED, once', async () => {
+        const fresh = new GrpcService();
+        try {
+          const chat = startStream(fresh, { address, serviceName: 'nouto.test.TestService', methodName: 'Chat', body: '{"text": "hi"}', useReflection: true });
+          fresh.cancel(chat.id());
+          await chat.invoked;
+          const end = await chat.ended;
+          await settle();
+          expect(chat.ends).toHaveLength(1);
+          expect(end.status).toBe(grpc.status.CANCELLED);
+          expect(chat.serverMessages()).toEqual([]);
+        } finally {
+          fresh.dispose();
+        }
       });
     });
   });

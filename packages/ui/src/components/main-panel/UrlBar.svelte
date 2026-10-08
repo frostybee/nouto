@@ -17,7 +17,7 @@
   import { wsStatus } from '../../stores/websocket.svelte';
   import { sseStatus } from '../../stores/sse.svelte';
   import { gqlSubStatus } from '../../stores/graphqlSubscription.svelte';
-  import { grpcMethodType, grpcIsStreaming, grpcConnection } from '../../stores/grpc.svelte';
+  import { grpcActiveMethodType, grpcIsStreaming, grpcConnection, grpcProtoStatus } from '../../stores/grpc.svelte';
   import { parseUrlParams, buildDisplayUrl, mergeParams, parsePathParams, substitutePathParams, generateId } from '@nouto/core';
   import Tooltip from '../shared/Tooltip.svelte';
   import VariableIndicator from '../shared/VariableIndicator.svelte';
@@ -1130,7 +1130,7 @@
       </button>
     {/if}
   {:else if connectionMode === 'grpc'}
-    {@const mType = grpcMethodType()}
+    {@const mType = grpcActiveMethodType()}
     {@const streaming = grpcIsStreaming()}
     {@const conn = grpcConnection()}
     {@const isStreamActive = streaming && conn?.state !== 'closed'}
@@ -1150,7 +1150,8 @@
     {:else if loading}
       <button class="cancel-button" onclick={handleCancel}>Cancel</button>
     {:else}
-      <button class="send-button" onclick={handleGrpcInvoke} disabled={!currentUrl.trim() || !request.grpc?.serviceName || !request.grpc?.methodName}>
+      <!-- Wait for the schema: the method type decides whether Send and Commit appear once the call opens -->
+      <button class="send-button" onclick={handleGrpcInvoke} disabled={!currentUrl.trim() || !request.grpc?.serviceName || !request.grpc?.methodName || grpcProtoStatus() === 'loading'}>
         {mType === 'server_streaming' ? 'Stream' : mType === 'client_streaming' ? 'Start Stream' : mType === 'streaming' ? 'Start Stream' : 'Invoke'}
       </button>
     {/if}

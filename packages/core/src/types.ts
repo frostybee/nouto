@@ -562,6 +562,8 @@ export interface GrpcConnection {
   status: number;
   statusMessage?: string;
   state: 'connecting' | 'connected' | 'closed';
+  /** Set once the backend has resolved the method, so the UI knows the call type even without a loaded schema. */
+  methodType?: 'unary' | 'server_streaming' | 'client_streaming' | 'bidi';
   trailers: Record<string, string>;
   initialMetadata?: Record<string, string>;
   elapsed: number;

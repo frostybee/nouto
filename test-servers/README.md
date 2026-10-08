@@ -103,6 +103,8 @@ node server.js
 
 Server reflection is enabled, so Nouto can auto-discover all services without loading `.proto` files manually.
 
+`SayHello` and `Countdown` send the trailers `x-grpc-test-call` and `x-grpc-test-server`, which show in Nouto's Timeline under **Received trailers**.
+
 ### TLS
 
 Port `50052` serves the same services over TLS with a certificate for `localhost`, signed by a test CA in `certs/`. To connect from Nouto, set the address to `localhost:50052`, open the **TLS** tab, select **Use TLS**, and set **CA Certificate** to the full path of `test-servers/grpc-test/certs/ca.crt`.

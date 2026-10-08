@@ -21,6 +21,8 @@ export interface GrpcInvokeOptions {
 
 export interface GrpcCallbacks {
   onConnectionStart: (connection: GrpcConnection) => void;
+  /** The schema is resolved and the call is about to start; `connection.methodType` is set. */
+  onConnectionOpen?: (connection: GrpcConnection) => void;
   onEvent: (event: GrpcEvent) => void;
   onConnectionEnd: (connection: GrpcConnection) => void;
 }
@@ -28,6 +30,21 @@ export interface GrpcCallbacks {
 export type GrpcMethodType = 'unary' | 'server_streaming' | 'client_streaming' | 'bidi';
 
 type ReflectionVersion = 'v1' | 'v1alpha';
+
+/** proto-loader options shared by every schema load, so all paths decode messages the same way. */
+const LOADER_OPTS = { keepCase: false, longs: String, enums: String, defaults: true, oneofs: true };
+
+/**
+ * Send, Commit and Cancel that arrive while invoke() is still loading the schema.
+ * They are applied as soon as the call exists.
+ */
+interface PendingStream {
+  messages: string[];
+  ended: boolean;
+  cancelled: boolean;
+}
+
+const CLOSED_FOR_SENDING = 'This stream is closed for sending. Start a new stream to send more messages.';
 
 /** gRPC status UNIMPLEMENTED (12): the server does not expose this reflection version. */
 function isUnimplemented(err: any): boolean {
@@ -113,6 +130,7 @@ export class GrpcService {
   private reflectedDescriptorBytes = new Map<string, Uint8Array[]>(); // address -> raw FileDescriptorProto bytes
   private activeCalls = new Map<string, any>();
   private activeClients = new Map<string, any>(); // connectionId -> gRPC client (for cleanup)
+  private pendingStreams = new Map<string, PendingStream>(); // connectionId -> actions queued before the call opened
 
   /**
    * Reflect on a gRPC server to discover services using the gRPC reflection protocol.
@@ -173,13 +191,7 @@ export class GrpcService {
     const protoPath = this.resolveReflectionProto(`grpc/reflection/${version}/reflection.proto`);
     const servicePath = `grpc.reflection.${version}.ServerReflection`;
 
-    const packageDefinition = await protoLoader.load(protoPath, {
-      keepCase: false,
-      longs: String,
-      enums: String,
-      defaults: true,
-      oneofs: true,
-    });
+    const packageDefinition = await protoLoader.load(protoPath, LOADER_OPTS);
 
     const packageObject = grpc.loadPackageDefinition(packageDefinition);
 
@@ -225,8 +237,6 @@ export class GrpcService {
       const services = this.extractServicesFromFileDescriptors(allFileDescriptorBytes);
 
       // Step 4: Store raw descriptor bytes and build package definition for invocation.
-      // Uses loadFileDescriptorSetFromBuffer which handles protobuf decoding internally,
-      // avoiding issues with protobufjs/ext/descriptor in bundled environments.
       this.reflectedDescriptorBytes.set(address, allFileDescriptorBytes);
       this.buildPackageDefinitionFromDescriptors(grpc, protoLoader, address, allFileDescriptorBytes);
 
@@ -237,35 +247,14 @@ export class GrpcService {
   }
 
   /**
-   * Build a package definition from raw FileDescriptorProto bytes using
-   * loadFileDescriptorSetFromBuffer. This constructs the FileDescriptorSet
-   * wire-format binary (field 1, length-delimited, repeated) and lets
-   * proto-loader handle all protobuf decoding internally.
+   * Build a package definition from raw FileDescriptorProto bytes. The descriptors go
+   * through a protobufjs Root (with map fields restored) and then proto-loader's
+   * fromJSON, which keeps `map<K, V>` fields decoding as objects like the .proto path does.
    */
   private buildPackageDefinitionFromDescriptors(grpc: any, protoLoader: any, cacheKey: string, fdProtoBytes: Uint8Array[]): boolean {
     try {
-      // Build a FileDescriptorSet binary: repeated FileDescriptorProto file = 1;
-      const parts: Buffer[] = [];
-      for (const fd of fdProtoBytes) {
-        // Tag: field 1, wire type 2 (length-delimited) = 0x0A
-        parts.push(Buffer.from([0x0A]));
-        // Varint-encode the length
-        let len = fd.length;
-        const varintBytes: number[] = [];
-        while (len > 0x7F) {
-          varintBytes.push((len & 0x7F) | 0x80);
-          len >>>= 7;
-        }
-        varintBytes.push(len & 0x7F);
-        parts.push(Buffer.from(varintBytes));
-        // The FileDescriptorProto bytes
-        parts.push(Buffer.from(fd));
-      }
-      const fileDescriptorSetBuffer = Buffer.concat(parts);
-
-      const packageDef = protoLoader.loadFileDescriptorSetFromBuffer(fileDescriptorSetBuffer, {
-        keepCase: false, longs: String, enums: String, defaults: true, oneofs: true,
-      });
+      const root = this.rootFromDescriptorBytes(fdProtoBytes);
+      const packageDef = protoLoader.fromJSON(root.toJSON(), LOADER_OPTS);
       const packageObj = grpc.loadPackageDefinition(packageDef);
       this.packageDefinitionCache.set(cacheKey, { packageDefinition: packageDef, packageObject: packageObj });
       return true;
@@ -356,23 +345,7 @@ export class GrpcService {
     }
 
     // Build a root from all file descriptors for type resolution
-    let root: any;
-    try {
-      root = protobuf.Root.fromDescriptor({ file: fileDescriptors });
-      root.resolveAll();
-    } catch {
-      // Fall back to individual parsing if batch fails
-      root = new protobuf.Root();
-      for (const fd of fileDescriptors) {
-        try {
-          const r = protobuf.Root.fromDescriptor({ file: [fd] });
-          root.addJSON(r.toJSON());
-        } catch {
-          // Skip
-        }
-      }
-      try { root.resolveAll(); } catch { /* best effort */ }
-    }
+    const root = this.rootFromFileDescriptors(fileDescriptors);
 
     // Extract services from the decoded descriptors
     for (const fd of fileDescriptors) {
@@ -430,11 +403,7 @@ export class GrpcService {
     const grpc = loadGrpc();
 
     const packageDefinition = await protoLoader.load(protoPaths, {
-      keepCase: false,
-      longs: String,
-      enums: String,
-      defaults: true,
-      oneofs: true,
+      ...LOADER_OPTS,
       includeDirs: importDirs.length > 0 ? importDirs : undefined,
     });
 
@@ -449,7 +418,8 @@ export class GrpcService {
   }
 
   /**
-   * Invoke a unary gRPC call.
+   * Invoke a gRPC method. Resolves with the connection id once a unary or server-streaming
+   * call has finished, or as soon as a client-streaming or bidi call is open.
    */
   async invoke(options: GrpcInvokeOptions, callbacks: GrpcCallbacks): Promise<string> {
     const grpc = loadGrpc();
@@ -473,6 +443,71 @@ export class GrpcService {
       createdAt: now,
     });
 
+    // Send, Commit and Cancel can arrive while the schema is still loading; keep them until the call exists
+    const pending: PendingStream = { messages: [], ended: false, cancelled: false };
+    this.pendingStreams.set(connectionId, pending);
+
+    const emitError = (statusCode: number, statusMessage: string) => {
+      callbacks.onEvent({
+        id: generateId(),
+        connectionId,
+        eventType: 'error',
+        content: '',
+        error: statusMessage,
+        status: statusCode,
+        createdAt: new Date().toISOString(),
+      });
+    };
+
+    const emitClientMessage = (content: string) => {
+      callbacks.onEvent({
+        id: generateId(),
+        connectionId,
+        eventType: 'client_message',
+        content,
+        createdAt: new Date().toISOString(),
+      });
+    };
+
+    const emitServerMessage = (response: any) => {
+      const responseStr = JSON.stringify(response, null, 2);
+      callbacks.onEvent({
+        id: generateId(),
+        connectionId,
+        eventType: 'server_message',
+        content: responseStr,
+        size: Buffer.byteLength(responseStr, 'utf8'),
+        createdAt: new Date().toISOString(),
+      });
+    };
+
+    /**
+     * Report the end of the call. `trailerMetadata` is the grpc-js Metadata that came with
+     * the status (status.metadata, or err.metadata on a failed stream); grpc-js has already
+     * moved grpc-status and grpc-message out of it, so they are added back.
+     */
+    const finish = (statusCode: number, statusMessage: string, trailerMetadata: any, initialMetadata?: Record<string, string>) => {
+      const elapsed = Date.now() - startTime;
+      const failed = statusCode !== 0;
+      if (failed) emitError(statusCode, statusMessage);
+      const trailers = this.metadataToRecord(trailerMetadata);
+      this.addGrpcStatusToTrailers(trailers, statusCode, failed ? statusMessage : 'OK');
+      callbacks.onConnectionEnd({
+        id: connectionId,
+        requestId: '',
+        url: options.address,
+        service: options.serviceName,
+        method: options.methodName,
+        status: statusCode,
+        ...(failed ? { statusMessage, error: statusMessage } : {}),
+        state: 'closed',
+        trailers,
+        ...(initialMetadata ? { initialMetadata } : {}),
+        elapsed,
+        createdAt: now,
+      });
+    };
+
     try {
       // Get or create package definition
       let packageObject: any;
@@ -482,11 +517,7 @@ export class GrpcService {
         packageObject = this.packageDefinitionCache.get(cacheKey).packageObject;
       } else if (options.protoPaths && options.protoPaths.length > 0) {
         const packageDefinition = await protoLoader.load(options.protoPaths, {
-          keepCase: false,
-          longs: String,
-          enums: String,
-          defaults: true,
-          oneofs: true,
+          ...LOADER_OPTS,
           includeDirs: options.importDirs?.length ? options.importDirs : undefined,
         });
         packageObject = grpc.loadPackageDefinition(packageDefinition);
@@ -532,6 +563,14 @@ export class GrpcService {
         throw new Error(`Service ${options.serviceName} not found`);
       }
 
+      // A Cancel (or dispose) that arrived while the schema was loading ends the call here,
+      // before any client exists. The schema work itself can't be interrupted.
+      if (pending.cancelled) {
+        this.pendingStreams.delete(connectionId);
+        finish(1, 'Call cancelled before it started', undefined);
+        return connectionId;
+      }
+
       const credentials = this.buildCredentials(grpc, options.tls, options.tlsCertPath, options.tlsKeyPath, options.tlsCaCertPath, options.tlsPassphrase);
       const client = new ServiceConstructor(options.address, credentials);
       // Client-streaming and bidi calls outlive invoke(): they close the client when they finish
@@ -547,12 +586,7 @@ export class GrpcService {
         }
 
         // Parse request body (strip comments first)
-        let requestBody: any;
-        try {
-          requestBody = JSON.parse(stripJsonComments(options.body || '{}'));
-        } catch {
-          requestBody = {};
-        }
+        const requestBody = this.parseBody(options.body);
 
         const methodName = options.methodName;
         const methodFn = client[methodName] || client[this.lowerFirst(methodName)];
@@ -580,102 +614,70 @@ export class GrpcService {
           }
         }
 
-        if (methodType === 'unary') {
-          // Emit client message event
-          callbacks.onEvent({
-            id: generateId(),
-            connectionId,
-            eventType: 'client_message',
-            content: options.body || '{}',
-            createdAt: new Date().toISOString(),
-          });
+        // Tell the host what kind of call this is; the UI may have no schema of its own
+        callbacks.onConnectionOpen?.({
+          id: connectionId,
+          requestId: '',
+          url: options.address,
+          service: options.serviceName,
+          method: options.methodName,
+          status: -1,
+          state: 'connected',
+          methodType,
+          trailers: {},
+          elapsed: Date.now() - startTime,
+          createdAt: now,
+        });
 
+        /** Register the live call; from here on Send, Commit and Cancel reach it directly. */
+        const openCall = (call: any, ownsClient: boolean) => {
+          this.activeCalls.set(connectionId, call);
+          if (ownsClient) this.activeClients.set(connectionId, client);
+          this.pendingStreams.delete(connectionId);
+        };
+
+        /** Apply what arrived while a client-streaming or bidi call was starting. */
+        const flushPending = (call: any) => {
+          for (const body of pending.messages) call.write(this.parseBody(body));
+          if (pending.ended) call.end();
+        };
+
+        if (methodType === 'unary' || methodType === 'server_streaming') {
+          emitClientMessage(options.body || '{}');
+          if (pending.messages.length > 0) {
+            emitError(2, 'This method takes a single request message, not a stream.');
+          }
+        }
+
+        if (methodType === 'unary') {
           await new Promise<void>((resolve) => {
             let initialMeta: Record<string, string> = {};
+            let callbackErr: any = null;
             const call = methodFn.call(client, requestBody, meta, callOptions, (err: any, response: any) => {
-              this.activeCalls.delete(connectionId);
-              const elapsed = Date.now() - startTime;
-
-              if (err) {
-                const statusCode = err.code ?? 2;
-                const statusMessage = err.details || err.message;
-                callbacks.onEvent({
-                  id: generateId(),
-                  connectionId,
-                  eventType: 'error',
-                  content: '',
-                  error: statusMessage,
-                  status: statusCode,
-                  createdAt: new Date().toISOString(),
-                });
-
-                const trailers = this.metadataToRecord(call?.getTrailers?.());
-                this.addGrpcStatusToTrailers(trailers, statusCode, statusMessage);
-
-                callbacks.onConnectionEnd({
-                  id: connectionId,
-                  requestId: '',
-                  url: options.address,
-                  service: options.serviceName,
-                  method: options.methodName,
-                  status: statusCode,
-                  statusMessage,
-                  state: 'closed',
-                  trailers,
-                  initialMetadata: initialMeta,
-                  elapsed,
-                  error: statusMessage,
-                  createdAt: now,
-                });
-              } else {
-                const responseStr = JSON.stringify(response, null, 2);
-                const responseSize = Buffer.byteLength(responseStr, 'utf8');
-
-                callbacks.onEvent({
-                  id: generateId(),
-                  connectionId,
-                  eventType: 'server_message',
-                  content: responseStr,
-                  size: responseSize,
-                  createdAt: new Date().toISOString(),
-                });
-
-                const trailers = this.metadataToRecord(call?.getTrailers?.());
-                this.addGrpcStatusToTrailers(trailers, 0, 'OK');
-
-                callbacks.onConnectionEnd({
-                  id: connectionId,
-                  requestId: '',
-                  url: options.address,
-                  service: options.serviceName,
-                  method: options.methodName,
-                  status: 0,
-                  state: 'closed',
-                  trailers,
-                  initialMetadata: initialMeta,
-                  elapsed,
-                  createdAt: now,
-                });
-              }
-              resolve();
+              // A throwing callback would stop grpc-js from emitting 'status', so never let one escape
+              try {
+                if (err) callbackErr = err;
+                else emitServerMessage(response);
+              } catch { /* reported through the status event */ }
             });
             call.on('metadata', (md: any) => {
               initialMeta = this.metadataToRecord(md);
             });
-            this.activeCalls.set(connectionId, call);
+            // grpc-js emits 'status' once, after the callback, and it carries the trailers
+            call.on('status', (status: any) => {
+              this.activeCalls.delete(connectionId);
+              // grpc-js reports an OK status with no message as an UNIMPLEMENTED error in the callback
+              const statusCode = callbackErr ? this.statusCodeOf(callbackErr) : status.code;
+              const statusMessage = callbackErr ? (callbackErr.details || callbackErr.message) : (status.details || 'OK');
+              finish(statusCode, statusMessage, status.metadata, initialMeta);
+              resolve();
+            });
+            openCall(call, false);
           });
         } else if (methodType === 'server_streaming') {
-          // Emit client message event
-          callbacks.onEvent({
-            id: generateId(),
-            connectionId,
-            eventType: 'client_message',
-            content: options.body || '{}',
-            createdAt: new Date().toISOString(),
-          });
-
           await new Promise<void>((resolve) => {
             let initialMeta: Record<string, string> = {};
+            let statusMetadata: any;
             // grpc-js emits 'error' and then 'end' for a failed stream; report only the first
             let finished = false;
             const call = methodFn.call(client, requestBody, meta, callOptions);
@@ -684,17 +686,13 @@ export class GrpcService {
               initialMeta = this.metadataToRecord(md);
             });
 
+            // 'status' arrives before 'end' and carries the trailers of a successful stream
+            call.on('status', (status: any) => {
+              statusMetadata = status.metadata;
+            });
+
             call.on('data', (response: any) => {
-              const responseStr = JSON.stringify(response, null, 2);
-              const responseSize = Buffer.byteLength(responseStr, 'utf8');
-              callbacks.onEvent({
-                id: generateId(),
-                connectionId,
-                eventType: 'server_message',
-                content: responseStr,
-                size: responseSize,
-                createdAt: new Date().toISOString(),
-              });
+              emitServerMessage(response);
             });
 
             call.on('error', (err: any) => {
@@ -702,35 +700,7 @@ export class GrpcService {
               finished = true;
               this.activeCalls.delete(connectionId);
               this.activeClients.delete(connectionId);
-              const elapsed = Date.now() - startTime;
-              const statusCode = typeof err.code === 'number' ? err.code : 2;
-              const statusMsg = err.details || err.message;
-              callbacks.onEvent({
-                id: generateId(),
-                connectionId,
-                eventType: 'error',
-                content: '',
-                error: statusMsg,
-                status: statusCode,
-                createdAt: new Date().toISOString(),
-              });
-              const trailers = this.metadataToRecord(call?.getTrailers?.());
-              this.addGrpcStatusToTrailers(trailers, statusCode, statusMsg);
-              callbacks.onConnectionEnd({
-                id: connectionId,
-                requestId: '',
-                url: options.address,
-                service: options.serviceName,
-                method: options.methodName,
-                status: statusCode,
-                statusMessage: statusMsg,
-                state: 'closed',
-                trailers,
-                initialMetadata: initialMeta,
-                elapsed,
-                error: statusMsg,
-                createdAt: now,
-              });
+              finish(this.statusCodeOf(err), err.details || err.message, err.metadata, initialMeta);
               resolve();
             });
 
@@ -739,110 +709,40 @@ export class GrpcService {
               finished = true;
               this.activeCalls.delete(connectionId);
               this.activeClients.delete(connectionId);
-              const elapsed = Date.now() - startTime;
-              const trailers = this.metadataToRecord(call?.getTrailers?.());
-              this.addGrpcStatusToTrailers(trailers, 0, 'OK');
-              callbacks.onConnectionEnd({
-                id: connectionId,
-                requestId: '',
-                url: options.address,
-                service: options.serviceName,
-                method: options.methodName,
-                status: 0,
-                state: 'closed',
-                trailers,
-                initialMetadata: initialMeta,
-                elapsed,
-                createdAt: now,
-              });
+              finish(0, 'OK', statusMetadata, initialMeta);
               resolve();
             });
 
-            this.activeCalls.set(connectionId, call);
-            this.activeClients.set(connectionId, client);
+            openCall(call, true);
           });
         } else if (methodType === 'client_streaming') {
           let initialMeta: Record<string, string> = {};
+          let callbackErr: any = null;
           // grpc-js calls this once, when the server answers or the call fails
           const call = methodFn.call(client, meta, callOptions, (err: any, response: any) => {
-            this.releaseStream(connectionId, client);
-            const elapsed = Date.now() - startTime;
-
-            if (err) {
-              const statusCode = typeof err.code === 'number' ? err.code : 2;
-              const statusMsg = err.details || err.message;
-              callbacks.onEvent({
-                id: generateId(),
-                connectionId,
-                eventType: 'error',
-                content: '',
-                error: statusMsg,
-                status: statusCode,
-                createdAt: new Date().toISOString(),
-              });
-              const trailers = this.metadataToRecord(call?.getTrailers?.());
-              this.addGrpcStatusToTrailers(trailers, statusCode, statusMsg);
-              callbacks.onConnectionEnd({
-                id: connectionId,
-                requestId: '',
-                url: options.address,
-                service: options.serviceName,
-                method: options.methodName,
-                status: statusCode,
-                statusMessage: statusMsg,
-                state: 'closed',
-                trailers,
-                initialMetadata: initialMeta,
-                elapsed,
-                error: statusMsg,
-                createdAt: now,
-              });
-            } else {
-              const responseStr = JSON.stringify(response, null, 2);
-              const responseSize = Buffer.byteLength(responseStr, 'utf8');
-              callbacks.onEvent({
-                id: generateId(),
-                connectionId,
-                eventType: 'server_message',
-                content: responseStr,
-                size: responseSize,
-                createdAt: new Date().toISOString(),
-              });
-              const trailers = this.metadataToRecord(call?.getTrailers?.());
-              this.addGrpcStatusToTrailers(trailers, 0, 'OK');
-              callbacks.onConnectionEnd({
-                id: connectionId,
-                requestId: '',
-                url: options.address,
-                service: options.serviceName,
-                method: options.methodName,
-                status: 0,
-                state: 'closed',
-                trailers,
-                initialMetadata: initialMeta,
-                elapsed,
-                createdAt: now,
-              });
-            }
+            try {
+              if (err) callbackErr = err;
+              else emitServerMessage(response);
+            } catch { /* reported through the status event */ }
           });
           call.on('metadata', (md: any) => {
             initialMeta = this.metadataToRecord(md);
           });
+          call.on('status', (status: any) => {
+            this.releaseStream(connectionId, client);
+            const statusCode = callbackErr ? this.statusCodeOf(callbackErr) : status.code;
+            const statusMessage = callbackErr ? (callbackErr.details || callbackErr.message) : (status.details || 'OK');
+            finish(statusCode, statusMessage, status.metadata, initialMeta);
+          });
 
-          this.activeCalls.set(connectionId, call);
-          this.activeClients.set(connectionId, client);
+          openCall(call, true);
 
           // Send initial message if body is provided
           if (requestBody && Object.keys(requestBody).length > 0) {
-            callbacks.onEvent({
-              id: generateId(),
-              connectionId,
-              eventType: 'client_message',
-              content: options.body || '{}',
-              createdAt: new Date().toISOString(),
-            });
+            emitClientMessage(options.body || '{}');
             call.write(requestBody);
           }
+          flushPending(call);
           // Stream stays open for sendMessage/endStream calls
           streamOwnsClient = true;
           return connectionId;
@@ -850,96 +750,43 @@ export class GrpcService {
           const call = methodFn.call(client, meta, callOptions);
 
           let initialMeta: Record<string, string> = {};
+          let statusMetadata: any;
           // grpc-js emits 'error' and then 'end' for a failed or cancelled stream; report only the first
           let finished = false;
           call.on('metadata', (md: any) => {
             initialMeta = this.metadataToRecord(md);
           });
 
+          call.on('status', (status: any) => {
+            statusMetadata = status.metadata;
+          });
+
           call.on('data', (response: any) => {
-            const responseStr = JSON.stringify(response, null, 2);
-            const responseSize = Buffer.byteLength(responseStr, 'utf8');
-            callbacks.onEvent({
-              id: generateId(),
-              connectionId,
-              eventType: 'server_message',
-              content: responseStr,
-              size: responseSize,
-              createdAt: new Date().toISOString(),
-            });
+            emitServerMessage(response);
           });
 
           call.on('error', (err: any) => {
             if (finished) return;
             finished = true;
             this.releaseStream(connectionId, client);
-            const elapsed = Date.now() - startTime;
-            const statusCode = typeof err.code === 'number' ? err.code : 2;
-            const statusMsg = err.details || err.message;
-            callbacks.onEvent({
-              id: generateId(),
-              connectionId,
-              eventType: 'error',
-              content: '',
-              error: statusMsg,
-              status: statusCode,
-              createdAt: new Date().toISOString(),
-            });
-            const trailers = this.metadataToRecord(call?.getTrailers?.());
-            this.addGrpcStatusToTrailers(trailers, statusCode, statusMsg);
-            callbacks.onConnectionEnd({
-              id: connectionId,
-              requestId: '',
-              url: options.address,
-              service: options.serviceName,
-              method: options.methodName,
-              status: statusCode,
-              statusMessage: statusMsg,
-              state: 'closed',
-              trailers,
-              initialMetadata: initialMeta,
-              elapsed,
-              error: statusMsg,
-              createdAt: now,
-            });
+            finish(this.statusCodeOf(err), err.details || err.message, err.metadata, initialMeta);
           });
 
           call.on('end', () => {
             if (finished) return;
             finished = true;
             this.releaseStream(connectionId, client);
-            const elapsed = Date.now() - startTime;
-            const trailers = this.metadataToRecord(call?.getTrailers?.());
-            this.addGrpcStatusToTrailers(trailers, 0, 'OK');
-            callbacks.onConnectionEnd({
-              id: connectionId,
-              requestId: '',
-              url: options.address,
-              service: options.serviceName,
-              method: options.methodName,
-              status: 0,
-              state: 'closed',
-              trailers,
-              initialMetadata: initialMeta,
-              elapsed,
-              createdAt: now,
-            });
+            finish(0, 'OK', statusMetadata, initialMeta);
           });
 
-          this.activeCalls.set(connectionId, call);
-          this.activeClients.set(connectionId, client);
+          openCall(call, true);
 
           // Send initial message if body is provided
           if (requestBody && Object.keys(requestBody).length > 0) {
-            callbacks.onEvent({
-              id: generateId(),
-              connectionId,
-              eventType: 'client_message',
-              content: options.body || '{}',
-              createdAt: new Date().toISOString(),
-            });
+            emitClientMessage(options.body || '{}');
             call.write(requestBody);
           }
+          flushPending(call);
           // Stream stays open for sendMessage/endStream calls
           streamOwnsClient = true;
           return connectionId;
@@ -951,47 +798,33 @@ export class GrpcService {
         }
       }
     } catch (err: any) {
-      const elapsed = Date.now() - startTime;
-      callbacks.onEvent({
-        id: generateId(),
-        connectionId,
-        eventType: 'error',
-        content: '',
-        error: err.message,
-        status: 2,
-        createdAt: new Date().toISOString(),
-      });
-
-      callbacks.onConnectionEnd({
-        id: connectionId,
-        requestId: '',
-        url: options.address,
-        service: options.serviceName,
-        method: options.methodName,
-        status: 2,
-        statusMessage: err.message,
-        state: 'closed',
-        trailers: {},
-        elapsed,
-        error: err.message,
-        createdAt: now,
-      });
+      this.pendingStreams.delete(connectionId);
+      finish(2, err.message, undefined);
     }
     return connectionId;
   }
 
   sendMessage(connectionId: string, body: string): void {
+    const pending = this.pendingStreams.get(connectionId);
+    if (pending) {
+      if (pending.ended) throw new Error(CLOSED_FOR_SENDING);
+      pending.messages.push(body);
+      return;
+    }
     const call = this.activeCalls.get(connectionId);
     if (!call) throw new Error('No active stream for this connection');
     if (typeof call.write !== 'function') throw new Error('This method takes a single request message, not a stream.');
     // Writing after end() makes a duplex stream fail, so refuse with a clear message instead
-    if (call.writableEnded) throw new Error('This stream is closed for sending. Start a new stream to send more messages.');
-    let parsed: any;
-    try { parsed = JSON.parse(stripJsonComments(body || '{}')); } catch { parsed = {}; }
-    call.write(parsed);
+    if (call.writableEnded) throw new Error(CLOSED_FOR_SENDING);
+    call.write(this.parseBody(body));
   }
 
   endStream(connectionId: string): void {
+    const pending = this.pendingStreams.get(connectionId);
+    if (pending) {
+      pending.ended = true;
+      return;
+    }
     const call = this.activeCalls.get(connectionId);
     if (call && typeof call.end === 'function' && !call.writableEnded) {
       call.end();
@@ -999,6 +832,11 @@ export class GrpcService {
   }
 
   cancel(connectionId: string): void {
+    const pending = this.pendingStreams.get(connectionId);
+    if (pending) {
+      pending.cancelled = true;
+      return;
+    }
     const call = this.activeCalls.get(connectionId);
     if (call) {
       call.cancel();
@@ -1012,6 +850,7 @@ export class GrpcService {
   }
 
   dispose(): void {
+    for (const pending of this.pendingStreams.values()) pending.cancelled = true;
     for (const call of this.activeCalls.values()) {
       try { call.cancel(); } catch { /* ignore */ }
     }
@@ -1024,6 +863,18 @@ export class GrpcService {
   }
 
   // --- Private helpers ---
+
+  private parseBody(body: string | undefined): any {
+    try {
+      return JSON.parse(stripJsonComments(body || '{}'));
+    } catch {
+      return {};
+    }
+  }
+
+  private statusCodeOf(err: any): number {
+    return typeof err?.code === 'number' ? err.code : 2;
+  }
 
   /**
    * Forget a finished client-streaming or bidi call and close its client.
@@ -1216,9 +1067,72 @@ export class GrpcService {
     const protobuf = require('protobufjs');
     require('protobufjs/ext/descriptor');
     const files = fdBytes.map(b => protobuf.descriptor.FileDescriptorProto.decode(b));
-    const root = protobuf.Root.fromDescriptor({ file: files });
+    return this.rootFromFileDescriptors(files);
+  }
+
+  /**
+   * Build a resolved protobufjs Root from decoded FileDescriptorProtos.
+   * protobufjs's Root.fromDescriptor turns every `map<K, V>` into a repeated `XxxEntry`
+   * message field, so a reflected map would decode as an array of { key, value } pairs
+   * while the same field parsed from .proto text decodes as an object. The map fields
+   * are rebuilt here so both paths behave the same.
+   */
+  private rootFromFileDescriptors(files: any[]): any {
+    const protobuf = require('protobufjs');
+    require('protobufjs/ext/descriptor');
+    let root: any;
+    try {
+      root = protobuf.Root.fromDescriptor({ file: files });
+      root.resolveAll();
+    } catch {
+      // Fall back to individual parsing if batch fails
+      root = new protobuf.Root();
+      for (const fd of files) {
+        try {
+          root.addJSON(protobuf.Root.fromDescriptor({ file: [fd] }).toJSON());
+        } catch {
+          // Skip
+        }
+      }
+      try { root.resolveAll(); } catch { /* best effort */ }
+    }
+    this.restoreMapFields(protobuf, root);
     try { root.resolveAll(); } catch { /* best effort */ }
     return root;
+  }
+
+  /** Replace every repeated `XxxEntry` field that stands for a map with a real MapField. */
+  private restoreMapFields(protobuf: any, root: any): void {
+    const types: any[] = [];
+    const stack: any[] = [root];
+    while (stack.length > 0) {
+      const ns = stack.pop();
+      for (const nested of ns.nestedArray || []) {
+        if (nested instanceof protobuf.Type) types.push(nested);
+        if (nested.nestedArray) stack.push(nested);
+      }
+    }
+
+    const isMapEntry = (t: any): boolean =>
+      t instanceof protobuf.Type && t.getOption('map_entry') === true &&
+      t.fieldsArray.length === 2 && t.fields.key?.id === 1 && t.fields.value?.id === 2;
+
+    for (const type of types) {
+      for (const field of [...type.fieldsArray]) {
+        if (field instanceof protobuf.MapField || !field.repeated) continue;
+        let entry: any;
+        try { entry = field.resolve().resolvedType; } catch { continue; }
+        if (!entry || !isMapEntry(entry)) continue;
+        type.remove(field);
+        type.add(new protobuf.MapField(field.name, field.id, entry.fields.key.type, entry.fields.value.type, field.options));
+        if (entry.parent) entry.parent.remove(entry);
+      }
+    }
+
+    // Type.fromDescriptor marks the parent of a map entry as a map entry itself; undo that
+    for (const type of types) {
+      if (type.options?.map_entry && !isMapEntry(type)) delete type.options.map_entry;
+    }
   }
 
   /** Find a message Type by fully-qualified or short name anywhere in a protobufjs Root. */

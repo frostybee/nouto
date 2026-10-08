@@ -217,6 +217,7 @@ export class TauriMessageBus implements IMessageBus {
       'protoFilesPicked',
       'protoImportDirsPicked',
       'grpcConnectionStart',
+      'grpcConnectionOpen',
       'grpcEvent',
       'grpcConnectionEnd',
       'error',

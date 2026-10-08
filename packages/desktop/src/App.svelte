@@ -215,6 +215,7 @@
     setGrpcProtoLoaded,
     setGrpcProtoError,
     setGrpcConnectionStart,
+    setGrpcConnectionOpen,
     addGrpcEvent,
     setGrpcConnectionEnd,
     grpcMethodType,
@@ -1146,6 +1147,9 @@
           setLoading(true);
           break;
         }
+        case 'grpcConnectionOpen':
+          setGrpcConnectionOpen(message.data);
+          break;
         case 'grpcEvent':
           addGrpcEvent(message.data);
           break;

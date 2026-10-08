@@ -36,10 +36,18 @@ const usersPkg   = grpc.loadPackageDefinition(usersDef);
 // Greeter service handlers
 // ---------------------------------------------------------------------------
 
+// Trailing metadata sent with every SayHello and Countdown, so clients can check they show trailers
+function testTrailers(callType) {
+  const md = new grpc.Metadata();
+  md.set('x-grpc-test-call', callType);
+  md.set('x-grpc-test-server', 'grpc-test');
+  return md;
+}
+
 function sayHello(call, callback) {
   const name = call.request.name || 'World';
   console.log(`[Greeter] SayHello name="${name}"`);
-  callback(null, { message: `Hello, ${name}!` });
+  callback(null, { message: `Hello, ${name}!` }, testTrailers('unary'));
 }
 
 function sayHelloWithMetadata(call, callback) {
@@ -127,7 +135,7 @@ function countdown(call) {
     remaining -= 1;
     if (remaining === 0) {
       clearInterval(timer);
-      call.end();
+      call.end(testTrailers('server-streaming'));
     }
   }, intervalMs);
   call.on('cancelled', () => clearInterval(timer));

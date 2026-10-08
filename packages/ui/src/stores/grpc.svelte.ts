@@ -43,8 +43,22 @@ export function grpcActiveMethodSchema(): string | undefined {
   return method?.inputSchema;
 }
 
+export type GrpcUiMethodType = 'unary' | 'server_streaming' | 'client_streaming' | 'streaming';
+
+/**
+ * Method type of the current call: the loaded schema first, then what the backend reported
+ * when it opened the call. The fallback covers a schema that failed to load in the UI.
+ */
+export function grpcActiveMethodType(): GrpcUiMethodType | null {
+  const fromSchema = grpcMethodType();
+  if (fromSchema) return fromSchema;
+  const reported = _grpcConnection.value?.methodType;
+  if (!reported) return null;
+  return reported === 'bidi' ? 'streaming' : reported;
+}
+
 // Derived: method type
-export function grpcMethodType(): 'unary' | 'server_streaming' | 'client_streaming' | 'streaming' | null {
+export function grpcMethodType(): GrpcUiMethodType | null {
   const descriptor = _grpcProtoDescriptor.value;
   if (!descriptor) return null;
   const serviceName = request.grpc?.serviceName;
@@ -85,6 +99,13 @@ export function setGrpcConnectionStart(connection: GrpcConnection, streaming = f
   _grpcConnection.value = connection;
   _grpcEvents.value = [];
   _grpcStreaming.value = streaming;
+}
+
+/** The backend resolved the method and started the call. Fixes the streaming flag when the UI had no schema. */
+export function setGrpcConnectionOpen(connection: GrpcConnection) {
+  if (_grpcConnection.value?.id !== connection.id) return;
+  _grpcConnection.value = connection;
+  if (connection.methodType) _grpcStreaming.value = connection.methodType !== 'unary';
 }
 
 export function addGrpcEvent(event: GrpcEvent) {

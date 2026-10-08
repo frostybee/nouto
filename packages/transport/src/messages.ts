@@ -1448,6 +1448,12 @@ export interface GrpcConnectionStartMessage {
   data: GrpcConnection;
 }
 
+/** The backend resolved the method and is starting the call; `data.methodType` is set. */
+export interface GrpcConnectionOpenMessage {
+  type: 'grpcConnectionOpen';
+  data: GrpcConnection;
+}
+
 export interface GrpcEventMessage {
   type: 'grpcEvent';
   data: GrpcEvent;
@@ -1818,6 +1824,7 @@ export type IncomingMessage =
   | ProtoFilesPickedMessage
   | ProtoImportDirsPickedMessage
   | GrpcConnectionStartMessage
+  | GrpcConnectionOpenMessage
   | GrpcEventMessage
   | GrpcConnectionEndMessage
   | WsRecordingStateMessage

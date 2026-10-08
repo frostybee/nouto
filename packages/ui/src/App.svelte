@@ -20,7 +20,7 @@
   import { setSSEStatus, addSSEEvent } from './stores/sse.svelte';
   import { setGqlSubStatus, addGqlSubEvent } from './stores/graphqlSubscription.svelte';
   import { setCookieJarData, loadCookieJars } from './stores/cookieJar.svelte';
-  import { setGrpcProtoLoading, setGrpcProtoLoaded, setGrpcProtoError, setGrpcConnectionStart, addGrpcEvent, setGrpcConnectionEnd, clearGrpcState, setScannedDirFiles, grpcMethodType } from './stores/grpc.svelte';
+  import { setGrpcProtoLoading, setGrpcProtoLoaded, setGrpcProtoError, setGrpcConnectionStart, setGrpcConnectionOpen, addGrpcEvent, setGrpcConnectionEnd, clearGrpcState, setScannedDirFiles, grpcMethodType } from './stores/grpc.svelte';
   import { setConflict, clearConflict, conflictState } from './stores/conflict.svelte';
   import { showNotification, setPendingInput, clearPendingInput, pendingInput } from './stores/notifications.svelte';
 
@@ -359,6 +359,9 @@
           setLoading(true);
           break;
         }
+        case 'grpcConnectionOpen':
+          setGrpcConnectionOpen(message.data);
+          break;
         case 'grpcEvent':
           addGrpcEvent(message.data);
           break;
