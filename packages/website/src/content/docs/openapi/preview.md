@@ -10,6 +10,8 @@ The preview renders the current spec as API documentation next to the editor and
 - In VS Code, click **Open OpenAPI Preview** in the editor title bar or in the OpenAPI Outline title bar, or run **Nouto: Open OpenAPI Preview** from the Command Palette. The preview opens beside the editor.
 - In the desktop app, click **Toggle Preview** in the OpenAPI toolbar.
 
+![The OpenAPI preview of the TVmaze API spec in Swagger UI: the toolbar with the Renderer, Theme, and Operation dropdowns and the Try It, Generate Collection, and Open in Browser buttons, above the rendered title, server, and operations](../../../assets/screenshots/openapi/preview.png)
+
 ## Renderers
 
 The preview can use one of two renderers:

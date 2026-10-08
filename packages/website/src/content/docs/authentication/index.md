@@ -28,6 +28,8 @@ The **Type** dropdown offers these options:
 2. If the request is saved in a collection, select **Own Auth** under **Authorization**. The **Inherit** and **No Auth** options hide the auth fields. See [Auth inheritance](/authentication/inheritance).
 3. Select a type from the **Type** dropdown and fill in the fields that appear.
 
+![The Auth tab of a request saved in a collection: Own Auth selected under Authorization, Bearer Token in the Type dropdown, and the Token field](../../../assets/screenshots/authentication/auth-tab-overview.png)
+
 ## Variables in auth fields
 
 These fields resolve `{{variable}}` references when you send a request from the editor:

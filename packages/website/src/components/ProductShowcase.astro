@@ -1,4 +1,8 @@
 ---
+// Captured by packages/ui/tests/media/vscode-docs.spec.ts (pnpm -F @nouto/ui run media:docs-shots -g showcase)
+import jsonExplorerShot from '../assets/screenshots/showcase/json-explorer.png';
+import vscodeShot from '../assets/screenshots/showcase/vscode.png';
+
 type FrameKind = 'vscode' | 'desktop' | 'terminal';
 
 interface Product {
@@ -24,11 +28,13 @@ const defaultProducts: Product[] = [
     id: 'vscode',
     label: 'VS Code extension',
     frame: 'vscode',
-    windowTitle: 'users.json - Nouto',
+    windowTitle: 'List users - Nouto',
     caption: 'Requests, collections, and environments inside the editor you already use.',
     ctaLabel: 'Install from Marketplace',
     href: 'https://marketplace.visualstudio.com/items?itemName=frostybee-dev.nouto',
     external: true,
+    src: vscodeShot.src,
+    alt: 'Nouto in VS Code: a JSONPlaceholder collection in the sidebar, and a GET request with a _limit query parameter beside its 200 OK JSON response',
   },
   {
     id: 'json-explorer',
@@ -39,6 +45,8 @@ const defaultProducts: Product[] = [
     ctaLabel: 'Install from Marketplace',
     href: 'https://marketplace.visualstudio.com/items?itemName=frostybee-dev.nouto-json-explorer',
     external: true,
+    src: jsonExplorerShot.src,
+    alt: 'The JSON Explorer extension in VS Code: response.json in the tree view with the first user\'s address expanded, and the Recent Files list in the side bar',
   },
   {
     id: 'desktop',

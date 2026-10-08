@@ -12,6 +12,8 @@ Where the outline appears depends on the platform:
 - In VS Code, the **OpenAPI Outline** view sits in the Nouto sidebar and follows the active editor. Its title bar has buttons to toggle sorting, refresh the tree, open the preview, and open OpenAPI settings. Its **More Actions** menu opens, creates, saves, or closes a spec, generates a collection, and opens the documentation in a browser.
 - In the desktop app, the outline sits to the left of the editor in the OpenAPI view. Each tab keeps its own expanded and collapsed nodes.
 
+![The OpenAPI Outline view for the Swagger Petstore example: the API title and version, the Servers, Security, Tags, Operation ID, Paths, and Components groups, and Paths expanded to list each path with its operation count](../../../assets/screenshots/openapi/outline.png)
+
 ## Groups
 
 The tree organizes the spec into these top-level groups:

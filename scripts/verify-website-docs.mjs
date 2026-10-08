@@ -6,6 +6,7 @@ import { join, normalize, relative, resolve } from 'node:path';
 const root = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const docsRoot = join(root, 'packages', 'website', 'src', 'content', 'docs');
 const publicRoot = join(root, 'packages', 'website', 'public');
+const assetsRoot = join(root, 'packages', 'website', 'src', 'assets');
 const cliPath = join(root, 'packages', 'cli', 'dist', 'bin', 'cli.js');
 const cliBuildPath = join(root, 'packages', 'cli', 'esbuild.mjs');
 
@@ -33,7 +34,8 @@ function validateDestination(file, destination) {
     return;
   }
   const localFile = normalize(join(resolve(file, '..'), path));
-  if (!localFile.startsWith(docsRoot) || !existsSync(localFile)) {
+  // Pages link to other pages, and to images that Astro processes from src/assets
+  if (!(localFile.startsWith(docsRoot) || localFile.startsWith(assetsRoot)) || !existsSync(localFile)) {
     failures.push(`${relative(root, file)}: unresolved ${url}`);
   }
 }
@@ -77,7 +79,7 @@ for (const [docPath, command, heading] of cliDocs) {
 const targetsOutput = execFileSync(process.execPath, [cliPath, 'codegen', '--list-targets'], { cwd: root, encoding: 'utf8' });
 const actualTargets = new Set([...targetsOutput.matchAll(/^\s{4}([\w-]+)\s{2,}/gm)].map((match) => match[1]));
 const codegenDoc = readFileSync(join(docsRoot, 'cli', 'codegen.md'), 'utf8');
-const targetBlock = codegenDoc.match(/```\n\s*Available code generation targets:\s*\n\n([\s\S]*?)```/);
+const targetBlock = codegenDoc.match(/```(?:text)?\r?\n\s*Available code generation targets:\s*\r?\n\r?\n([\s\S]*?)```/);
 if (!targetBlock) {
   failures.push('cli/codegen.md: target list code block is missing');
 } else {

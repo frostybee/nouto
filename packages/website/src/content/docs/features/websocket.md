@@ -67,6 +67,8 @@ The log lists sent and received messages in order. Each row shows:
 - The message content
 - The message size
 
+![The WebSocket panel connected to wss://echo.websocket.org: the log shows a message from the server, a sent subscribe message, and its echo, each with a time, a direction arrow, a TEXT badge, and a size](../../../assets/screenshots/features/websocket-panel.png)
+
 Messages longer than 200 characters are truncated. Click a long message to expand it. An expanded JSON message is pretty-printed.
 
 The log keeps the 1,000 most recent messages. Click the **Clear messages** icon in the toolbar to empty it.

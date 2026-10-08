@@ -7,6 +7,8 @@ sidebar:
 
 Set the request body on the **Body** tab. Select a body type from the row of buttons at the top of the tab, then enter the content for that type. Nouto saves the body type and content with the request.
 
+![The Body tab of a POST request: the body type buttons None, JSON, Text, XML, Form Data, URL Encoded, Binary, and GraphQL, with JSON selected and a JSON body in the editor](../../../assets/screenshots/building-requests/body-types.png)
+
 ## `Content-Type` for each body type
 
 Nouto sets the `Content-Type` header from the body type and shows it as an **AUTO** row on the **Headers** tab:

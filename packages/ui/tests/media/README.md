@@ -101,6 +101,8 @@ pnpm -F @nouto/ui run media:docs-shots
 pnpm -F @nouto/ui run media:docs-shots -g "timing-breakdown"
 ```
 
+The `json-explorer/` and `showcase/` shots also need the standalone JSON Explorer extension (`packages/json-explorer-ext`) installed in the server, the same way as Nouto. The SSE shot serves its own event stream on port 4010, and the mock server shots use port 3901. `my-docs/screenshots/screenshot-capture-guide.md` lists every shot and the page that uses it.
+
 To add a shot, add a test named after its file, then link it from the page with a relative path, for example `![The Timing tab ...](../../../assets/screenshots/response/timing-breakdown.png)`. Keep crops about 800 CSS px wide or less so they show near true size in the docs column. Run `pnpm -F @nouto/website build` afterwards; a wrong path fails the build.
 
 ## Add a GIF

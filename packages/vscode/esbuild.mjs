@@ -38,7 +38,12 @@ const buildOptions = {
   alias: {
     'jsonc-parser': 'jsonc-parser/lib/esm/main.js',
   },
-  external: ['vscode', '@grpc/grpc-js', '@grpc/proto-loader', 'protobufjs'],
+  // Bundle every runtime dependency: the VSIX is packaged with
+  // --no-dependencies, so a module left external is missing at run time.
+  // @nouto/core requires the gRPC packages lazily without declaring them;
+  // resolve those from this package, which does.
+  external: ['vscode'],
+  nodePaths: [path.resolve(__dirname, 'node_modules')],
   sourcemap: true,
   minify: production,
   treeShaking: true,

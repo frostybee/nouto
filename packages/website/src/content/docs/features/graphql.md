@@ -50,6 +50,8 @@ Click **Fetch Schema** in the GraphQL toolbar. Nouto sends the standard introspe
 
 The explorer lists **Queries**, **Mutations**, **Subscriptions**, and **Types**. Use the search box to filter types and fields. Click a type to see its fields, arguments, enum values, input fields, and interfaces. Click a field name to copy it. Click **Hide Explorer** or **Show Explorer** to toggle the panel.
 
+![The GraphQL body of a request to the Countries API: a GetCountry query and its code variable on the left, and the schema explorer on the right with Queries expanded](../../../assets/screenshots/features/graphql-body.png)
+
 After the schema loads, the query editor suggests field names as you type.
 
 The introspection request includes the request's enabled headers and its auth settings. VS Code applies Bearer, Basic, and header-based API Key auth. The desktop app applies Bearer and Basic auth.

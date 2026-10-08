@@ -102,6 +102,8 @@ Press `Tab` to insert the first suggestion, or use the arrow keys to pick one an
 
 The explorer highlights every matching item in the tree view and the table view, and marks the current match more strongly. A badge such as `1 of 12` shows your position.
 
+![The query bar with email endsWith ".biz" and the badge 1 of 3: the tree highlights users 0, 6, and 9, and marks user 0 as the current match](../../../assets/screenshots/json-explorer/query-filter.png)
+
 Press `Enter` for the next match and `Shift+Enter` for the previous one, or use the arrow buttons in the query bar. Each step expands the collapsed ancestors of the match and scrolls to the first field that matched.
 
 To hide rows that don't match in the table view, open the search bar with `Ctrl+F` and switch it to filter mode.

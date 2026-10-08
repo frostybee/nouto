@@ -14,6 +14,8 @@ Add request headers on the **Headers** tab. The tab also shows the headers that 
 3. Type the header name. A list of matching standard and common headers appears; hover a suggestion to see what the header does.
 4. Enter the value. For headers with well-known values, such as `Content-Type`, `Accept`, and `Cache-Control`, the value field suggests them.
 
+![The Headers tab with Accept typed in a new row: the suggestion list shows the Accept headers, and hovering Accept-Encoding shows its description and a View on MDN link](../../../assets/screenshots/building-requests/headers-autocomplete.png)
+
 Press `Enter` in the last row to start another row. Clear a row's checkbox to stop sending that header without deleting it.
 
 ## Edit headers as text

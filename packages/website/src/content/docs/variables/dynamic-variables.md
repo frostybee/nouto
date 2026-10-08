@@ -7,6 +7,8 @@ sidebar:
 
 Dynamic variables are built-in placeholders that Nouto replaces with a generated value each time you send a request. They need no environment setup. Type `{{$` in the URL bar, a key-value table, or the body editor to browse them in autocomplete.
 
+![The URL bar with {{$ typed at the end of the URL: the autocomplete list shows $uuid.v4, $uuid.v7, and the $timestamp variables, each with a short description](../../../assets/screenshots/variables/variable-substitution-autocomplete.png)
+
 For environment variables, response values, and cookies, see [Variable substitution](/variables/variable-substitution).
 
 ## Syntax

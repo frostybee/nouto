@@ -18,6 +18,8 @@ Scripts use the global `nt` object. The [Script API reference](/testing/script-a
 
 The editor suggests `nt` members as you type. The tab label changes to `Scripts *` when the request has a script.
 
+![The Scripts tab of a saved request with Post-response Script selected: the snippet buttons above a script with three nt.test() checks and a console.log() call](../../../assets/screenshots/testing/scripts-editor.png)
+
 The snippet buttons depend on the selected script:
 
 | Script | Snippets |
@@ -74,6 +76,8 @@ After you send the request, the response panel shows a **Scripts** tab with a se
 - The error message, if the script threw
 - Console output, labeled with the level: `log`, `info`, `warn`, or `error`
 - For the post-response script, the `nt.test()` results, headed `Tests: 2/3 passed`
+
+![The response Scripts tab: the Pre-request Script and Post-response Script sections with OK badges and their log lines, and Tests: 2/3 passed with the failing test's error message](../../../assets/screenshots/testing/script-output.png)
 
 In the Collection Runner, click a request's row to see its **Script Tests** and **Script Logs**.
 

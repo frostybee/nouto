@@ -29,6 +29,8 @@ Each event row shows:
 - The time the event arrived, to the millisecond
 - The data from the `data:` lines, joined with line breaks
 
+![The SSE panel connected to a local event stream: the log shows six events with message, price, and ping type badges, each with its ID, arrival time, and JSON data](../../../assets/screenshots/features/sse-event-log.png)
+
 Data longer than 200 characters is truncated. Click a long event to expand it. Expanded JSON data is pretty-printed.
 
 Nouto skips comment lines (starting with `:`) and events that have no `data:` lines. The log keeps the 1,000 most recent events.

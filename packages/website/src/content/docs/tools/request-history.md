@@ -25,6 +25,8 @@ Open the **History** tab in the sidebar, next to **Collections** and **Trash**. 
 
 More entries load as you scroll down.
 
+![The History tab with entries grouped under Today, Yesterday, and This Week, each with a method badge, a URL path, the time since it was sent, a response time, and a status code](../../../assets/screenshots/tools/request-history.png)
+
 ## Search, filter, and sort
 
 Type in the search box to find entries whose URL, request name, or method contains the text. Click `.*` to switch to a regular expression search.

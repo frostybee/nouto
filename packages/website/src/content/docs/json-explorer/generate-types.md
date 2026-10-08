@@ -16,6 +16,8 @@ The JSON Explorer can turn the loaded JSON into type definitions that you paste 
 
 The panel follows your selection while it is open, so you can click different nodes to generate types for each one.
 
+![The Type Generator panel with TypeScript selected and Generating from: $[0].address, showing a Geo interface and a Root interface for the first user's address](../../../assets/screenshots/json-explorer/generate-types.png)
+
 ## Output by language
 
 | Language | Output |

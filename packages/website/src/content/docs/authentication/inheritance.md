@@ -21,11 +21,15 @@ Requests start in **Own Auth** mode, including requests you create in a collecti
 
 With **Inherit** selected, the tab shows `Using auth from` and the collection name. With **No Auth** selected, it shows `No authentication will be sent`. The auth fields appear only in **Own Auth** mode.
 
+![The Auth tab of a request saved in a collection: Inherit selected under Authorization, and the line Using auth from My API](../../../assets/screenshots/authentication/auth-inheritance-request.png)
+
 ## Set auth on a collection or folder
 
 1. In the sidebar, right-click the collection or folder and select **Settings...**.
 2. On the **Auth** tab, select a type from the **Type** dropdown and fill in the fields.
 3. Click **Save**.
+
+![The Folder Settings panel for a Users folder: the Auth tab with Basic Auth selected and the Username and Password fields](../../../assets/screenshots/authentication/auth-inheritance-folder.png)
 
 Folders and collections don't have an inheritance mode of their own. Once you save auth on a folder, that folder provides auth to the inheriting requests inside it.
 

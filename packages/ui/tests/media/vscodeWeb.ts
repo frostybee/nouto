@@ -4,7 +4,7 @@
  * frames deep in the workbench page. Workbench selectors live only here, so a
  * VS Code update means one file to fix.
  */
-import { chromium, type BrowserContext, type Frame, type Page } from '@playwright/test';
+import { chromium, expect, type BrowserContext, type Frame, type Locator, type Page } from '@playwright/test';
 import { installFakeCursor } from './cursor';
 import { OUTPUT_DIR } from './recorder';
 import { seedNoutoState, type SeedOptions } from './state';
@@ -53,9 +53,14 @@ async function openWorkbench(page: Page): Promise<void> {
 
 /** Runs a command by its Command Palette title. */
 export async function runCommand(page: Page, title: string): Promise<void> {
-  await page.keyboard.press('F1');
   const input = page.locator('.quick-input-widget input');
-  await input.waitFor();
+  await page.keyboard.press('F1');
+  if (!(await input.waitFor({ timeout: 3000 }).then(() => true, () => false))) {
+    // A webview that is still loading can swallow F1; give the workbench focus and retry
+    await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+    await page.keyboard.press('F1');
+    await input.waitFor();
+  }
   await input.fill(`>${title}`);
   await page.waitForTimeout(400);
   await page.keyboard.press('Enter');
@@ -107,6 +112,34 @@ export async function openEmptyRequest(page: Page, sidebar: Frame): Promise<Fram
   const panel = await frameWith(page, REQUEST_READY);
   await panel.locator(REQUEST_READY).waitFor();
   return panel;
+}
+
+/**
+ * Opens a saved request from the sidebar tree and returns its frame, found by
+ * `ready` (the WebSocket and SSE panels have their own).
+ */
+export async function openSavedRequest(page: Page, sidebar: Frame, name: string, ready = REQUEST_READY): Promise<Frame> {
+  await sidebar.locator('.request-item', { hasText: name }).first().click();
+  const panel = await frameWith(page, ready);
+  await panel.locator(ready).first().waitFor();
+  return panel;
+}
+
+/** Right-clicks a collection or folder header in the sidebar and picks a context menu item. */
+export async function sidebarMenu(sidebar: Frame, header: Locator, item: string): Promise<void> {
+  await header.click({ button: 'right' });
+  await sidebar.locator('.context-item', { hasText: item }).first().click();
+}
+
+/** Turns OpenAPI linting on or off. The setting persists in the browser profile. */
+export async function setOpenApiLinting(page: Page, on: boolean): Promise<void> {
+  await runCommand(page, 'OpenAPI Settings');
+  const settings = await frameWith(page, 'text=Enable OpenAPI linting');
+  const row = settings.locator('.setting-row', { hasText: 'Enable OpenAPI linting' });
+  const checkbox = row.locator('input[type="checkbox"]');
+  if ((await checkbox.isChecked()) !== on) await row.locator('.toggle-control').click();
+  await (on ? expect(checkbox).toBeChecked() : expect(checkbox).not.toBeChecked());
+  await runCommand(page, 'View: Close All Editors');
 }
 
 /**

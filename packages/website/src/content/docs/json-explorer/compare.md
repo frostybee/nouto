@@ -44,6 +44,8 @@ The diff view replaces the tree. The open document is in the **Original** column
 
 Each row shows the value from each side and an icon for its state. Objects appear as `{N keys}`, arrays as `[N items]`, and values longer than 60 characters are cut short.
 
+![The diff view for user.json: the summary bar shows 1 added, 1 removed, 2 changed, and 6 unchanged, and the Original and Comparison columns mark the changed role, the removed active key, and the added lastLogin key](../../../assets/screenshots/json-explorer/compare.png)
+
 The counts include objects and arrays as well as the values inside them:
 
 - An object counts as changed when anything inside it changed.

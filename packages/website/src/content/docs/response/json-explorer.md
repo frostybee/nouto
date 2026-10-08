@@ -35,6 +35,8 @@ The tree view is the default. It shows one row per key or array element:
 - Hover over a row to show buttons that pin the node, bookmark it, or copy its value.
 - Arrays show 2,000 items at a time. Click the `Show N more` row at the end of the list to load the next batch. In the JSON Explorer extension, the `noutoJsonExplorer.arrayPageSize` setting changes the batch size.
 
+![The JSON Explorer for a GET response from jsonplaceholder.typicode.com/users: the tree view with the first user expanded and the other nine users collapsed with 8 keys badges](../../../assets/screenshots/response/json-explorer.png)
+
 The toolbar controls the tree as a whole:
 
 - **Expand All** expands every node. The arrow next to it opens a menu with **Expand to Level 1** through **Expand to Level 5**.

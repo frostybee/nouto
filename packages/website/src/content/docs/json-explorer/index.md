@@ -28,6 +28,8 @@ Open files with the extension in any of these ways:
 - Run **Reopen Editor With...** from the Command Palette and select **JSON Explorer**.
 - To open a file outside the workspace, click **Open JSON File...** in the JSON Explorer sidebar, or run **Nouto JSON Explorer: Open JSON File from Disk...** from the Command Palette.
 
+![The JSON Explorer extension with response.json open in the tree view: the first user is expanded, and the other nine are collapsed with 8 keys badges](../../../assets/screenshots/json-explorer/open-file.png)
+
 A file that isn't a single JSON document but has one JSON value on each non-blank line loads as JSONL: an array with one element per line. If a line in a `.jsonl` or `.ndjson` file doesn't parse, an error message names the line number.
 
 The explorer reloads the file when it changes on disk or when you save it in a text editor. Expanded nodes, the view mode, bookmarks, and pins stay as they were. The selection, filter results, and any comparison are cleared.

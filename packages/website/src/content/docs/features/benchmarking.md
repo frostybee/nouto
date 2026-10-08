@@ -43,6 +43,8 @@ Below the counts, a table shows response time statistics in milliseconds: **Min*
 
 A distribution chart shows how response times spread across the run. The iteration table lists every request with its status, duration, size, result, and error, if any.
 
+![The results of a 50-iteration benchmark: the Total, Success, Failed, and Req/s counts, the Min, Max, Mean, Median, and percentile response times, and the response time distribution chart](../../../assets/screenshots/features/benchmark-results.png)
+
 Click **New Benchmark** to change the settings and run again.
 
 ## Export results

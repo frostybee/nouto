@@ -48,6 +48,8 @@ Click the **Service / Method** dropdown and select a method. Methods are grouped
 
 The input and output message types appear below the dropdown. If the **Message** editor is empty or contains `{}`, Nouto fills it with a JSON object that lists every field of the input message with a default value, for example `""` for strings, `0` for numbers, and `[]` for repeated fields.
 
+![The gRPC panel for localhost:50051: Schema Loaded from Reflection, UserService / GetUser selected with its input and output types, and the Message tab with a scaffold for the id field](../../../assets/screenshots/features/grpc-panel.png)
+
 ## Write the message
 
 The **Message** tab holds the request message as JSON. The editor uses the input message type to suggest field names and enum values (press `Ctrl+Space`), show field descriptions on hover, and flag fields that don't match the schema. The toolbar has **Format**, **Minify**, copy, and **Wrap** buttons.

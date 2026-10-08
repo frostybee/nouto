@@ -7,6 +7,8 @@ sidebar:
 
 Nouto checks an OpenAPI spec as you type and underlines each problem in the editor. In VS Code, the problems also appear in the **Problems** panel with the source `nouto-openapi`. Many problems have a quick fix: place the cursor on the problem, then click the lightbulb or press `Ctrl+.` (`Cmd+.` on macOS). Each fix applies as a single undo step.
 
+![The editor and the Problems panel for a spec whose path /shows/{showId} doesn't match its id parameter: the get operation and the id parameter are underlined, and the Problems panel lists missing-path-param and unused-path-param from nouto-openapi](../../../assets/screenshots/openapi/diagnostics.png)
+
 ## Diagnostic sources
 
 Diagnostics come from these checks:
@@ -64,6 +66,8 @@ These fixes resolve structural diagnostics:
 | `ref-not-found` | Create the missing component, using a skeleton for its section |
 
 The `ref-not-found` fix is offered only when the `$ref` targets a component, in the form `#/components/<section>/<name>`.
+
+![The Quick Fix menu on the get operation of /shows/{showId}, offering Add path parameter "showId"](../../../assets/screenshots/openapi/quick-fix.png)
 
 ## Lint rule quick fixes
 

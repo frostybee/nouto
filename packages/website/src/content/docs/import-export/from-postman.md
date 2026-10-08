@@ -34,6 +34,8 @@ Nouto imports Postman Collection v2.0 and v2.1 files and Postman environment fil
 
 The collection appears in the sidebar. In VS Code, if the collection has variables, Nouto asks whether to save them as an environment. Select **Yes** to create an environment named after the collection.
 
+![The Collections sidebar after importing a Postman export: the TVmaze API collection with a Shows folder of three requests and a People folder of two](../../../assets/screenshots/import-export/import-result-sidebar.png)
+
 ## Import an environment
 
 1. In Postman, open **Environments**, open the `...` menu of an environment, and select **Export**.

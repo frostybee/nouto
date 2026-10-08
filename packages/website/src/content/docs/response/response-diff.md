@@ -25,6 +25,8 @@ The diff replaces the body text. The previous response is in the **Previous** co
 
 Lines that differ are highlighted on both sides, and the changed text inside each line is marked. Long lines wrap.
 
+![The Body tab comparing two JSON responses: the Previous column on the left and the Current column on the right, with the changed id, title, and completed lines highlighted](../../../assets/screenshots/response/response-diff.png)
+
 If a [JSONPath filter](/response/response-viewer#jsonpath-filter) is active, the **Current** column shows the filtered result while the **Previous** column shows the whole previous body. Clear the filter before you compare full responses.
 
 ## Close the diff

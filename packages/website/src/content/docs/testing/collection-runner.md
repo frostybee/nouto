@@ -51,6 +51,8 @@ The desktop app's runner doesn't evaluate assertions. There, a request fails onl
 
 When requests finish, the runner shows a summary of passed, failed, and skipped requests and the total time. Use **All**, **Passed**, and **Failed** to filter the results table.
 
+![The Collection Runner after a run of five requests: the summary shows 4 passed and 1 failed, and the results table marks a 404 Not Found request as Fail](../../../assets/screenshots/testing/runner-panel.png)
+
 The results table has these columns:
 
 | Column | Contents |

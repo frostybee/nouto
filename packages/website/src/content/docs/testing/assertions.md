@@ -101,6 +101,8 @@ To check every request in a collection or folder, right-click it in the sidebar,
 
 In the request editor, each row shows a pass or fail icon after the response arrives. A failed row shows the failure message and the actual value after `Got:`. The **Test Assertions** header shows a count such as `3/5 passed`.
 
+![The Test Assertions list after a response: the Status Code, Response Time, and JSON Path $.id rows pass, the JSON Path $.userId row fails with Got: 1, and the header shows 3/4 passed](../../../assets/screenshots/testing/assertions-tab.png)
+
 The response panel adds a **Tests** tab, labeled with the count, for example `Tests 3/5`. It shows a summary such as `3/5 tests passed (2 failed)`, followed by each assertion's message and, for failures, the actual value.
 
 In the [Collection Runner](/testing/collection-runner), the **Result** column shows the passed and total assertion count next to **Pass** or **Fail**. Click a row to see each assertion.

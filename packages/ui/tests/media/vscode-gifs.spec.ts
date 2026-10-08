@@ -23,7 +23,7 @@ import {
   frameWith,
   openEmptyRequest,
   quickRequestItem,
-  runCommand,
+  setOpenApiLinting,
   setSectionExpanded,
   stackPanels,
   withVsCode,
@@ -436,12 +436,7 @@ test('#9 OpenAPI editor', async () => {
   const spec = 'tvmaze.openapi.yaml';
   await withVsCode('vscode-openapi', { workspaceFiles: [spec] }, async (page) => {
     // Lint squiggles would cover the demo; the setting persists in the browser profile
-    await runCommand(page, 'OpenAPI Settings');
-    const settings = await frameWith(page, 'text=Enable OpenAPI linting');
-    const lintRow = settings.locator('.setting-row', { hasText: 'Enable OpenAPI linting' });
-    if (await lintRow.locator('input[type="checkbox"]').isChecked()) await lintRow.locator('.toggle-control').click();
-    await expect(lintRow.locator('input[type="checkbox"]')).not.toBeChecked();
-    await runCommand(page, 'View: Close All Editors');
+    await setOpenApiLinting(page, false);
 
     // The outline gets the side bar to itself
     await setSectionExpanded(page, 'API Testing', false);

@@ -15,6 +15,8 @@ In VS Code, you can also click **Cookie Jars** (the globe icon) in the API Testi
 
 The tab lists your jars, with the cookie count of each. Nouto starts with one jar named `Default`. A check mark shows the active jar.
 
+![The Cookie Jar tab with three jars: Admin user is active, and its three cookies are grouped under api.example.com and app.example.com with their HttpOnly, Secure, and SameSite flags](../../../assets/screenshots/tools/cookie-jars.png)
+
 ## Create and switch jars
 
 Only one jar is active at a time, and it applies to every request.

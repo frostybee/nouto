@@ -30,6 +30,8 @@ Click the arrow at the end of the row to show more fields:
 
 Click **×** to remove a route.
 
+![The Mock Server panel with four routes: the GET /users/:id route is expanded to show its description, a response body that uses {{id}}, and a latency of 100 to 300 ms](../../../assets/screenshots/tools/mock-server-routes.png)
+
 :::note
 The route editor has no field for response headers. In the desktop app, routes return `Content-Type: application/json`. In VS Code, only routes created with **Import from Collection** send that header.
 :::
@@ -87,6 +89,8 @@ The **Request Log** tab lists the requests the server received, with these colum
 | Duration | Time to respond, including simulated latency |
 
 The log keeps the last 100 requests. Click **Clear Logs** to empty it.
+
+![The Request Log tab while the server runs on port 3901: three requests answered by matching routes, and a GET /orders request with no matching route and a 404 status](../../../assets/screenshots/tools/mock-server-log.png)
 
 ## Create routes from a collection
 
