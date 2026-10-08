@@ -1,7 +1,7 @@
 {
   "name": "grpc-test",
   "version": "1.0.0",
-  "description": "gRPC test server for HiveFetch development",
+  "description": "gRPC test server for Nouto development",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"

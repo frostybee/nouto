@@ -1135,15 +1135,18 @@
     {@const conn = grpcConnection()}
     {@const isStreamActive = streaming && conn?.state !== 'closed'}
     {#if isStreamActive}
-      <button class="send-button" onclick={() => messageBus({ type: 'grpcSendMessage', data: { connectionId: conn?.id, body: request.body.content ? substituteVariables(request.body.content) : '{}' } } as any)}>
-        Send
-      </button>
+      <!-- Only client and bidirectional streams take more messages; a server stream can only be cancelled -->
       {#if mType === 'client_streaming' || mType === 'streaming'}
+        <button class="send-button" onclick={() => messageBus({ type: 'grpcSendMessage', data: { connectionId: conn?.id, body: request.body.content ? substituteVariables(request.body.content) : '{}' } } as any)}>
+          Send
+        </button>
         <button class="send-button" style="margin-left: 0.308rem;" onclick={() => messageBus({ type: 'grpcCommitStream', data: { connectionId: conn?.id } } as any)}>
           Commit
         </button>
+        <button class="cancel-button" style="margin-left: 0.308rem;" onclick={handleCancel}>Cancel</button>
+      {:else}
+        <button class="cancel-button" onclick={handleCancel}>Cancel</button>
       {/if}
-      <button class="cancel-button" style="margin-left: 0.308rem;" onclick={handleCancel}>Cancel</button>
     {:else if loading}
       <button class="cancel-button" onclick={handleCancel}>Cancel</button>
     {:else}

@@ -534,6 +534,8 @@ export class GrpcService {
 
       const credentials = this.buildCredentials(grpc, options.tls, options.tlsCertPath, options.tlsKeyPath, options.tlsCaCertPath, options.tlsPassphrase);
       const client = new ServiceConstructor(options.address, credentials);
+      // Client-streaming and bidi calls outlive invoke(): they close the client when they finish
+      let streamOwnsClient = false;
 
       try {
         // Build metadata
@@ -674,6 +676,8 @@ export class GrpcService {
 
           await new Promise<void>((resolve) => {
             let initialMeta: Record<string, string> = {};
+            // grpc-js emits 'error' and then 'end' for a failed stream; report only the first
+            let finished = false;
             const call = methodFn.call(client, requestBody, meta, callOptions);
 
             call.on('metadata', (md: any) => {
@@ -694,10 +698,12 @@ export class GrpcService {
             });
 
             call.on('error', (err: any) => {
+              if (finished) return;
+              finished = true;
               this.activeCalls.delete(connectionId);
               this.activeClients.delete(connectionId);
               const elapsed = Date.now() - startTime;
-              const statusCode = err.code ?? 2;
+              const statusCode = typeof err.code === 'number' ? err.code : 2;
               const statusMsg = err.details || err.message;
               callbacks.onEvent({
                 id: generateId(),
@@ -729,6 +735,8 @@ export class GrpcService {
             });
 
             call.on('end', () => {
+              if (finished) return;
+              finished = true;
               this.activeCalls.delete(connectionId);
               this.activeClients.delete(connectionId);
               const elapsed = Date.now() - startTime;
@@ -754,13 +762,14 @@ export class GrpcService {
             this.activeClients.set(connectionId, client);
           });
         } else if (methodType === 'client_streaming') {
+          let initialMeta: Record<string, string> = {};
+          // grpc-js calls this once, when the server answers or the call fails
           const call = methodFn.call(client, meta, callOptions, (err: any, response: any) => {
-            this.activeCalls.delete(connectionId);
-            this.activeClients.delete(connectionId);
+            this.releaseStream(connectionId, client);
             const elapsed = Date.now() - startTime;
 
             if (err) {
-              const statusCode = err.code ?? 2;
+              const statusCode = typeof err.code === 'number' ? err.code : 2;
               const statusMsg = err.details || err.message;
               callbacks.onEvent({
                 id: generateId(),
@@ -783,6 +792,7 @@ export class GrpcService {
                 statusMessage: statusMsg,
                 state: 'closed',
                 trailers,
+                initialMetadata: initialMeta,
                 elapsed,
                 error: statusMsg,
                 createdAt: now,
@@ -809,10 +819,14 @@ export class GrpcService {
                 status: 0,
                 state: 'closed',
                 trailers,
+                initialMetadata: initialMeta,
                 elapsed,
                 createdAt: now,
               });
             }
+          });
+          call.on('metadata', (md: any) => {
+            initialMeta = this.metadataToRecord(md);
           });
 
           this.activeCalls.set(connectionId, call);
@@ -830,11 +844,14 @@ export class GrpcService {
             call.write(requestBody);
           }
           // Stream stays open for sendMessage/endStream calls
+          streamOwnsClient = true;
           return connectionId;
         } else if (methodType === 'bidi') {
           const call = methodFn.call(client, meta, callOptions);
 
           let initialMeta: Record<string, string> = {};
+          // grpc-js emits 'error' and then 'end' for a failed or cancelled stream; report only the first
+          let finished = false;
           call.on('metadata', (md: any) => {
             initialMeta = this.metadataToRecord(md);
           });
@@ -853,10 +870,11 @@ export class GrpcService {
           });
 
           call.on('error', (err: any) => {
-            this.activeCalls.delete(connectionId);
-            this.activeClients.delete(connectionId);
+            if (finished) return;
+            finished = true;
+            this.releaseStream(connectionId, client);
             const elapsed = Date.now() - startTime;
-            const statusCode = err.code ?? 2;
+            const statusCode = typeof err.code === 'number' ? err.code : 2;
             const statusMsg = err.details || err.message;
             callbacks.onEvent({
               id: generateId(),
@@ -887,8 +905,9 @@ export class GrpcService {
           });
 
           call.on('end', () => {
-            this.activeCalls.delete(connectionId);
-            this.activeClients.delete(connectionId);
+            if (finished) return;
+            finished = true;
+            this.releaseStream(connectionId, client);
             const elapsed = Date.now() - startTime;
             const trailers = this.metadataToRecord(call?.getTrailers?.());
             this.addGrpcStatusToTrailers(trailers, 0, 'OK');
@@ -922,11 +941,14 @@ export class GrpcService {
             call.write(requestBody);
           }
           // Stream stays open for sendMessage/endStream calls
+          streamOwnsClient = true;
           return connectionId;
         }
       } finally {
-        this.activeCalls.delete(connectionId);
-        client.close();
+        if (!streamOwnsClient) {
+          this.activeCalls.delete(connectionId);
+          client.close();
+        }
       }
     } catch (err: any) {
       const elapsed = Date.now() - startTime;
@@ -961,6 +983,9 @@ export class GrpcService {
   sendMessage(connectionId: string, body: string): void {
     const call = this.activeCalls.get(connectionId);
     if (!call) throw new Error('No active stream for this connection');
+    if (typeof call.write !== 'function') throw new Error('This method takes a single request message, not a stream.');
+    // Writing after end() makes a duplex stream fail, so refuse with a clear message instead
+    if (call.writableEnded) throw new Error('This stream is closed for sending. Start a new stream to send more messages.');
     let parsed: any;
     try { parsed = JSON.parse(stripJsonComments(body || '{}')); } catch { parsed = {}; }
     call.write(parsed);
@@ -968,7 +993,7 @@ export class GrpcService {
 
   endStream(connectionId: string): void {
     const call = this.activeCalls.get(connectionId);
-    if (call && typeof call.end === 'function') {
+    if (call && typeof call.end === 'function' && !call.writableEnded) {
       call.end();
     }
   }
@@ -999,6 +1024,18 @@ export class GrpcService {
   }
 
   // --- Private helpers ---
+
+  /**
+   * Forget a finished client-streaming or bidi call and close its client.
+   * cancel() may already have closed the client and removed it.
+   */
+  private releaseStream(connectionId: string, client: any): void {
+    this.activeCalls.delete(connectionId);
+    if (this.activeClients.get(connectionId) === client) {
+      this.activeClients.delete(connectionId);
+      client.close();
+    }
+  }
 
   /**
    * Fetch descriptors for `google.protobuf.Any` payload types that are missing from the

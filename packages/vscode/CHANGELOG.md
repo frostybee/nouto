@@ -7,6 +7,9 @@ All notable changes to the Nouto VS Code extension will be documented in this fi
 ### Fixed
 
 - gRPC requests work in the extension installed from the Marketplace. Loading a schema with server reflection or `.proto` files, and invoking a method, failed with "gRPC support requires @grpc/grpc-js" because the extension package didn't include the gRPC libraries.
+- gRPC client streaming and bidirectional streaming calls work. They failed at once with `UNAVAILABLE (14)` "Channel closed before call started", so **Send** and **Commit** had nothing to send to.
+- A failed or cancelled gRPC server streaming or bidirectional call shows its real status, for example `CANCELLED 1`, instead of `OK 0`. It's also recorded once in history instead of twice, and the sidebar shows the real status instead of `200`.
+- **Send** no longer appears while a server streaming call is open, because the server doesn't accept messages on it. Sending after **Commit** shows "This stream is closed for sending" instead of a raw stream error.
 - The Generate Code dialog no longer draws a box behind each line of the snippet, and the snippet uses the editor font and color.
 - cURL snippets keep each option on the same line as its value, for example `-X POST` and `-H 'Accept: application/json'`, in the Generate Code dialog and in Copy as cURL.
 - The show/hide button in password fields (OAuth 2.0 Client Secret, Basic, Digest, NTLM, and the AWS secret key) is centered in the field and visible on dark themes, and its tooltip points at the button.

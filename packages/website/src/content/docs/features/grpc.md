@@ -114,11 +114,12 @@ The button stays disabled until you've entered an address and selected a method.
 
 ### Control a streaming call
 
-While a stream is open, the URL bar shows these buttons:
+While a stream is open, the URL bar shows **Cancel**, which cancels the call.
+
+For client streaming and bidirectional streaming, **Start Stream** sends the contents of the **Message** editor as the first message, unless the message is empty (`{}`). While the stream is open, the URL bar also shows:
 
 - **Send** sends the current contents of the **Message** editor. Edit the message between sends to vary the payload.
-- **Commit** half-closes the client side of a client streaming or bidirectional stream, telling the server that no more messages are coming.
-- **Cancel** cancels the call.
+- **Commit** half-closes the client side of the stream, telling the server that no more messages are coming.
 
 ## Read the response
 

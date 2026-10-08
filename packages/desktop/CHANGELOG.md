@@ -29,6 +29,7 @@ All notable changes to the Nouto desktop app will be documented in this file.
 - The GraphQL query editor no longer overlaps the Variables section when the request pane is short; the tab content scrolls instead
 - cURL snippets keep each option on the same line as its value, for example `-X POST` and `-H 'Accept: application/json'`
 - The show/hide button in password fields (OAuth 2.0 Client Secret, Basic, Digest, NTLM, and the AWS secret key) is centered in the field and visible on dark themes
+- **Send** no longer appears while a gRPC server streaming call is open; the URL bar shows only **Cancel**, because the server doesn't accept messages on that call
 - Various UI improvements and bug fixes
 
 ## [0.0.1] - 2026-03-23

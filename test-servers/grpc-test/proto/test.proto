@@ -14,6 +14,18 @@ service TestService {
 
   // Returns the gRPC error code you specify — use to test error rendering
   rpc TriggerError (ErrorRequest) returns (Empty);
+
+  // Server streaming: counts down from `from` to 1, one message every
+  // `intervalMs`, then ends the stream
+  rpc Countdown (CountdownRequest) returns (stream CountdownResponse);
+
+  // Client streaming: adds up the `value` of every message and answers once
+  // the client ends its side of the stream
+  rpc Sum (stream SumRequest) returns (SumResponse);
+
+  // Bidirectional streaming: answers each message as it arrives, and ends the
+  // stream after the client ends its side
+  rpc Chat (stream ChatMessage) returns (stream ChatMessage);
 }
 
 message EchoRequest {
@@ -44,4 +56,28 @@ message ErrorRequest {
   // gRPC status code to return (0=OK, 1=CANCELLED, 2=UNKNOWN ... 16=UNAUTHENTICATED)
   int32  code    = 1;
   string message = 2; // optional custom error message
+}
+
+message CountdownRequest {
+  int32 from       = 1; // 1 to 100; 0 means 5
+  int32 intervalMs = 2; // delay between messages, up to 5000; 0 means 200
+}
+
+message CountdownResponse {
+  int32  remaining = 1;
+  string timestamp = 2;
+}
+
+message SumRequest {
+  int32 value = 1;
+}
+
+message SumResponse {
+  int32 total = 1; // sum of every value received
+  int32 count = 2; // number of messages received
+}
+
+message ChatMessage {
+  string text  = 1;
+  int32  index = 2; // set by the server: 1 for its first reply, 2 for the next
 }

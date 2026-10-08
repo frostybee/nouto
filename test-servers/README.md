@@ -60,9 +60,9 @@ node server.js
 
 ## gRPC (`grpc-test`)
 
-**Port:** `localhost:50051` (plaintext, no TLS)
+**Ports:** `localhost:50051` (plaintext) and `localhost:50052` (TLS)
 
-A gRPC test server with three services and server reflection enabled. Useful for testing Nouto's gRPC client (reflection auto-discovery, all call types, error handling, auth).
+A gRPC test server with three services and server reflection on both ports. It covers every call type (unary, server streaming, client streaming, and bidirectional streaming), metadata, auth, error codes, and TLS.
 
 ```bash
 cd grpc-test
@@ -87,6 +87,9 @@ node server.js
 | `Ping({})` | Returns server status and time |
 | `RequireAuth({})` | Requires `Authorization` metadata, returns UNAUTHENTICATED without it |
 | `TriggerError({ code, message })` | Returns any gRPC error code (for testing error handling) |
+| `Countdown({ from, intervalMs })` | Server streaming: sends `from`, `from - 1`, ... `1`, one message every `intervalMs` (default 5 messages, 200 ms apart), then ends |
+| `Sum(stream { value })` | Client streaming: adds up every `value` and returns `{ total, count }` after the client ends its side. In Nouto, click **Start Stream**, **Send** for each extra message, then **Commit**. |
+| `Chat(stream { text })` | Bidirectional streaming: replies `You said: <text>` to each message, and ends the stream after the client ends its side |
 
 ### `users.UserService` (complex schema with nested messages, enums, maps, arrays)
 
@@ -99,3 +102,9 @@ node server.js
 | `DeleteUser({ id, softDelete })` | Hard or soft delete |
 
 Server reflection is enabled, so Nouto can auto-discover all services without loading `.proto` files manually.
+
+### TLS
+
+Port `50052` serves the same services over TLS with a certificate for `localhost`, signed by a test CA in `certs/`. To connect from Nouto, set the address to `localhost:50052`, open the **TLS** tab, select **Use TLS**, and set **CA Certificate** to the full path of `test-servers/grpc-test/certs/ca.crt`.
+
+The files in `certs/` are for local testing only. To replace them, run `certs/generate.sh` (needs OpenSSL 1.1.1 or later, for example from Git Bash). If they're missing, the server starts without the TLS port.

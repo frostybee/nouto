@@ -45,6 +45,21 @@ async function startServer(): Promise<{ address: string; server: any }> {
     fail(_call: any, callback: any) {
       callback(Object.assign(new Error('nope'), { code: grpc.status.NOT_FOUND }));
     },
+    sum(call: any, callback: any) {
+      let total = 0;
+      let count = 0;
+      call.on('data', (m: any) => { total += m.value; count += 1; });
+      call.on('end', () => callback(null, { total, count }));
+    },
+    chat(call: any) {
+      call.on('data', (m: any) => call.write({ text: `re:${m.text}` }));
+      call.on('end', () => call.end());
+    },
+    failStream(call: any) {
+      call.write({ value: 1 });
+      // A grpc-js server stream ends with a non-OK status through an error event
+      call.emit('error', { code: grpc.status.INTERNAL, details: 'stream broke' });
+    },
   });
 
   // Register both files with reflection so `extra.proto` is discoverable by symbol
@@ -72,6 +87,42 @@ async function runInvoke(service: GrpcService, options: Parameters<GrpcService['
   await service.invoke(options, callbacks);
   return { start: start!, end: end!, events, serverMessages: events.filter(e => e.eventType === 'server_message') };
 }
+
+/**
+ * Start a streaming invoke without waiting for it to finish. `ended` resolves at
+ * the first onConnectionEnd; `ends` keeps every one, so tests can check a call
+ * reports its end exactly once.
+ */
+function startStream(service: GrpcService, options: Parameters<GrpcService['invoke']>[0]) {
+  const events: GrpcEvent[] = [];
+  const ends: GrpcConnection[] = [];
+  let connectionId = '';
+  let resolveEnded!: (connection: GrpcConnection) => void;
+  const ended = new Promise<GrpcConnection>(resolve => { resolveEnded = resolve; });
+  const invoked = service.invoke(options, {
+    onConnectionStart: c => { connectionId = c.id; },
+    onEvent: e => { events.push(e); },
+    onConnectionEnd: c => { ends.push(c); resolveEnded(c); },
+  });
+  return {
+    invoked,
+    ended,
+    ends,
+    id: () => connectionId,
+    serverMessages: () => events.filter(e => e.eventType === 'server_message').map(e => JSON.parse(e.content)),
+  };
+}
+
+async function waitFor(predicate: () => boolean, timeoutMs = 3000): Promise<void> {
+  const deadline = Date.now() + timeoutMs;
+  while (!predicate()) {
+    if (Date.now() > deadline) throw new Error('Timed out waiting for the stream');
+    await new Promise(resolve => setTimeout(resolve, 10));
+  }
+}
+
+/** Gives a duplicate end report time to arrive before counting. */
+const settle = () => new Promise(resolve => setTimeout(resolve, 100));
 
 describe('collectAnyTypes', () => {
   it('extracts unique type names from nested @type URLs', () => {
@@ -215,6 +266,73 @@ describe('GrpcService', () => {
       const response = JSON.parse(serverMessages[0].content);
       expect(response.typeUrl).toContain('nouto.extra.Extra');
       expect(response.label).toBe('from-any');
+    });
+
+    describe('streaming calls', () => {
+      const stream = (methodName: string, body: string) =>
+        startStream(service, { address, serviceName: 'nouto.test.TestService', methodName, body, useReflection: true });
+
+      beforeEach(async () => {
+        await service.reflect(address);
+      });
+
+      it('keeps a client stream open for more messages and reports one result', async () => {
+        const sum = stream('Sum', '{"value": 2}');
+        await sum.invoked;
+        service.sendMessage(sum.id(), '{"value": 3}');
+        service.sendMessage(sum.id(), '{"value": 5}');
+        service.endStream(sum.id());
+        const end = await sum.ended;
+        await settle();
+        expect(sum.ends).toHaveLength(1);
+        expect(end.status).toBe(0);
+        expect(sum.serverMessages()).toEqual([{ total: 10, count: 3 }]);
+      });
+
+      it('answers each message on a bidirectional stream until the client ends it', async () => {
+        const chat = stream('Chat', '{"text": "hi"}');
+        await chat.invoked;
+        await waitFor(() => chat.serverMessages().length === 1);
+        service.sendMessage(chat.id(), '{"text": "again"}');
+        await waitFor(() => chat.serverMessages().length === 2);
+        service.endStream(chat.id());
+        const end = await chat.ended;
+        await settle();
+        expect(chat.ends).toHaveLength(1);
+        expect(end.status).toBe(0);
+        expect(chat.serverMessages().map(m => m.text)).toEqual(['re:hi', 're:again']);
+      });
+
+      it('reports a cancelled bidirectional stream once, as CANCELLED', async () => {
+        const chat = stream('Chat', '{"text": "hi"}');
+        await chat.invoked;
+        await waitFor(() => chat.serverMessages().length === 1);
+        service.cancel(chat.id());
+        const end = await chat.ended;
+        await settle();
+        expect(chat.ends).toHaveLength(1);
+        expect(end.status).toBe(grpc.status.CANCELLED);
+      });
+
+      it('reports a failed server stream once, with its error status', async () => {
+        const failing = stream('FailStream', '{}');
+        await failing.invoked;
+        const end = await failing.ended;
+        await settle();
+        expect(failing.ends).toHaveLength(1);
+        expect(end.status).toBe(grpc.status.INTERNAL);
+        expect(end.error).toBe('stream broke');
+        expect(failing.serverMessages()).toEqual([{ value: 1 }]);
+      });
+
+      it('rejects messages after the client side of a stream has ended', async () => {
+        const chat = stream('Chat', '{"text": "hi"}');
+        await chat.invoked;
+        service.endStream(chat.id());
+        expect(() => service.sendMessage(chat.id(), '{"text": "late"}')).toThrow(/closed for sending/);
+        const end = await chat.ended;
+        expect(end.status).toBe(0);
+      });
     });
   });
 });

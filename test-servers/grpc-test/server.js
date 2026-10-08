@@ -2,11 +2,13 @@ import grpc from '@grpc/grpc-js';
 import protoLoader from '@grpc/proto-loader';
 import { ReflectionService } from '@grpc/reflection';
 import { fileURLToPath } from 'url';
+import fs from 'fs';
 import path from 'path';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const PORT = 50051;
+const TLS_PORT = 50052;
 
 // ---------------------------------------------------------------------------
 // Load proto definitions
@@ -112,6 +114,52 @@ function triggerError(call, callback) {
   }
   console.log(`[TestService] TriggerError — returning code=${code} message="${message}"`);
   callback(Object.assign(new Error(message), { code }));
+}
+
+// Server streaming: one message per tick from `from` down to 1
+function countdown(call) {
+  const from = Math.min(Math.max(call.request.from || 5, 1), 100);
+  const intervalMs = Math.min(call.request.intervalMs > 0 ? call.request.intervalMs : 200, 5000);
+  console.log(`[TestService] Countdown from=${from} intervalMs=${intervalMs}`);
+  let remaining = from;
+  const timer = setInterval(() => {
+    call.write({ remaining, timestamp: new Date().toISOString() });
+    remaining -= 1;
+    if (remaining === 0) {
+      clearInterval(timer);
+      call.end();
+    }
+  }, intervalMs);
+  call.on('cancelled', () => clearInterval(timer));
+}
+
+// Client streaming: answers once the client ends its side
+function sum(call, callback) {
+  let total = 0;
+  let count = 0;
+  call.on('data', (message) => {
+    total += message.value || 0;
+    count += 1;
+    console.log(`[TestService] Sum received value=${message.value} (total=${total})`);
+  });
+  call.on('end', () => {
+    console.log(`[TestService] Sum done total=${total} count=${count}`);
+    callback(null, { total, count });
+  });
+}
+
+// Bidirectional streaming: one reply per message, then ends after the client does
+function chat(call) {
+  let index = 0;
+  call.on('data', (message) => {
+    index += 1;
+    console.log(`[TestService] Chat received text="${message.text}"`);
+    call.write({ text: `You said: ${message.text}`, index });
+  });
+  call.on('end', () => {
+    console.log(`[TestService] Chat ended after ${index} message(s)`);
+    call.end();
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -273,37 +321,65 @@ users.set(bob.id, bob);
 const server = new grpc.Server();
 
 server.addService(greeterPkg.helloworld.Greeter.service, { sayHello, sayHelloWithMetadata });
-server.addService(testPkg.test.TestService.service, { echo, ping, requireAuth, triggerError });
+server.addService(testPkg.test.TestService.service, { echo, ping, requireAuth, triggerError, countdown, sum, chat });
 server.addService(usersPkg.users.UserService.service, { createUser, getUser, listUsers, updateUser, deleteUser });
 
-// Server reflection — lets HiveFetch auto-discover all services without a .proto file
+// Server reflection lets Nouto discover every service without a .proto file.
 // ReflectionService expects a single merged PackageDefinition, NOT an array
 const reflection = new ReflectionService({ ...greeterDef, ...testDef, ...usersDef });
 reflection.addToServer(server);
 
-server.bindAsync(`0.0.0.0:${PORT}`, grpc.ServerCredentials.createInsecure(), (err, port) => {
-  if (err) {
-    console.error('Failed to start server:', err.message);
-    process.exit(1);
+// The TLS port serves a test-only certificate for localhost, signed by certs/ca.crt
+const CERTS_DIR = path.join(__dirname, 'certs');
+
+function tlsCredentials() {
+  try {
+    return grpc.ServerCredentials.createSsl(null, [{
+      private_key: fs.readFileSync(path.join(CERTS_DIR, 'server.key')),
+      cert_chain: fs.readFileSync(path.join(CERTS_DIR, 'server.crt')),
+    }], false);
+  } catch (err) {
+    console.warn(`TLS port disabled (${err.message}). Run certs/generate.sh to create the certificates.`);
+    return null;
   }
-  console.log(`gRPC test server running on localhost:${port} (plaintext)`);
-  console.log('');
-  console.log('  helloworld.Greeter');
-  console.log('    SayHello({ name })');
-  console.log('    SayHelloWithMetadata({ name })       echoes back metadata keys');
-  console.log('');
-  console.log('  test.TestService');
-  console.log('    Echo({ message, repeatCount })');
-  console.log('    Ping({})');
-  console.log('    RequireAuth({})                      needs Authorization metadata');
-  console.log('    TriggerError({ code, message })      returns any gRPC error code');
-  console.log('');
-  console.log('  users.UserService  (complex schema — nested messages, enums, maps, arrays)');
-  console.log('    CreateUser({ user, sendWelcomeEmail, notifyEmails })');
-  console.log('    GetUser({ id })                      seeded: id="1" (Alice), id="2" (Bob)');
-  console.log('    ListUsers({ pageSize, filterStatus, minPriority, searchQuery })');
-  console.log('    UpdateUser({ id, user, updateMask })');
-  console.log('    DeleteUser({ id, softDelete })');
-  console.log('');
-  console.log('Use Server Reflection in HiveFetch — no .proto file needed.');
-});
+}
+
+function bind(port, credentials) {
+  return new Promise((resolve, reject) => {
+    server.bindAsync(`0.0.0.0:${port}`, credentials, (err, boundPort) => (err ? reject(err) : resolve(boundPort)));
+  });
+}
+
+try {
+  await bind(PORT, grpc.ServerCredentials.createInsecure());
+  const tls = tlsCredentials();
+  if (tls) await bind(TLS_PORT, tls);
+  console.log(`gRPC test server running on localhost:${PORT} (plaintext)${tls ? ` and localhost:${TLS_PORT} (TLS)` : ''}`);
+} catch (err) {
+  console.error('Failed to start server:', err.message);
+  process.exit(1);
+}
+
+console.log('');
+console.log('  helloworld.Greeter');
+console.log('    SayHello({ name })');
+console.log('    SayHelloWithMetadata({ name })       echoes back metadata keys');
+console.log('');
+console.log('  test.TestService');
+console.log('    Echo({ message, repeatCount })');
+console.log('    Ping({})');
+console.log('    RequireAuth({})                      needs Authorization metadata');
+console.log('    TriggerError({ code, message })      returns any gRPC error code');
+console.log('    Countdown({ from, intervalMs })      server streaming');
+console.log('    Sum(stream { value })                client streaming: answers after the client ends');
+console.log('    Chat(stream { text })                bidirectional streaming: one reply per message');
+console.log('');
+console.log('  users.UserService  (complex schema: nested messages, enums, maps, arrays)');
+console.log('    CreateUser({ user, sendWelcomeEmail, notifyEmails })');
+console.log('    GetUser({ id })                      seeded: id="1" (Alice), id="2" (Bob)');
+console.log('    ListUsers({ pageSize, filterStatus, minPriority, searchQuery })');
+console.log('    UpdateUser({ id, user, updateMask })');
+console.log('    DeleteUser({ id, softDelete })');
+console.log('');
+console.log('Server reflection is on for both ports, so Nouto needs no .proto file.');
+console.log(`For the TLS port, set the CA certificate to ${path.join(CERTS_DIR, 'ca.crt')}.`);

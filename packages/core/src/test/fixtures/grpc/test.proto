@@ -9,6 +9,9 @@ service TestService {
   rpc Count (CountRequest) returns (stream CountResponse);
   rpc WrapAny (AnyRequest) returns (AnyResponse);
   rpc Fail (EchoRequest) returns (EchoResponse);
+  rpc Sum (stream SumRequest) returns (SumResponse);
+  rpc Chat (stream ChatMessage) returns (stream ChatMessage);
+  rpc FailStream (CountRequest) returns (stream CountResponse);
 }
 
 message EchoRequest {
@@ -34,4 +37,17 @@ message AnyRequest {
 message AnyResponse {
   string typeUrl = 1;
   string label = 2;
+}
+
+message SumRequest {
+  int32 value = 1;
+}
+
+message SumResponse {
+  int32 total = 1;
+  int32 count = 2;
+}
+
+message ChatMessage {
+  string text = 1;
 }

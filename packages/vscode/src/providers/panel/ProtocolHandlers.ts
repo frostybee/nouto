@@ -679,7 +679,10 @@ export class ProtocolHandlers {
         }
       },
       onConnectionEnd: (conn) => {
-        this.activeGrpcConnectionIds.delete(panelId);
+        // A late end from an older call must not drop the stream that is open now
+        if (this.activeGrpcConnectionIds.get(panelId) === conn.id) {
+          this.activeGrpcConnectionIds.delete(panelId);
+        }
 
         // Assertion evaluation (inherited from collection/folder + live from UI)
         let assertionResults: any[] | undefined;
