@@ -8,6 +8,46 @@ Release history for the Nouto VS Code extension. The desktop app and the standal
 - [Desktop app changelog](https://github.com/frostybee/nouto/blob/main/packages/desktop/CHANGELOG.md)
 - [JSON Explorer extension changelog](https://github.com/frostybee/nouto/blob/main/packages/json-explorer-ext/CHANGELOG.md)
 
+## 1.6.4
+
+Released October 2026.
+
+### Fixed
+
+- A request to a `localhost` port where nothing is listening shows **Connection refused** with the error text and a suggestion, instead of "An unknown error occurred". The collection runner, benchmarks, GraphQL schema fetches, OAuth token requests, and WebSocket and SSE connections also report the cause instead of an empty error
+- **Try it** in the OpenAPI preview reports a failed connection as an error instead of an empty `200` response
+- The GraphQL query editor no longer overlaps the Variables section when the request pane is short. The tab content scrolls instead
+
+## 1.6.3
+
+Released October 2026.
+
+### Added
+
+- An environment picker to switch the active environment. Open it from the status bar item that shows the active environment, the `{x}` icon in the API Testing view's title bar, or **Nouto: Select Environment**. Its **Manage Environments...** entry opens the Environments panel
+- The **Nouto: Cookie Jars** command opens the Environments panel on the Cookie Jar tab
+
+### Changed
+
+- The toolbar above the New Request button is replaced by icons in the API Testing view's title bar: the environment picker, Cookie Jars, Mock Server, and Settings. The title bar also shows the name of the active environment
+
+### Fixed
+
+- The response panel shows the HTTP reason phrase for every status code, for example `406 Not Acceptable`, and the server's own phrase when it sends one ([#1](https://github.com/frostybee/nouto/issues/1))
+
+## 1.6.2
+
+Released October 2026.
+
+### Changed
+
+- Environments, Cookie Jars, Mock Server, and Settings moved from the vertical rail on the sidebar's left edge to a toolbar above the New Request button, so collections and history use the full sidebar width. About is still available from the view's `...` menu and from Settings
+- The collection and folder context menus group the request types under a New Request submenu, and the collection menu groups the Postman, Nouto, and OpenAPI exports under an Export submenu. When the sidebar is too narrow to show a submenu beside the menu, the submenu opens in place with a back row
+
+### Fixed
+
+- Context menus in the sidebar are no longer cut off at the bottom of a short window. They stay inside the view and scroll when they are taller than it
+
 ## 1.6.1
 
 Released September 2026.

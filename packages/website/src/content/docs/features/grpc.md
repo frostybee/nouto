@@ -46,7 +46,7 @@ Click the **Service / Method** dropdown and select a method. Methods are grouped
 | `client stream` | Client streaming |
 | `bidi` | Bidirectional streaming |
 
-The input and output message types appear below the dropdown. If the **Message** editor is empty or contains `{}`, Nouto fills it with a JSON object that lists every field of the input message with a default value, for example `""` for strings, `0` for numbers, and `[]` for repeated fields.
+The input and output message types appear below the dropdown. If the **Message** editor is empty or contains `{}`, Nouto fills it with a JSON object that lists every field of the input message with a default value, for example `""` for strings, `0` for numbers, `[]` for repeated fields, and `{}` for map fields. Map fields are JSON objects whether the schema comes from reflection or from proto files.
 
 ![The gRPC panel for localhost:50051: Schema Loaded from Reflection, UserService / GetUser selected with its input and output types, and the Message tab with a scaffold for the id field](../../../assets/screenshots/features/grpc-panel.png)
 
@@ -110,7 +110,7 @@ The button in the URL bar depends on the call type:
 | Server streaming | **Stream** |
 | Client streaming and bidirectional streaming | **Start Stream** |
 
-The button stays disabled until you've entered an address and selected a method. You can also press `Ctrl+Enter`.
+The button stays disabled until you've entered an address and selected a method, and while the schema is loading. You can also press `Ctrl+Enter`.
 
 ### Control a streaming call
 
@@ -121,13 +121,15 @@ For client streaming and bidirectional streaming, **Start Stream** sends the con
 - **Send** sends the current contents of the **Message** editor. Edit the message between sends to vary the payload.
 - **Commit** half-closes the client side of the stream, telling the server that no more messages are coming.
 
+In VS Code, messages sent while the call is still starting are delivered as soon as the stream opens.
+
 ## Read the response
 
 The response panel has a status bar and two tabs.
 
 The status bar shows the gRPC status, for example `OK 0`, and the elapsed time in milliseconds. During a stream, it shows **Streaming** and the number of messages received. After you've made more than one call, a dropdown lets you switch between recent calls.
 
-The **Response** tab shows the last message from the server as JSON. If the call fails, it shows the gRPC status name, code, and error message instead.
+The **Response** tab shows the last message from the server as JSON. If the call fails, it shows the gRPC status name, code, and error message instead. While a client streaming or bidirectional call is open and the server hasn't sent a message yet, the tab reports that the stream is open.
 
 The **Timeline** tab lists every event of the call in order:
 
@@ -168,4 +170,4 @@ See [Assertions](/testing/assertions) for operators and examples.
 
 Save gRPC requests to collections and folders like any other request. See [Collections](/features/collections).
 
-In VS Code, each completed call is added to the request history with the address, service, method, and schema source: reflection or the proto file paths. The desktop app doesn't record gRPC calls in history.
+In VS Code, each completed call is added to the request history with the address, service, method, and schema source: reflection or the proto file paths. A call that ends because you closed its panel isn't recorded. The desktop app doesn't record gRPC calls in history.
