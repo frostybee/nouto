@@ -8,6 +8,19 @@ Release history for the Nouto VS Code extension. The desktop app and the standal
 - [Desktop app changelog](https://github.com/frostybee/nouto/blob/main/packages/desktop/CHANGELOG.md)
 - [JSON Explorer extension changelog](https://github.com/frostybee/nouto/blob/main/packages/json-explorer-ext/CHANGELOG.md)
 
+## 1.6.5
+
+Released October 2026.
+
+### Fixed
+
+- gRPC works in the extension installed from the Marketplace. Loading a schema and invoking a method failed with "gRPC support requires @grpc/grpc-js" because the package didn't include the gRPC libraries
+- gRPC client streaming and bidirectional streaming calls work end to end. **Send** and **Commit** appear as soon as the call starts, messages sent while the schema is still loading are queued, the Response tab says when a stream is open, and a failed or cancelled stream shows its real status, for example `CANCELLED 1`, instead of `OK 0`
+- The gRPC Timeline lists the trailers the server actually sent, not only `grpc-status` and `grpc-message`
+- gRPC `map` fields decode as objects over server reflection, as they already did from `.proto` files
+- Closing a request panel while a gRPC stream is open no longer records the cancelled call in history
+- The Generate Code dialog no longer draws a box behind each line, cURL snippets keep each option on one line with its value, and the show/hide button in password fields is centered and visible on dark themes
+
 ## 1.6.4
 
 Released October 2026.

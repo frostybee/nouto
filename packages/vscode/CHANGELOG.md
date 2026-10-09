@@ -4,21 +4,16 @@ All notable changes to the Nouto VS Code extension will be documented in this fi
 
 ## [Unreleased]
 
+## [1.6.5] - 2026-10-09
+
 ### Fixed
 
-- gRPC requests work in the extension installed from the Marketplace. Loading a schema with server reflection or `.proto` files, and invoking a method, failed with "gRPC support requires @grpc/grpc-js" because the extension package didn't include the gRPC libraries.
-- gRPC client streaming and bidirectional streaming calls work. They failed at once with `UNAVAILABLE (14)` "Channel closed before call started", so **Send** and **Commit** had nothing to send to.
-- A failed or cancelled gRPC server streaming or bidirectional call shows its real status, for example `CANCELLED 1`, instead of `OK 0`. It's also recorded once in history instead of twice, and the sidebar shows the real status instead of `200`.
-- **Send** no longer appears while a server streaming call is open, because the server doesn't accept messages on it. Sending after **Commit** shows "This stream is closed for sending" instead of a raw stream error.
-- The gRPC Timeline's **Received trailers** entry lists the trailers the server actually sent. Before, it only ever showed `grpc-status` and `grpc-message`.
-- gRPC maps load the same way over server reflection as from `.proto` files. A `map<string, string>` field decoded as a list of `{ key, value }` pairs over reflection, and the generated request body treated it as an array.
-- **Send**, **Commit** and **Cancel** work while a gRPC call is still loading its schema. Sent messages are queued until the stream opens, and a cancel ends the call as `CANCELLED` instead of leaving it running. Before, **Send** failed with "No active stream for this connection".
-- Closing a request panel while a gRPC stream is open no longer records the cancelled call in history or saves it as a draft.
-- While a gRPC client or bidirectional stream is open with no server message yet, the Response tab says the stream is open instead of "Connecting...".
-- Client and bidirectional gRPC streams always get their **Send** and **Commit** buttons. The extension now tells the panel what kind of call it started, so the buttons appear even when the panel's own schema load failed or is still running, and the **Invoke** button waits while the schema is loading.
-- The Generate Code dialog no longer draws a box behind each line of the snippet, and the snippet uses the editor font and color.
-- cURL snippets keep each option on the same line as its value, for example `-X POST` and `-H 'Accept: application/json'`, in the Generate Code dialog and in Copy as cURL.
-- The show/hide button in password fields (OAuth 2.0 Client Secret, Basic, Digest, NTLM, and the AWS secret key) is centered in the field and visible on dark themes, and its tooltip points at the button.
+- gRPC works in the extension installed from the Marketplace. Loading a schema and invoking a method failed with "gRPC support requires @grpc/grpc-js" because the package didn't include the gRPC libraries.
+- gRPC client streaming and bidirectional streaming calls work end to end. **Send** and **Commit** appear as soon as the call starts, messages sent while the schema is still loading are queued, the Response tab says when a stream is open, and a failed or cancelled stream shows its real status, for example `CANCELLED 1`, instead of `OK 0`.
+- The gRPC Timeline lists the trailers the server actually sent, not only `grpc-status` and `grpc-message`.
+- gRPC `map` fields decode as objects over server reflection, as they already did from `.proto` files.
+- Closing a request panel while a gRPC stream is open no longer records the cancelled call in history.
+- The Generate Code dialog no longer draws a box behind each line, cURL snippets keep each option on one line with its value, and the show/hide button in password fields is centered and visible on dark themes.
 
 ## [1.6.4] - 2026-10-06
 
