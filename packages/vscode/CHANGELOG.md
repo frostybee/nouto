@@ -4,6 +4,8 @@ All notable changes to the Nouto VS Code extension will be documented in this fi
 
 ## [Unreleased]
 
+## [1.6.6] - 2026-10-12
+
 ### Added
 
 - A **cURL (cmd.exe)** code generation target for the Windows Command Prompt, with double quotes and `^` line continuations. The CLI lists it as `curl-cmd`.
@@ -12,13 +14,11 @@ All notable changes to the Nouto VS Code extension will be documented in this fi
 ### Fixed
 
 - A response with several `Set-Cookie` headers stores every cookie in the cookie jar, including cookies set during redirects. Before, only the first one was kept.
-- Cancelling a benchmark keeps the **Cancelled** badge and shows the statistics for the iterations that finished. The request that was in flight when you cancelled is no longer counted as a failure, and a cancel during the delay between iterations takes effect at once.
+- Cancelling a benchmark keeps the **Cancelled** badge and shows the statistics for the iterations that finished. The request in flight when you cancelled is no longer counted as a failure.
 - cURL snippets send the body with `--data-raw` and text form fields with `--form-string`, so a value that starts with `@` is sent as text instead of being read from a file.
-- Tooltips no longer stay open after hovering and clicking a button in quick succession.
-- gRPC `bytes` fields are shown base64-encoded instead of as Buffer JSON, and a `google.protobuf.Any` in a response is expanded to the same `@type` form that requests accept.
+- gRPC `bytes` fields are shown base64-encoded instead of as Buffer JSON, a `google.protobuf.Any` in a response is expanded to the `@type` form that requests accept, and the Timeline places **Received trailers** at the time the call ended.
 - On an open gRPC client or bidirectional stream, the send shortcut (`Ctrl+Enter` by default) sends the next message, and a shortcut pressed in the URL bar no longer fires twice.
-- The gRPC Timeline places **Received trailers** and **Connection complete** at the time the call ended, and the schema badge says "1 proto file".
-- URLs in Collection Runner results and values in the variable preview render as plain text instead of a boxed code chip.
+- Tooltips no longer stay open after hovering and clicking a button in quick succession, and Collection Runner URLs and variable preview values render as plain text instead of a boxed code chip.
 
 ### Removed
 

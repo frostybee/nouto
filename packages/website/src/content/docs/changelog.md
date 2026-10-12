@@ -8,6 +8,28 @@ Release history for the Nouto VS Code extension. The desktop app and the standal
 - [Desktop app changelog](https://github.com/frostybee/nouto/blob/main/packages/desktop/CHANGELOG.md)
 - [JSON Explorer extension changelog](https://github.com/frostybee/nouto/blob/main/packages/json-explorer-ext/CHANGELOG.md)
 
+## 1.6.6
+
+Released October 2026.
+
+### Added
+
+- A **cURL (cmd.exe)** code generation target for the Windows Command Prompt, with double quotes and `^` line continuations. The CLI lists it as `curl-cmd`
+- **Export JSON** and **Export CSV** on the Benchmark panel save the last run to a file you choose. Before, they only showed a message
+
+### Fixed
+
+- A response with several `Set-Cookie` headers stores every cookie in the cookie jar, including cookies set during redirects. Before, only the first one was kept
+- Cancelling a benchmark keeps the **Cancelled** badge and shows the statistics for the iterations that finished. The request in flight when you cancelled is no longer counted as a failure
+- cURL snippets send the body with `--data-raw` and text form fields with `--form-string`, so a value that starts with `@` is sent as text instead of being read from a file
+- gRPC `bytes` fields are shown base64-encoded instead of as Buffer JSON, a `google.protobuf.Any` in a response is expanded to the `@type` form that requests accept, and the Timeline places **Received trailers** at the time the call ended
+- On an open gRPC client or bidirectional stream, the send shortcut (`Ctrl+Enter` by default) sends the next message, and a shortcut pressed in the URL bar no longer fires twice
+- Tooltips no longer stay open after hovering and clicking a button in quick succession, and Collection Runner URLs and variable preview values render as plain text instead of a boxed code chip
+
+### Removed
+
+- The VS Code settings `nouto.environments`, `nouto.activeEnvironment`, `nouto.autoCorrectUrls`, `nouto.shortcuts`, `nouto.minimap`, `nouto.ssl.rejectUnauthorized` and `nouto.history.saveResponseBody`, which the extension never read. The in-app Settings page controls these options
+
 ## 1.6.5
 
 Released October 2026.
