@@ -49,7 +49,7 @@ Click **New Benchmark** to change the settings and run again.
 
 ## Export results
 
-Click **Export JSON** or **Export CSV** to save the results.
+Click **Export JSON** or **Export CSV**, then choose where to save the file.
 
 - The JSON file contains the request name, method, URL, run settings, statistics, and every iteration.
 - The CSV file has one row per iteration, with the status, status text, duration, size, success flag, and error.

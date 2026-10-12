@@ -2,7 +2,7 @@
  * TauriCookieJarService - Cookie jar management for the Tauri desktop app.
  * Mirrors the core CookieJarService interface but persists to localStorage.
  */
-import { generateId } from '@nouto/core';
+import { generateId, splitSetCookieHeader } from '@nouto/core';
 import { logger } from './logger';
 
 export interface Cookie {
@@ -271,9 +271,8 @@ export class TauriCookieJarService {
     const result: string[] = [];
     for (const [key, value] of Object.entries(headers)) {
       if (key.toLowerCase() === 'set-cookie') {
-        // Could be comma-separated (multiple Set-Cookie values merged)
-        const cookies = value.split(/,(?=\s*\w+=)/);
-        result.push(...cookies.map((c) => c.trim()));
+        // Several Set-Cookie values may be merged into one header
+        result.push(...splitSetCookieHeader(value));
       }
     }
     return result;

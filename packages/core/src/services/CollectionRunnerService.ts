@@ -6,6 +6,7 @@ import { OAuthService } from './OAuthService';
 import { resolveScriptsForRequest } from './ScriptInheritanceService';
 import { resolveAssertionsForRequest } from './AssertionInheritanceService';
 import { resolveDynamicVariable } from '../utils/dynamic-variables';
+import { splitSetCookieHeader } from '../utils/set-cookie';
 import type {
   SavedRequest,
   EnvironmentsData,
@@ -678,7 +679,7 @@ export class CollectionRunnerService {
         const setCookie = result.headers['set-cookie'];
         if (setCookie) {
           const urlObj = new URL(url);
-          const parts = setCookie.split(/,(?=\s*\w+=)/);
+          const parts = splitSetCookieHeader(setCookie);
           for (const raw of parts) {
             const segments = raw.split(';').map(s => s.trim());
             const nameValue = segments[0];

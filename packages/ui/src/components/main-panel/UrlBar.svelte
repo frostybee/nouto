@@ -500,12 +500,41 @@
       tlsPassphrase: request.grpc?.tlsPassphrase,
       timeout: request.grpc?.timeout,
       assertions: $state.snapshot(request.assertions || []),
-    })) } as any);
+    })) });
+  }
+
+  /** The open gRPC stream, when it still takes client messages */
+  function openGrpcSendStream() {
+    if (connectionMode !== 'grpc') return null;
+    const conn = grpcConnection();
+    if (!conn || conn.state === 'closed' || !grpcIsStreaming()) return null;
+    const mType = grpcActiveMethodType();
+    return mType === 'client_streaming' || mType === 'streaming' ? conn : null;
+  }
+
+  function sendGrpcStreamMessage() {
+    const conn = openGrpcSendStream();
+    if (!conn) return;
+    messageBus({ type: 'grpcSendMessage', data: {
+      connectionId: conn.id,
+      body: request.body.content ? substituteVariables(request.body.content) : '{}',
+    } });
+  }
+
+  function commitGrpcStream() {
+    const conn = grpcConnection();
+    if (!conn) return;
+    messageBus({ type: 'grpcCommitStream', data: { connectionId: conn.id } });
   }
 
   function dispatchSendForMode() {
     if (connectionMode === 'grpc') {
-      handleGrpcInvoke();
+      // On an open client or bidirectional stream, the send shortcut sends the next message
+      if (openGrpcSendStream()) {
+        sendGrpcStreamMessage();
+      } else {
+        handleGrpcInvoke();
+      }
     } else if (connectionMode === 'websocket') {
       if (!currentUrl.trim()) return;
       messageBus({ type: 'wsConnect', data: { url: substituteVariables(currentUrl), headers: (Array.isArray(request.headers) ? request.headers : []).map(h => ({ ...h, key: substituteVariables(h.key), value: substituteVariables(h.value) })), autoReconnect: false, reconnectIntervalMs: 3000 } });
@@ -713,6 +742,9 @@
 
     const sendBinding = shortcuts.get('sendRequest');
     if (sendBinding && matchesBinding(event, sendBinding)) {
+      // The window listener would dispatch the same keypress a second time
+      event.preventDefault();
+      event.stopPropagation();
       dispatchSendForMode();
     }
     const cancelBinding = shortcuts.get('cancelRequest');
@@ -1137,10 +1169,10 @@
     {#if isStreamActive}
       <!-- Only client and bidirectional streams take more messages; a server stream can only be cancelled -->
       {#if mType === 'client_streaming' || mType === 'streaming'}
-        <button class="send-button" onclick={() => messageBus({ type: 'grpcSendMessage', data: { connectionId: conn?.id, body: request.body.content ? substituteVariables(request.body.content) : '{}' } } as any)}>
+        <button class="send-button" onclick={sendGrpcStreamMessage}>
           Send
         </button>
-        <button class="send-button" style="margin-left: 0.308rem;" onclick={() => messageBus({ type: 'grpcCommitStream', data: { connectionId: conn?.id } } as any)}>
+        <button class="send-button" style="margin-left: 0.308rem;" onclick={commitGrpcStream}>
           Commit
         </button>
         <button class="cancel-button" style="margin-left: 0.308rem;" onclick={handleCancel}>Cancel</button>

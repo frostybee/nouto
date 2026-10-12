@@ -292,6 +292,10 @@
     font-size: 0.846rem;
     word-break: break-all;
     color: var(--hf-textLink-foreground);
+    /* Plain text, not the webview's boxed code chip */
+    background: transparent;
+    padding: 0;
+    border-radius: 0;
   }
 
   .script-tests, .script-logs, .assertion-details {

@@ -72,7 +72,7 @@ tokio-tungstenite = { version = "0.24", features = ["rustls-tls-webpki-roots"] }
 tonic = { version = "0.12", features = ["tls", "tls-roots"] }
 tonic-reflection = "0.12"
 prost = "0.13"
-prost-reflect = { version = "0.14", features = ["serde"] }
+prost-reflect = { version = "0.14", features = ["serde", "text-format"] }
 pkcs8 = { version = "0.10", features = ["encryption", "pem", "std"] }
 protox = "0.7"
 tokio-stream = "0.1"

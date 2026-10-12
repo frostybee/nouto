@@ -1579,7 +1579,7 @@ node server.js
 3. URL: `ws://localhost:4001`
 4. Click **Connect**.
 
-**Expected:** The connection status changes to "Connected" (green). You receive a welcome message: `{ "type": "welcome", "message": "Connected to HiveFetch test WebSocket server" }`.
+**Expected:** The connection status changes to "Connected" (green). You receive a welcome message: `{ "type": "welcome", "message": "Connected to Nouto test WebSocket server" }`.
 
 `- [ ] Pass`
 

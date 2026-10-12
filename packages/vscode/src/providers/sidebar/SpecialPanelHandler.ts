@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import type { BenchmarkService, MockServerService, MockStorageService } from '@nouto/core/services';
-import { MockStorageService as MockStorageServiceClass } from '@nouto/core/services';
+import { MockStorageService as MockStorageServiceClass, buildBenchmarkExport } from '@nouto/core/services';
+import type { BenchmarkResult } from '@nouto/core';
 import type { Collection, SavedRequest } from '../../services/types';
 import type { UIService } from '../../services/UIService';
 import { findFolderRecursive, findRequestAcrossCollections, collectScopedVariables } from './CollectionTreeOps';
@@ -302,6 +303,9 @@ export class SpecialPanelHandler {
 
     this.ctx.registerAuxPanel(panel);
 
+    // The most recent completed run, exported by Export JSON / Export CSV
+    let lastResult: BenchmarkResult | undefined;
+
     const benchMsgDisposable = panel.webview.onDidReceiveMessage(async (message) => {
       try {
         switch (message.type) {
@@ -360,6 +364,8 @@ export class SpecialPanelHandler {
               },
               colVars,
             ).then((result) => {
+              lastResult = result;
+              // A cancelled run completes with `cancelled: true` and the finished iterations
               panel.webview.postMessage({ type: 'benchmarkComplete', data: result });
             }).catch(() => {
               panel.webview.postMessage({ type: 'benchmarkCancelled' });
@@ -368,13 +374,31 @@ export class SpecialPanelHandler {
           }
 
           case 'cancelBenchmark':
+            // run() resolves with cancelled: true once the in-flight request stops
             this.benchmarkService.cancel();
-            panel.webview.postMessage({ type: 'benchmarkCancelled' });
             break;
 
           case 'exportBenchmarkResults': {
-            const format = message.data.format;
-            this.ui?.showInfo(`Benchmark export (${format}) - use the iteration data shown in the panel.`);
+            const format = message.data.format === 'csv' ? 'csv' : 'json';
+            if (!lastResult) {
+              this.ui?.showInfo('Run a benchmark before exporting its results.');
+              break;
+            }
+            const file = buildBenchmarkExport(format, {
+              requestName: lastResult.requestName || request.name,
+              method: lastResult.method,
+              url: lastResult.url,
+              config: lastResult.config,
+              statistics: lastResult.statistics,
+              iterations: lastResult.iterations,
+            });
+            const uri = await vscode.window.showSaveDialog({
+              defaultUri: vscode.Uri.file(file.fileName),
+              filters: format === 'csv' ? { 'CSV': ['csv'] } : { 'JSON': ['json'] },
+            });
+            if (!uri) break;
+            await vscode.workspace.fs.writeFile(uri, Buffer.from(file.content, 'utf-8'));
+            this.ui?.showInfo(`Benchmark results saved to ${uri.fsPath}`);
             break;
           }
         }

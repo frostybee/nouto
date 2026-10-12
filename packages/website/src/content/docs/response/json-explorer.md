@@ -134,7 +134,7 @@ Right-click a node to open its context menu. Some actions appear only for certai
 
 ## Response actions
 
-When you open the explorer from the response of a request saved in a collection, the explorer links back to that request. The request's method and URL appear above the tree. Click them to go back to the request.
+When you open the explorer from a response, the request's method and URL appear above the tree. When that request is saved in a collection, the explorer also links back to it: click the method and URL to go back to the request.
 
 Two context menu actions use this link:
 

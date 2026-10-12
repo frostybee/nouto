@@ -45,12 +45,16 @@ function createTestServer(): http.Server {
         res.end(JSON.stringify({ method: req.method }));
         break;
 
-      case '/slow':
-        setTimeout(() => {
+      case '/slow': {
+        // Clients abort or time out before this fires; clear the timer so the
+        // worker can exit without an open handle.
+        const slowTimer = setTimeout(() => {
           res.writeHead(200, { 'Content-Type': 'text/plain' });
           res.end('slow response');
         }, 5000);
+        res.on('close', () => clearTimeout(slowTimer));
         break;
+      }
 
       case '/redirect':
         res.writeHead(302, { Location: '/json' });
@@ -130,7 +134,7 @@ function createTestServer(): http.Server {
         break;
     }
   });
-  // Disable keep-alive so sockets close immediately after response
+  // No idle timeout on kept-alive sockets; stopServer() closes them explicitly
   srv.keepAliveTimeout = 0;
   return srv;
 }

@@ -828,10 +828,11 @@ describe('SpecialPanelHandler', () => {
       await mockPanel.sendMessage({ type: 'cancelBenchmark' });
 
       expect(benchmarkService.cancel).toHaveBeenCalled();
-      expect(mockPanel.webview.postMessage).toHaveBeenCalledWith({ type: 'benchmarkCancelled' });
+      // The cancelled status arrives with the benchmarkComplete result, not as a separate message
+      expect(mockPanel.webview.postMessage).not.toHaveBeenCalledWith({ type: 'benchmarkCancelled' });
     });
 
-    it('shows info for exportBenchmarkResults message', async () => {
+    it('asks to run a benchmark when exporting before any run', async () => {
       const request = makeRequest('req-1', 'Req');
       const collection = makeCollection('col-1', 'Col', [request]);
       const uiService = createMockUIService();
@@ -843,9 +844,43 @@ describe('SpecialPanelHandler', () => {
         data: { format: 'csv' },
       });
 
-      expect(uiService.showInfo).toHaveBeenCalledWith(
-        'Benchmark export (csv) - use the iteration data shown in the panel.',
+      expect(uiService.showInfo).toHaveBeenCalledWith('Run a benchmark before exporting its results.');
+      expect(vscode.window.showSaveDialog).not.toHaveBeenCalled();
+    });
+
+    it('writes the last run as CSV to the chosen file', async () => {
+      const request = makeRequest('req-1', 'Req');
+      const collection = makeCollection('col-1', 'Col', [request]);
+      const uiService = createMockUIService();
+      const benchmarkService = createMockBenchmarkService();
+      const runResult = {
+        requestName: 'Req',
+        url: 'https://api.example.com',
+        method: 'GET',
+        config: { iterations: 1, concurrency: 1, delayBetweenMs: 0 },
+        startedAt: 'now',
+        completedAt: 'now',
+        statistics: null,
+        iterations: [{ iteration: 1, status: 200, statusText: 'OK', duration: 12, size: 3, success: true, timestamp: 1 }],
+        distribution: [],
+      };
+      benchmarkService.run.mockResolvedValue(runResult);
+      (vscode.window.showSaveDialog as jest.Mock).mockResolvedValue(vscode.Uri.file('/tmp/out.csv'));
+
+      const { handler } = createHandler({ ctx: { collections: [collection], uiService }, benchmarkService });
+      await handler.openBenchmarkPanel('req-1', 'col-1');
+      await mockPanel.sendMessage({ type: 'startBenchmark', data: { config: { iterations: 1 } } });
+      await new Promise(resolve => setTimeout(resolve, 0));
+      await mockPanel.sendMessage({ type: 'exportBenchmarkResults', data: { format: 'csv' } });
+
+      expect(vscode.window.showSaveDialog).toHaveBeenCalledWith(
+        expect.objectContaining({ filters: { CSV: ['csv'] } }),
       );
+      const [, bytes] = (vscode.workspace.fs.writeFile as jest.Mock).mock.calls.at(-1)!;
+      expect(Buffer.from(bytes).toString('utf-8')).toBe(
+        '#,Status,StatusText,Duration(ms),Size,Success,Error\n1,200,OK,12,3,Yes,""',
+      );
+      expect(uiService.showInfo).toHaveBeenCalledWith(expect.stringContaining('Benchmark results saved to'));
     });
 
     it('cancels benchmark and disposes message listener on panel dispose', async () => {

@@ -31,8 +31,18 @@ export type GrpcMethodType = 'unary' | 'server_streaming' | 'client_streaming' |
 
 type ReflectionVersion = 'v1' | 'v1alpha';
 
-/** proto-loader options shared by every schema load, so all paths decode messages the same way. */
-const LOADER_OPTS = { keepCase: false, longs: String, enums: String, defaults: true, oneofs: true };
+/**
+ * proto-loader options shared by every user schema load, so all paths decode messages the
+ * same way. `bytes: String` renders bytes fields as base64 instead of Buffer JSON, and
+ * `json: true` expands google.protobuf.Any responses to the `@type` form requests accept.
+ */
+const LOADER_OPTS = { keepCase: false, longs: String, enums: String, defaults: true, oneofs: true, bytes: String, json: true };
+
+/**
+ * Options for the reflection client's own proto. Its fileDescriptorProto field is bytes and
+ * must stay a Buffer, so the user-facing bytes and json options do not apply here.
+ */
+const REFLECTION_LOADER_OPTS = { keepCase: false, longs: String, enums: String, defaults: true, oneofs: true };
 
 /**
  * Send, Commit and Cancel that arrive while invoke() is still loading the schema.
@@ -191,7 +201,7 @@ export class GrpcService {
     const protoPath = this.resolveReflectionProto(`grpc/reflection/${version}/reflection.proto`);
     const servicePath = `grpc.reflection.${version}.ServerReflection`;
 
-    const packageDefinition = await protoLoader.load(protoPath, LOADER_OPTS);
+    const packageDefinition = await protoLoader.load(protoPath, REFLECTION_LOADER_OPTS);
 
     const packageObject = grpc.loadPackageDefinition(packageDefinition);
 

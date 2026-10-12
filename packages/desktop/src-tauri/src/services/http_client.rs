@@ -730,11 +730,24 @@ fn build_url_with_params(base_url: &str, params: &[KeyValue]) -> Result<String, 
 
 /// Extract headers from response
 fn extract_headers(response: &Response) -> HashMap<String, String> {
+    header_map_to_map(response.headers())
+}
+
+/// Flatten a header map into lowercase name to value pairs
+fn header_map_to_map(header_map: &reqwest::header::HeaderMap) -> HashMap<String, String> {
     let mut headers = HashMap::new();
 
-    for (name, value) in response.headers() {
+    for (name, value) in header_map {
         if let Ok(value_str) = value.to_str() {
-            headers.insert(name.as_str().to_lowercase(), value_str.to_string());
+            // Repeated headers (several Set-Cookie lines, for example) are
+            // joined into one value, like the Node client does.
+            headers
+                .entry(name.as_str().to_lowercase())
+                .and_modify(|existing: &mut String| {
+                    existing.push_str(", ");
+                    existing.push_str(value_str);
+                })
+                .or_insert_with(|| value_str.to_string());
         }
     }
 
@@ -817,6 +830,27 @@ fn status_code_to_text(status: StatusCode) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    // --- Header flattening ---
+
+    #[test]
+    fn header_map_keeps_every_set_cookie_value() {
+        use reqwest::header::{HeaderMap, HeaderValue, CONTENT_TYPE, SET_COOKIE};
+        let mut map = HeaderMap::new();
+        map.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
+        map.append(
+            SET_COOKIE,
+            HeaderValue::from_static("a=1; Path=/; HttpOnly"),
+        );
+        map.append(SET_COOKIE, HeaderValue::from_static("b=2; Path=/"));
+
+        let flat = header_map_to_map(&map);
+        assert_eq!(flat.get("content-type").unwrap(), "application/json");
+        assert_eq!(
+            flat.get("set-cookie").unwrap(),
+            "a=1; Path=/; HttpOnly, b=2; Path=/"
+        );
+    }
 
     // --- URL Building Tests ---
 

@@ -33,8 +33,8 @@ import {
   type Folder,
   type AuthState,
   type BodyState,
-  type BenchmarkIteration,
 } from '@nouto/core';
+import { buildBenchmarkExport } from '@nouto/core/services';
 import { InsomniaImportService } from '@nouto/core/services/InsomniaImportService';
 import { HoppscotchImportService } from '@nouto/core/services/HoppscotchImportService';
 import { HarImportService } from '@nouto/core/services/HarImportService';
@@ -1179,32 +1179,14 @@ export async function handleExportBenchmarkResults(data: { format: 'json' | 'csv
   const method = benchmarkState.requestMethod || reqStore.method || 'GET';
   const url = benchmarkState.requestUrl || reqStore.url || '';
 
-  let content: string;
-  let defaultName: string;
-
-  if (format === 'csv') {
-    const header = '#,Status,StatusText,Duration(ms),Size,Success,Error';
-    const rows = iterations.map(
-      (r: BenchmarkIteration, i: number) =>
-        `${i + 1},${r.status},${r.statusText || ''},${r.duration},${r.size},${r.success ? 'Yes' : 'No'},"${(r.error || '').replace(/"/g, '""')}"`,
-    );
-    content = [header, ...rows].join('\n');
-    defaultName = `${requestName.replace(/[^a-zA-Z0-9]/g, '_')}_benchmark.csv`;
-  } else {
-    content = JSON.stringify(
-      {
-        requestName,
-        method,
-        url,
-        config: $state.snapshot(benchmarkState.config),
-        statistics,
-        iterations,
-      },
-      null,
-      2,
-    );
-    defaultName = `${requestName.replace(/[^a-zA-Z0-9]/g, '_')}_benchmark.json`;
-  }
+  const { content, fileName: defaultName } = buildBenchmarkExport(format, {
+    requestName,
+    method,
+    url,
+    config: $state.snapshot(benchmarkState.config),
+    statistics: $state.snapshot(statistics),
+    iterations: $state.snapshot(iterations),
+  });
 
   try {
     const filePath = await saveDialog({

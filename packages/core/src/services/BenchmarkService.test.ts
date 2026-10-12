@@ -414,18 +414,35 @@ describe('BenchmarkService', () => {
       // The cancel() sets abortController to null, which can cause the
       // next iteration's signal check to throw. Verify we get partial results
       // or the error is handled.
-      try {
-        const result = await service.run(makeRequest(), config, makeEnvData(), jest.fn(), jest.fn());
-        // If it doesn't throw, it should have stopped early
-        expect(result.iterations.length).toBeLessThan(10);
-        expect(result.iterations.length).toBeGreaterThanOrEqual(2);
-      } catch (error: any) {
-        // cancel() nulls abortController, causing TypeError on next check.
-        // This is acceptable - the benchmark was aborted.
-        expect(error).toBeDefined();
-        expect(callCount).toBeGreaterThanOrEqual(2);
-        expect(callCount).toBeLessThan(10);
-      }
+      const result = await service.run(makeRequest(), config, makeEnvData(), jest.fn(), jest.fn());
+      expect(result.cancelled).toBe(true);
+      expect(result.iterations.length).toBeLessThan(10);
+      expect(result.iterations.length).toBeGreaterThanOrEqual(2);
+      expect(result.statistics.totalIterations).toBe(result.iterations.length);
+    });
+
+    it('does not record the request that was in flight when cancelled', async () => {
+      mockExecuteRequest.mockImplementation(async (cfg: any) => {
+        service.cancel();
+        // The real client rejects with an abort error once the signal fires
+        const err: any = new Error('The operation was aborted.');
+        err.name = 'AbortError';
+        void cfg;
+        throw err;
+      });
+      const config = makeConfig({ iterations: 5, concurrency: 1, delayBetweenMs: 0 });
+      const onIteration = jest.fn();
+      const result = await service.run(makeRequest(), config, makeEnvData(), jest.fn(), onIteration);
+      expect(result.cancelled).toBe(true);
+      expect(result.iterations).toEqual([]);
+      expect(onIteration).not.toHaveBeenCalled();
+    });
+
+    it('reports a finished run without the cancelled flag', async () => {
+      mockExecuteRequest.mockResolvedValue(makeMockResponse());
+      const config = makeConfig({ iterations: 2, concurrency: 1, delayBetweenMs: 0 });
+      const result = await service.run(makeRequest(), config, makeEnvData(), jest.fn(), jest.fn());
+      expect(result.cancelled).toBeUndefined();
     });
 
     it('should handle query params with variable substitution', async () => {
@@ -548,16 +565,10 @@ describe('BenchmarkService', () => {
       // 10 iterations with concurrency 2 → would be 5 chunks
       const config = makeConfig({ iterations: 10, concurrency: 2, delayBetweenMs: 0 });
 
-      try {
-        const result = await service.run(makeRequest(), config, makeEnvData(), jest.fn(), jest.fn());
-        // If it completes without error, should have stopped early
-        expect(result.iterations.length).toBeLessThan(10);
-      } catch (error: any) {
-        // cancel() nulls abortController, which may cause TypeError
-        expect(error).toBeDefined();
-        expect(callCount).toBeGreaterThanOrEqual(2);
-        expect(callCount).toBeLessThan(10);
-      }
+      const result = await service.run(makeRequest(), config, makeEnvData(), jest.fn(), jest.fn());
+      expect(result.cancelled).toBe(true);
+      expect(result.iterations.length).toBeLessThan(10);
+      expect(callCount).toBeLessThan(10);
     });
 
     it('should handle mix of success and failure in concurrent batch', async () => {

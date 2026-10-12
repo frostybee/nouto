@@ -1,5 +1,6 @@
 import type { HttpMethod, KeyValue, AuthState, BodyState, ProxyConfig, SslConfig } from '../types';
 import { target as curlTarget } from './curl';
+import { target as curlCmdTarget } from './curl-cmd';
 import { target as fetchTarget } from './javascript-fetch';
 import { target as axiosTarget } from './javascript-axios';
 import { target as pythonTarget } from './python-requests';
@@ -32,6 +33,7 @@ export interface CodegenTarget {
 
 const targets: CodegenTarget[] = [
   curlTarget,
+  curlCmdTarget,
   fetchTarget,
   axiosTarget,
   pythonTarget,

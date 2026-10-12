@@ -28,7 +28,7 @@ describe('cURL codegen', () => {
     }));
     expect(code).toContain('-X');
     expect(code).toContain('POST');
-    expect(code).toContain('-d');
+    expect(code).toContain('--data-raw');
   });
 
   it('should include custom headers', () => {
@@ -218,11 +218,32 @@ describe('cURL codegen layout', () => {
         "  -H 'Accept: application/json' \\",
         "  -H 'Authorization: Bearer example-token' \\",
         "  -H 'Content-Type: application/json' \\",
-        "  -d '{",
+        "  --data-raw '{",
         '  "name": "Example"',
         "}'",
       ].join('\n')
     );
+  });
+
+  it('sends a body that starts with @ as text, not as a file name', () => {
+    const code = target.generate(makeRequest({ method: 'POST', body: { type: 'text', content: '@handle' } }));
+    expect(code).toContain('--data-raw @handle');
+    expect(code).not.toMatch(/\s-d\s/);
+  });
+
+  it('sends text form fields with --form-string and files with -F', () => {
+    const code = target.generate(makeRequest({
+      method: 'POST',
+      body: {
+        type: 'form-data',
+        content: JSON.stringify([
+          { key: 'file', value: '/path/to/file', enabled: true, fieldType: 'file', fileName: 'file.txt' },
+          { key: 'note', value: '@mention', enabled: true, fieldType: 'text' },
+        ]),
+      },
+    }));
+    expect(code).toContain('-F file=@/path/to/file');
+    expect(code).toContain('--form-string note=@mention');
   });
 
   it('keeps multi-token options on one line', () => {

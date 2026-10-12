@@ -32,6 +32,8 @@ export {
 // Runner & Benchmark
 export { CollectionRunnerService } from './CollectionRunnerService';
 export { BenchmarkService } from './BenchmarkService';
+export { buildBenchmarkExport } from './BenchmarkExport';
+export type { BenchmarkExportFormat, BenchmarkExportInput, BenchmarkExportFile } from './BenchmarkExport';
 export { RunnerExportService } from './RunnerExportService';
 export type { RunnerExportInput, RunnerExportFormat } from './RunnerExportService';
 

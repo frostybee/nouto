@@ -1135,7 +1135,7 @@
             ],
           });
           for (const dir of message.data.paths || []) {
-            messageBus.send({ type: 'scanProtoDir', data: { dirPath: dir } });
+            messageBus.send({ type: 'scanProtoDir', data: { dir } });
           }
           break;
         case 'grpcConnectionStart': {

@@ -18,7 +18,12 @@
   let pos = $state({ top: 0, left: 0 });
   let arrowLeft = $state(0);
 
+  // A hover followed by a focus (mouseenter, then focusin) calls show() twice.
+  // Clear the earlier timer so hide() can always cancel the pending one.
+  $effect(() => () => clearTimeout(timeoutId));
+
   function show() {
+    clearTimeout(timeoutId);
     timeoutId = setTimeout(() => {
       visible = true;
       ready = false;

@@ -17,11 +17,13 @@ service TestService {
 message EchoRequest {
   string message = 1;
   map<string, string> tags = 2;
+  bytes blob = 3;
 }
 
 message EchoResponse {
   string message = 1;
   map<string, string> tags = 2;
+  bytes blob = 3;
 }
 
 message CountRequest {
@@ -39,6 +41,7 @@ message AnyRequest {
 message AnyResponse {
   string typeUrl = 1;
   string label = 2;
+  google.protobuf.Any echoed = 3;
 }
 
 message SumRequest {

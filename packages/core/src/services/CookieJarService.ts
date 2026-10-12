@@ -1,6 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { generateId } from '../types';
+import { splitSetCookieHeader } from '../utils/set-cookie';
 
 export interface Cookie {
   name: string;
@@ -363,9 +364,9 @@ export class CookieJarService {
     for (const [key, value] of Object.entries(headers)) {
       if (key.toLowerCase() === 'set-cookie') {
         if (Array.isArray(value)) {
-          result.push(...value);
+          for (const v of value) result.push(...splitSetCookieHeader(v));
         } else if (typeof value === 'string') {
-          result.push(value);
+          result.push(...splitSetCookieHeader(value));
         }
       }
     }

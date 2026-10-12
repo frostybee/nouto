@@ -967,30 +967,6 @@
     "configuration": {
       "title": "Nouto",
       "properties": {
-        "nouto.environments": {
-          "type": "object",
-          "default": {
-            "development": {
-              "baseUrl": "http://localhost:3000",
-              "apiKey": ""
-            },
-            "production": {
-              "baseUrl": "https://api.example.com",
-              "apiKey": ""
-            }
-          },
-          "description": "Environment variables for Nouto"
-        },
-        "nouto.activeEnvironment": {
-          "type": "string",
-          "default": "development",
-          "description": "Currently active environment"
-        },
-        "nouto.autoCorrectUrls": {
-          "type": "boolean",
-          "default": false,
-          "description": "Automatically correct malformed URLs instead of showing suggestions"
-        },
         "nouto.openApiPreview.enableTryIt": {
           "type": "boolean",
           "default": true,
@@ -1004,31 +980,6 @@
           ],
           "default": "global",
           "description": "Storage mode: 'global' stores all collections in VS Code global storage, 'workspace' stores each request as an individual file in .nouto/collections/ for clean git diffs"
-        },
-        "nouto.shortcuts": {
-          "type": "object",
-          "default": {},
-          "description": "Custom keyboard shortcut overrides for webview actions"
-        },
-        "nouto.minimap": {
-          "type": "string",
-          "enum": [
-            "auto",
-            "always",
-            "never"
-          ],
-          "default": "auto",
-          "description": "Controls when to show the minimap in response viewers. Auto shows it for large documents (>50 lines), Always shows it always, Never disables it."
-        },
-        "nouto.ssl.rejectUnauthorized": {
-          "type": "boolean",
-          "default": true,
-          "description": "Global SSL/TLS certificate verification fallback. Set to false to accept self-signed or invalid certificates for all requests (overridden by per-request Settings tab)."
-        },
-        "nouto.history.saveResponseBody": {
-          "type": "boolean",
-          "default": true,
-          "description": "Save response bodies in request history. Disable to reduce disk usage. Deep search across response bodies requires this to be enabled."
         }
       }
     }

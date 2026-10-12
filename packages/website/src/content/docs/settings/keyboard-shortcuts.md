@@ -80,7 +80,7 @@ In the desktop app, `Ctrl+Tab` and `Ctrl+Shift+Tab` switch to the next and previ
 
 When two actions share a binding, both rows are highlighted and a warning appears above the table. A reset icon appears next to each binding you changed. Click it to restore that default, or click **Reset All to Defaults** to restore every binding.
 
-In VS Code, Nouto stores your changes in the `nouto.shortcuts` setting.
+Both apps store your changes in Nouto's own settings, not in VS Code's settings file.
 
 ## Undo and redo
 

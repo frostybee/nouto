@@ -413,7 +413,29 @@ pub async fn cancel_request(
     data: Option<Value>,
     app: AppHandle,
     registry: tauri::State<'_, RequestRegistry>,
+    grpc_registry: tauri::State<'_, crate::commands::grpc::GrpcStreamRegistry>,
 ) -> Result<(), AppError> {
+    // The UI sends the same message for an open gRPC stream. When no HTTP request is
+    // active, cancel the streams instead; the stream task reports CANCELLED itself.
+    if registry.lock().await.is_empty() {
+        let handles: Vec<_> = grpc_registry
+            .lock()
+            .await
+            .drain()
+            .map(|(_, handle)| handle)
+            .collect();
+        if !handles.is_empty() {
+            for handle in handles {
+                let _ = handle
+                    .sender
+                    .send(crate::commands::grpc::GrpcStreamCommand::EndStream)
+                    .await;
+                let _ = handle.cancel.send(true);
+            }
+            return Ok(());
+        }
+    }
+
     let mut registry_lock = registry.lock().await;
 
     // Try to cancel by panel_id if provided, else cancel the first active request

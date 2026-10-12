@@ -1,5 +1,7 @@
 syntax = "proto3";
 
+import "google/protobuf/any.proto";
+
 package test;
 
 service TestService {
@@ -26,17 +28,22 @@ service TestService {
   // Bidirectional streaming: answers each message as it arrives, and ends the
   // stream after the client ends its side
   rpc Chat (stream ChatMessage) returns (stream ChatMessage);
+
+  // Echoes a google.protobuf.Any payload back, to check Any rendering in both directions
+  rpc WrapAny (AnyRequest) returns (AnyResponse);
 }
 
 message EchoRequest {
   string message = 1;
   int32  repeatCount = 2; // 0 or 1 means once; >1 repeats the message
+  bytes  blob = 3;        // echoed back as-is; clients should show it base64-encoded
 }
 
 message EchoResponse {
   string message   = 1;
   string timestamp = 2;
   int32  length    = 3;
+  bytes  blob      = 4; // the request's blob
 }
 
 message Empty {}
@@ -80,4 +87,13 @@ message SumResponse {
 message ChatMessage {
   string text  = 1;
   int32  index = 2; // set by the server: 1 for its first reply, 2 for the next
+}
+
+message AnyRequest {
+  google.protobuf.Any payload = 1;
+}
+
+message AnyResponse {
+  string typeUrl = 1;              // type URL of the payload received
+  google.protobuf.Any echoed = 2;  // the payload, unchanged
 }

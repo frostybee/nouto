@@ -87,6 +87,26 @@ describe('CookieJarService', () => {
       expect(cookies[0].value).toBe('abc123');
     });
 
+    it('stores every cookie when several Set-Cookie headers were joined into one string', async () => {
+      await service.storeFromResponse(
+        { 'set-cookie': 'a=1; Path=/; HttpOnly, b=2; Path=/; Expires=Wed, 09 Jun 2099 10:18:14 GMT' },
+        'https://example.com/'
+      );
+      const cookies = await service.getCookiesForUrl('https://example.com/');
+      expect(cookies.map(c => [c.name, c.value])).toEqual([['a', '1'], ['b', '2']]);
+      expect(cookies.find(c => c.name === 'a')?.httpOnly).toBe(true);
+      expect(cookies.find(c => c.name === 'b')?.expires).toBeDefined();
+    });
+
+    it('stores cookies collected across redirect hops, joined with newlines', async () => {
+      await service.storeFromResponse(
+        { 'set-cookie': 'hop=1; Path=/\nfinal=2; Path=/, extra=3' },
+        'https://example.com/'
+      );
+      const cookies = await service.getCookiesForUrl('https://example.com/');
+      expect(cookies.map(c => c.name).sort()).toEqual(['extra', 'final', 'hop']);
+    });
+
     it('should handle multiple Set-Cookie headers as array', async () => {
       await service.storeFromResponse(
         { 'set-cookie': ['a=1', 'b=2'] as any },

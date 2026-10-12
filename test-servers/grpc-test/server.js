@@ -36,7 +36,7 @@ const usersPkg   = grpc.loadPackageDefinition(usersDef);
 // Greeter service handlers
 // ---------------------------------------------------------------------------
 
-// Trailing metadata sent with every SayHello and Countdown, so clients can check they show trailers
+// Trailing metadata sent with SayHello, Echo, Countdown, Sum and Chat, so clients can check they show trailers
 function testTrailers(callType) {
   const md = new grpc.Metadata();
   md.set('x-grpc-test-call', callType);
@@ -74,7 +74,15 @@ function echo(call, callback) {
     message: result,
     timestamp: new Date().toISOString(),
     length: result.length,
-  });
+    blob: call.request.blob,
+  }, testTrailers('unary'));
+}
+
+// Echoes a google.protobuf.Any back untouched
+function wrapAny(call, callback) {
+  const payload = call.request.payload || null;
+  console.log(`[TestService] WrapAny type_url="${payload ? payload.type_url : ''}"`);
+  callback(null, { typeUrl: payload ? payload.type_url : '', echoed: payload });
 }
 
 function ping(call, callback) {
@@ -152,7 +160,7 @@ function sum(call, callback) {
   });
   call.on('end', () => {
     console.log(`[TestService] Sum done total=${total} count=${count}`);
-    callback(null, { total, count });
+    callback(null, { total, count }, testTrailers('client-stream'));
   });
 }
 
@@ -166,7 +174,7 @@ function chat(call) {
   });
   call.on('end', () => {
     console.log(`[TestService] Chat ended after ${index} message(s)`);
-    call.end();
+    call.end(testTrailers('bidi'));
   });
 }
 
@@ -329,7 +337,7 @@ users.set(bob.id, bob);
 const server = new grpc.Server();
 
 server.addService(greeterPkg.helloworld.Greeter.service, { sayHello, sayHelloWithMetadata });
-server.addService(testPkg.test.TestService.service, { echo, ping, requireAuth, triggerError, countdown, sum, chat });
+server.addService(testPkg.test.TestService.service, { echo, ping, requireAuth, triggerError, countdown, sum, chat, wrapAny });
 server.addService(usersPkg.users.UserService.service, { createUser, getUser, listUsers, updateUser, deleteUser });
 
 // Server reflection lets Nouto discover every service without a .proto file.
@@ -381,6 +389,7 @@ console.log('    TriggerError({ code, message })      returns any gRPC error cod
 console.log('    Countdown({ from, intervalMs })      server streaming');
 console.log('    Sum(stream { value })                client streaming: answers after the client ends');
 console.log('    Chat(stream { text })                bidirectional streaming: one reply per message');
+console.log('    WrapAny({ payload: { "@type": ... } }) echoes a google.protobuf.Any back');
 console.log('');
 console.log('  users.UserService  (complex schema: nested messages, enums, maps, arrays)');
 console.log('    CreateUser({ user, sendWelcomeEmail, notifyEmails })');

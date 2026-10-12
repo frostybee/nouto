@@ -515,6 +515,10 @@
     font-size: 0.846rem;
     word-break: break-all;
     line-height: 1.5;
+    /* Plain text, not the webview's boxed code chip */
+    background: transparent;
+    padding: 0;
+    border-radius: 0;
   }
 
   .insert-btn {

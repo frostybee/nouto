@@ -214,6 +214,33 @@ describe('benchmark store', () => {
     });
   });
 
+  describe('cancelled result', () => {
+    it('keeps the cancelled status and shows the statistics of the finished iterations', () => {
+      const now = new Date().toISOString();
+      const statistics = {
+        totalIterations: 3, successCount: 3, failCount: 0,
+        min: 50, max: 90, mean: 70, median: 70, p50: 70, p75: 80, p90: 90, p95: 90, p99: 90,
+        totalDuration: 300, requestsPerSecond: 10,
+      };
+      setRunning();
+      setCancelled();
+      setCompleted({
+        requestName: 'Test Request',
+        url: 'https://api.example.com',
+        method: 'GET' as const,
+        config: { iterations: 10, concurrency: 1, delayBetweenMs: 0 },
+        startedAt: now,
+        completedAt: now,
+        statistics,
+        distribution: [{ bucket: '0-100ms', count: 3 }],
+        iterations: [],
+        cancelled: true,
+      });
+      expect(benchmarkStatus()).toBe('cancelled');
+      expect(benchmarkStatistics()).toEqual(statistics);
+    });
+  });
+
   describe('updateConfig', () => {
     it('should partially update config', () => {
       updateConfig({ iterations: 50 });

@@ -345,7 +345,7 @@
         case 'protoImportDirsPicked':
           patchGrpc({ protoImportDirs: [...(request.grpc?.protoImportDirs || []), ...(message.data.paths || [])] });
           for (const dir of message.data.paths || []) {
-            postMessage({ type: 'scanProtoDir', data: { dir } } as any);
+            postMessage({ type: 'scanProtoDir', data: { dir } });
           }
           break;
         case 'protoDirScanned':

@@ -56,6 +56,7 @@
   const timeline = $derived.by(() => {
     if (!connection) return [];
     const entries: TimelineEntry[] = [];
+    let sawMetadataEvent = false;
 
     // 1. Connecting entry
     entries.push({
@@ -112,12 +113,24 @@
           expandable: !!evt.metadata && Object.keys(evt.metadata).length > 0,
           metadata: evt.metadata,
         });
+      } else if (evt.eventType === 'metadata') {
+        // The desktop backend reports response headers as an event while the stream is open
+        sawMetadataEvent = true;
+        entries.push({
+          id: evt.id,
+          type: 'metadata',
+          label: 'Received response metadata',
+          icon: 'codicon-list-unordered',
+          timestamp: evt.createdAt,
+          expandable: !!evt.metadata && Object.keys(evt.metadata).length > 0,
+          metadata: evt.metadata,
+        });
       }
     }
 
     // 3. Metadata received (from connection.initialMetadata, after first server event)
     const metaEntries = connection.initialMetadata ? Object.entries(connection.initialMetadata) : [];
-    if (metaEntries.length > 0) {
+    if (metaEntries.length > 0 && !sawMetadataEvent) {
       // Insert after the first server_message or error, before connection end
       const firstServerIdx = entries.findIndex(e => e.type === 'server_message' || e.type === 'error');
       const metaEntry: TimelineEntry = {
@@ -136,6 +149,9 @@
       }
     }
 
+    // Trailers and completion arrive when the call ends: start time plus elapsed
+    const endTimestamp = connection.createdAt + Math.max(0, connection.elapsed || 0);
+
     // 4. Trailers (from connection.trailers, shown at the end)
     const trailerEntries = connection.trailers ? Object.entries(connection.trailers) : [];
     if (trailerEntries.length > 0 && connection.state === 'closed') {
@@ -144,7 +160,7 @@
         type: 'metadata',
         label: `Received trailers`,
         icon: 'codicon-list-unordered',
-        timestamp: connection.createdAt, // approximate
+        timestamp: endTimestamp,
         expandable: true,
         metadata: connection.trailers,
       });
@@ -157,7 +173,7 @@
         type: 'complete',
         label: 'Connection complete',
         icon: 'codicon-check',
-        timestamp: connection.createdAt,
+        timestamp: endTimestamp,
         expandable: false,
       });
     }

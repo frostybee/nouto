@@ -13,6 +13,7 @@ export * from './utils/formatters';
 export * from './utils/url-params';
 export * from './utils/validation';
 export * from './utils/json';
+export * from './utils/set-cookie';
 
 // Codegen
 export * from './codegen';

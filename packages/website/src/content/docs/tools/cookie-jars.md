@@ -25,7 +25,10 @@ Only one jar is active at a time, and it applies to every request.
 - To make a jar active, click it in the list. The right pane shows its cookies, grouped by domain.
 - To rename or delete a jar, use the buttons on its row. You can't delete the last jar.
 
-In the desktop app, you can also switch jars from the cookie jar selector in the top toolbar.
+You can also switch jars without opening the panel:
+
+- In VS Code, click **More actions** (`...`) next to **Send** in the request editor, and select the jar under **Cookie jar**. **Manage Cookies** in the same menu opens this panel.
+- In the desktop app, select the jar from the cookie jar selector in the top toolbar.
 
 ## How Nouto sends and stores cookies
 

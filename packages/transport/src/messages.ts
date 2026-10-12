@@ -38,6 +38,7 @@ import type {
   CollectionRunResult,
   MockRequestLog,
   MockServerStatus,
+  Assertion,
 } from '@nouto/core';
 import type {
   HistorySearchParams,
@@ -552,7 +553,16 @@ export interface DeleteResponseExampleMessage {
 // gRPC Messages (Webview -> Extension)
 export interface GrpcReflectMessage {
   type: 'grpcReflect';
-  data: { address: string; metadata?: KeyValue[]; tls?: boolean; tlsCertPath?: string; tlsKeyPath?: string; tlsCaCertPath?: string };
+  data: {
+    address: string;
+    /** Metadata to send with the reflection request, already resolved to key and value */
+    metadata?: Record<string, string>;
+    tls?: boolean;
+    tlsCertPath?: string;
+    tlsKeyPath?: string;
+    tlsCaCertPath?: string;
+    tlsPassphrase?: string;
+  };
 }
 
 export interface GrpcLoadProtoMessage {
@@ -575,7 +585,26 @@ export interface GrpcInvokeMessage {
     tlsCertPath?: string;
     tlsKeyPath?: string;
     tlsCaCertPath?: string;
+    tlsPassphrase?: string;
+    /** Deadline in milliseconds */
+    timeout?: number;
+    /** Request auth, applied as metadata by the host */
+    auth?: AuthState;
+    /** Assertions evaluated by the host when the call ends */
+    assertions?: Assertion[];
   };
+}
+
+/** Send one more message on an open client-streaming or bidirectional call */
+export interface GrpcSendMessageMessage {
+  type: 'grpcSendMessage';
+  data: { connectionId: string; body: string };
+}
+
+/** Cancel an open stream */
+export interface GrpcEndStreamMessage {
+  type: 'grpcEndStream';
+  data: { connectionId: string };
 }
 
 export interface GrpcInvalidatePoolMessage {
@@ -747,7 +776,7 @@ export type EnvironmentCommandMessage =
 
 export interface ScanProtoDirMessage {
   type: 'scanProtoDir';
-  data: { dirPath: string };
+  data: { dir: string };
 }
 
 export interface StartBenchmarkMessage {
@@ -813,8 +842,6 @@ export interface DesktopCommandMessage {
     | 'getSettings'
     | 'retryFailedRequests'
     | 'exportRunResults'
-    | 'grpcSendMessage'
-    | 'grpcEndStream'
     | 'wsConnect'
     | 'wsSend'
     | 'wsDisconnect'
@@ -1027,6 +1054,8 @@ export type OutgoingMessage =
   | GrpcReflectMessage
   | GrpcLoadProtoMessage
   | GrpcInvokeMessage
+  | GrpcSendMessageMessage
+  | GrpcEndStreamMessage
   | GrpcInvalidatePoolMessage
   | GrpcCommitStreamMessage
   | PickProtoFileMessage

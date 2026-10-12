@@ -24,6 +24,7 @@
 
   function show() {
     if (!breakdown) return;
+    clearTimeout(timeoutId);
     timeoutId = setTimeout(() => {
       visible = true;
       ready = false;

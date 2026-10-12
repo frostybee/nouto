@@ -110,7 +110,7 @@ Nouto includes scripting, no-code assertions, a collection runner that reads CSV
 | PDF preview | No | No | No | No | Yes | No |
 | Timing breakdown | Yes | Yes | Yes | Yes | Yes | Partial |
 | Response diff | Yes | Partial | No | - | Yes | - |
-| Code generation | Yes (12 targets) | Yes (many) | Yes (many) | Yes (35+) | Yes (many) | Yes (10+) |
+| Code generation | Yes (13 targets) | Yes (many) | Yes (many) | Yes (35+) | Yes (many) | Yes (10+) |
 
 Nouto previews image responses and offers PDF responses as a file to open or save. Its response diff compares a response with the previous response to the same request. The JSONPath filter is part of the response panel, so filtering a response doesn't need a script or plugin.
 

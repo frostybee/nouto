@@ -1,6 +1,6 @@
 ---
 title: "CLI: Code generation"
-description: Generate a code snippet for a saved request with the Nouto CLI, in one of 12 targets such as cURL, Python Requests, or Go.
+description: Generate a code snippet for a saved request with the Nouto CLI, in one of 13 targets such as cURL, Python Requests, or Go.
 sidebar:
   order: 4
 ---
@@ -33,6 +33,7 @@ nouto codegen --list-targets
   Available code generation targets:
 
     curl                 cURL
+    curl-cmd             cURL (cmd.exe)
     javascript-fetch     JavaScript - Fetch
     javascript-axios     JavaScript - Axios
     python-requests      Python - Requests

@@ -845,6 +845,9 @@ pub struct BenchmarkResult {
     pub statistics: BenchmarkStatistics,
     pub iterations: Vec<BenchmarkIteration>,
     pub distribution: Vec<DistributionBucket>,
+    /// True when the run was cancelled; statistics cover the iterations that finished
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cancelled: Option<bool>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -991,6 +994,8 @@ pub struct GrpcConfig {
     pub tls_cert_path: Option<String>,
     pub tls_key_path: Option<String>,
     pub tls_ca_cert_path: Option<String>,
+    pub tls_passphrase: Option<String>,
+    pub timeout: Option<u64>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -1001,12 +1006,20 @@ pub struct GrpcConnection {
     pub url: String,
     pub service: String,
     pub method: String,
+    /// gRPC status code once closed; -1 while the call is in flight
     pub status: i32,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub status_message: Option<String>,
+    /// "connecting", "connected" or "closed"
     pub state: String,
+    /// "unary", "server_streaming", "client_streaming" or "bidi", so the UI knows the call type without a schema
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub method_type: Option<String>,
     pub trailers: HashMap<String, String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub initial_metadata: Option<HashMap<String, String>>,
     pub elapsed: f64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
     pub created_at: String,
 }

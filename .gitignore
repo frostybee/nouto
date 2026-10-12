@@ -62,3 +62,6 @@ test-results/
 playwright-report/
 packages/ui/tests/media/output/
 .playwright-mcp/
+
+# Vite writes these next to vite.config.ts while bundling the config
+vite.config.ts.timestamp-*

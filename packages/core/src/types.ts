@@ -576,7 +576,8 @@ export interface GrpcConnection {
 export interface GrpcEvent {
   id: string;
   connectionId: string;
-  eventType: 'info' | 'error' | 'client_message' | 'server_message' | 'connection_start' | 'connection_end';
+  /** 'metadata' carries the response headers of a stream, reported by the desktop backend */
+  eventType: 'info' | 'error' | 'client_message' | 'server_message' | 'metadata';
   content: string;
   metadata?: Record<string, string>;
   status?: number;
@@ -671,6 +672,8 @@ export interface BenchmarkResult {
   statistics: BenchmarkStatistics;
   iterations: BenchmarkIteration[];
   distribution: { bucket: string; count: number }[];
+  /** True when the run was cancelled; statistics cover the iterations that finished */
+  cancelled?: boolean;
 }
 
 // --- GraphQL Schema Introspection ---

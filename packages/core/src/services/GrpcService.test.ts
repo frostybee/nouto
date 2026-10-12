@@ -34,7 +34,7 @@ async function startServer(): Promise<{ address: string; server: any }> {
       const initial = new grpc.Metadata();
       initial.set('x-test-initial', 'echo');
       call.sendMetadata(initial);
-      callback(null, { message: `echo:${call.request.message}`, tags: call.request.tags }, trailer('unary'));
+      callback(null, { message: `echo:${call.request.message}`, tags: call.request.tags, blob: call.request.blob }, trailer('unary'));
     },
     count(call: any) {
       const upTo = call.request.upTo || 0;
@@ -50,7 +50,8 @@ async function startServer(): Promise<{ address: string; server: any }> {
       if (typeUrl.endsWith('nouto.extra.Extra') && payload.value?.length) {
         label = extraType.decode(payload.value).label;
       }
-      callback(null, { typeUrl, label });
+      // Echo the Any back untouched so the client has to expand it
+      callback(null, { typeUrl, label, echoed: payload });
     },
     fail(_call: any, callback: any) {
       callback(Object.assign(new Error('nope'), { code: grpc.status.NOT_FOUND, metadata: trailer('fail') }));
@@ -276,6 +277,21 @@ describe('GrpcService', () => {
       const response = JSON.parse(serverMessages[0].content);
       expect(response.typeUrl).toContain('nouto.extra.Extra');
       expect(response.label).toBe('from-any');
+      // The Any in the response is expanded to the same @type form the request used
+      expect(response.echoed).toEqual({ '@type': 'type.googleapis.com/nouto.extra.Extra', label: 'from-any' });
+    });
+
+    it('renders bytes fields as base64 in both directions', async () => {
+      await service.loadProto([TEST_PROTO], [FIXTURES]);
+      const { end, serverMessages } = await runInvoke(service, {
+        address, serviceName: 'nouto.test.TestService', methodName: 'Echo',
+        body: JSON.stringify({ message: 'b', blob: Buffer.from('hello').toString('base64') }),
+        useReflection: false, protoPaths: [TEST_PROTO], importDirs: [FIXTURES],
+      });
+      expect(end.status).toBe(0);
+      const response = JSON.parse(serverMessages[0].content);
+      expect(response.blob).toBe('aGVsbG8=');
+      expect(response.blob).not.toHaveProperty('data');
     });
 
     it('reports the trailers and initial metadata the server sends', async () => {

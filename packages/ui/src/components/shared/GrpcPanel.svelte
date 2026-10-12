@@ -156,7 +156,7 @@
       <div class="compact-schema">
         <span class="status-badge loaded">Schema Loaded</span>
         <span class="schema-info">
-          {descriptor?.source === 'reflection' ? 'Reflection' : `${grpcConfig?.protoPaths?.length || 0} proto files`}
+          {descriptor?.source === 'reflection' ? 'Reflection' : `${grpcConfig?.protoPaths?.length || 0} proto file${(grpcConfig?.protoPaths?.length || 0) !== 1 ? 's' : ''}`}
         </span>
       </div>
       <button class="configure-btn" onclick={() => showProtoSelector = true}>
@@ -236,7 +236,7 @@
         {:else if protoStatus === 'loaded'}
           <span class="status-badge loaded">Schema Loaded</span>
           <span class="schema-info">
-            {descriptor?.source === 'reflection' ? 'Reflection' : `${grpcConfig?.protoPaths?.length || 0} proto files`}
+            {descriptor?.source === 'reflection' ? 'Reflection' : `${grpcConfig?.protoPaths?.length || 0} proto file${(grpcConfig?.protoPaths?.length || 0) !== 1 ? 's' : ''}`}
           </span>
         {:else}
           <span class="status-badge idle">No Schema</span>

@@ -77,7 +77,7 @@ export function addIteration(iteration: BenchmarkIteration) {
 }
 
 export function setCompleted(result: BenchmarkResult) {
-  benchmarkState.status = 'completed';
+  benchmarkState.status = result.cancelled ? 'cancelled' : 'completed';
   benchmarkState.statistics = result.statistics;
   benchmarkState.distribution = result.distribution;
   benchmarkState.iterations = result.iterations;

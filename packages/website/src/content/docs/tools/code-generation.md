@@ -1,6 +1,6 @@
 ---
 title: Code generation
-description: Generate a snippet for the current request in cURL, JavaScript, Python, C#, Go, Java, PHP, Swift, Dart, or PowerShell, or infer TypeScript types from a JSON body.
+description: Generate a snippet for the current request in cURL (bash or cmd.exe), JavaScript, Python, C#, Go, Java, PHP, Swift, Dart, or PowerShell, or infer TypeScript types from a JSON body.
 sidebar:
   order: 5
 ---
@@ -30,7 +30,8 @@ The **Generate Code** dialog lists these targets:
 
 | Target | Output |
 |--------|--------|
-| cURL | `curl` command |
+| cURL | `curl` command for bash, zsh, and Git Bash |
+| cURL (cmd.exe) | `curl.exe` command for the Windows Command Prompt, with double quotes and `^` line continuations |
 | JavaScript - Fetch | Fetch API call |
 | JavaScript - Axios | Axios call |
 | Python - Requests | `requests` call |
@@ -82,18 +83,27 @@ A `POST` request with a JSON body and a Bearer token produces this cURL command:
 
 ```bash
 curl \
-  -X \
-  POST \
+  -X POST \
   https://api.example.com/data \
-  -H \
-  'Authorization: Bearer my-token' \
-  -H \
-  'Content-Type: application/json' \
-  -d \
-  '{"name":"John","age":30}'
+  -H 'Authorization: Bearer my-token' \
+  -H 'Content-Type: application/json' \
+  --data-raw '{"name":"John","age":30}'
 ```
 
-Nouto added the `Content-Type` header because the body type is JSON and the request had no `Content-Type` header of its own.
+Nouto added the `Content-Type` header because the body type is JSON and the request had no `Content-Type` header of its own. The body uses `--data-raw`, so a body that starts with `@` is sent as text rather than read from a file.
+
+The **cURL (cmd.exe)** target produces the same request for the Windows Command Prompt:
+
+```bat
+curl ^
+  -X POST ^
+  https://api.example.com/data ^
+  -H "Authorization: Bearer my-token" ^
+  -H "Content-Type: application/json" ^
+  --data-raw "{\"name\":\"John\",\"age\":30}"
+```
+
+A multi-line JSON body is written on one line, because cmd.exe cannot continue a quoted argument on the next line.
 
 ## TypeScript types
 

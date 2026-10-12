@@ -1,4 +1,5 @@
 import type { CookieContext, ScriptCookie } from '@nouto/core/services';
+import { splitSetCookieHeader } from '@nouto/core';
 
 export class CliCookieContext implements CookieContext {
   private cookies: ScriptCookie[] = [];
@@ -63,7 +64,7 @@ export class CliCookieContext implements CookieContext {
     const setCookieValues: string[] = [];
     for (const [key, value] of Object.entries(headers)) {
       if (key.toLowerCase() === 'set-cookie') {
-        setCookieValues.push(...value.split(/,(?=\s*\w+=)/));
+        setCookieValues.push(...splitSetCookieHeader(value));
       }
     }
 

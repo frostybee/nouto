@@ -221,16 +221,8 @@ pub async fn start_benchmark(
             }
         }
 
-        // Check if cancelled
-        if cancelled.load(Ordering::SeqCst) {
-            let _ = app.emit(
-                "benchmarkCancelled",
-                serde_json::json!({
-                    "data": {}
-                }),
-            );
-            return;
-        }
+        // A cancelled run still reports the iterations that finished
+        let was_cancelled = cancelled.load(Ordering::SeqCst);
 
         // Calculate statistics
         let statistics = calculate_statistics(&iterations);
@@ -246,6 +238,7 @@ pub async fn start_benchmark(
             statistics,
             iterations: iterations.clone(),
             distribution,
+            cancelled: if was_cancelled { Some(true) } else { None },
         };
 
         let _ = app.emit(

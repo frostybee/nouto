@@ -76,8 +76,10 @@ function encodeGif(name: string, frames: Frame[], holdMs: number, fps: number): 
   );
 
   const sizeMb = statSync(output).size / (1024 * 1024);
-  console.log(`[media] ${output}: ${frames.length} frames, ${sizeMb.toFixed(2)} MB`);
+  const seconds = frames[frames.length - 1].timestamp - frames[0].timestamp + holdMs / 1000;
+  console.log(`[media] ${output}: ${frames.length} frames, ${seconds.toFixed(1)} s, ${sizeMb.toFixed(2)} MB`);
   if (sizeMb > 4) console.warn(`[media] ${name}.gif is over 4 MB; trim the script or lower the fps.`);
+  if (seconds > 15) console.warn(`[media] ${name}.gif runs ${seconds.toFixed(1)} s; the target is 10 to 15 s. Cut pauses or steps.`);
   return output;
 }
 

@@ -5,7 +5,7 @@ const wss = new WebSocketServer({ port: 4001 });
 wss.on('connection', (ws) => {
   console.log('Client connected');
 
-  ws.send(JSON.stringify({ type: 'welcome', message: 'Connected to HiveFetch test WebSocket server' }));
+  ws.send(JSON.stringify({ type: 'welcome', message: 'Connected to Nouto test WebSocket server' }));
 
   ws.on('message', (data) => {
     const text = data.toString();

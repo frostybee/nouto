@@ -301,7 +301,35 @@ pub async fn grpc_invoke(
         }
     }
 
-    // Fall back to unary call
+    // Fall back to unary call. Announce it first, as the Node host does, so the UI
+    // shows the call in flight and knows its type even without a loaded schema.
+    let connection_id = uuid::Uuid::new_v4().to_string();
+    let mut opening = GrpcConnection {
+        id: connection_id.clone(),
+        request_id: String::new(),
+        url: data.address.clone(),
+        service: data.service_name.clone(),
+        method: data.method_name.clone(),
+        status: -1,
+        status_message: None,
+        state: "connecting".to_string(),
+        method_type: Some("unary".to_string()),
+        trailers: HashMap::new(),
+        initial_metadata: None,
+        elapsed: 0.0,
+        error: None,
+        created_at: chrono::Utc::now().to_rfc3339(),
+    };
+    let _ = app.emit(
+        "grpcConnectionStart",
+        serde_json::json!({ "data": &opening }),
+    );
+    opening.state = "connected".to_string();
+    let _ = app.emit(
+        "grpcConnectionOpen",
+        serde_json::json!({ "data": &opening }),
+    );
+
     match client
         .invoke(
             &data.address,
@@ -318,14 +346,11 @@ pub async fn grpc_invoke(
             data.tls_ca_cert_path.as_deref(),
             data.tls_passphrase.as_deref(),
             data.timeout,
+            Some(connection_id.clone()),
         )
         .await
     {
         Ok((connection, events)) => {
-            let _ = app.emit(
-                "grpcConnectionStart",
-                serde_json::json!({ "data": connection }),
-            );
             for event in &events {
                 let _ = app.emit("grpcEvent", serde_json::json!({ "data": event }));
             }
@@ -349,10 +374,30 @@ pub async fn grpc_invoke(
             Ok(())
         }
         Err(e) => {
+            // The call never reached the server; close the announced connection with the reason
             let _ = app.emit(
-                "grpcProtoError",
-                serde_json::json!({ "data": { "message": e } }),
+                "grpcEvent",
+                serde_json::json!({ "data": GrpcEvent {
+                    id: uuid::Uuid::new_v4().to_string(),
+                    connection_id: connection_id.clone(),
+                    event_type: "error".to_string(),
+                    content: String::new(),
+                    metadata: None,
+                    status: Some(2),
+                    error: Some(e.clone()),
+                    size: None,
+                    created_at: chrono::Utc::now().to_rfc3339(),
+                } }),
             );
+            opening.state = "closed".to_string();
+            opening.status = 2;
+            opening.status_message = Some(e.clone());
+            opening.error = Some(e.clone());
+            opening
+                .trailers
+                .insert("grpc-status".to_string(), "2".to_string());
+            opening.trailers.insert("grpc-message".to_string(), e);
+            let _ = app.emit("grpcConnectionEnd", serde_json::json!({ "data": &opening }));
             Ok(())
         }
     }
@@ -798,6 +843,7 @@ mod tests {
             method: "Method".to_string(),
             status: 0,
             status_message: None,
+            method_type: None,
             state: "completed".to_string(),
             trailers: HashMap::new(),
             initial_metadata: None,

@@ -51,7 +51,7 @@ GIFs are written to `tests/media/output/` (ignored by git), one per test in `gif
 
    ```json title="D:\tmp\nouto-media\workspace\.vscode\settings.json"
    {
-     "workbench.colorTheme": "Default Dark Modern",
+     "workbench.colorTheme": "Dark Modern",
      "workbench.startupEditor": "none",
      "workbench.tips.enabled": false,
      "workbench.secondarySideBar.defaultVisibility": "hidden",
@@ -109,6 +109,6 @@ To add a shot, add a test named after its file, then link it from the page with 
 
 1. If the GIF needs different data, add a scene to `scenes` in `harness.ts` and its fixture to `fixtures/`.
 2. Add a test to `gifs.spec.ts`: load `harness.html?scene=<name>&cursor=1`, call `startRecording(page)`, drive the page with `click`, `moveTo`, `typeText`, and `pause`, then call `recording.stop('<name>')`.
-3. Keep each GIF between 10 and 15 seconds; the recorder warns above 4 MB.
+3. Keep each GIF between 10 and 15 seconds; the recorder prints each GIF's length and warns above 15 seconds or 4 MB.
 
 For a GIF in VS Code for the Web, add a test to `vscode-gifs.spec.ts` that calls `withVsCode('<name>', seed, async (page, sidebar) => { ... })`. Pass the data it needs as `seed` (see `SeedOptions` in `state.ts`), find Nouto's webviews with `frameWith`, and record with the same `recorder.ts` helpers.

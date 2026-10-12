@@ -28,6 +28,17 @@ All notable changes to the Nouto desktop app will be documented in this file.
 - A request that can't connect shows the categorized error view, for example **Connection refused** with a suggestion, and its error text names the cause instead of stopping at "error sending request for url". OAuth token requests and OpenAPI preview requests report the cause the same way
 - The GraphQL query editor no longer overlaps the Variables section when the request pane is short; the tab content scrolls instead
 - cURL snippets keep each option on the same line as its value, for example `-X POST` and `-H 'Accept: application/json'`
+- Tooltips no longer stay open after hovering and clicking a button in quick succession
+- A response with several `Set-Cookie` headers keeps every cookie in the Cookies tab and the cookie jar; before, only the last one survived
+- Cancelling a benchmark shows the statistics and distribution for the iterations that finished, next to the **Cancelled** badge
+- cURL snippets send the body with `--data-raw` and text form fields with `--form-string`, so a value that starts with `@` is sent as text, and a new **cURL (cmd.exe)** target produces a command for the Windows Command Prompt
+- The gRPC Timeline places **Received trailers** and **Connection complete** at the time the call ended, shows the response metadata row for streams, and the schema badge says "1 proto file"
+- gRPC calls report the trailers the server actually sent, for unary and streaming methods alike; before, a successful call showed only `grpc-status` and `grpc-message`. Binary (`-bin`) metadata values are shown base64-encoded
+- A gRPC stream that fails or is cancelled ends with its real status, for example `CANCELLED 1` or `RESOURCE_EXHAUSTED 8`, instead of `OK 0`, and **Cancel** now stops an open stream
+- A gRPC stream started while the schema is still loading gets **Send** and **Commit**, because the backend reports the method type as the call opens. Unary calls show as in flight while they run
+- On an open gRPC client or bidirectional stream, the send shortcut (`Ctrl+Enter` by default) sends the next message, and a shortcut pressed in the URL bar no longer fires twice
+- gRPC responses include fields at their default value, as the VS Code extension does, instead of leaving them out
+- A gRPC response that cannot be rendered as JSON, for example a `google.protobuf.Any` of a type that is not in the schema, is shown in protobuf text format with the reason, instead of `{}`. Streaming requests resolve `Any` payload types through reflection like unary requests
 - The show/hide button in password fields (OAuth 2.0 Client Secret, Basic, Digest, NTLM, and the AWS secret key) is centered in the field and visible on dark themes
 - **Send** no longer appears while a gRPC server streaming call is open; the URL bar shows only **Cancel**, because the server doesn't accept messages on that call
 - While a gRPC client or bidirectional stream is open with no server message yet, the Response tab says the stream is open instead of "Connecting..."

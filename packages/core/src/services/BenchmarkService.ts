@@ -34,10 +34,11 @@ export class BenchmarkService {
         if (signal.aborted) break;
         onProgress(i + 1, config.iterations);
         const result = await this.executeSingle(request, envData, i + 1, signal, colVars);
+        if (!result) break; // cancelled while this request was in flight
         iterations.push(result);
         onIteration(result);
         if (config.delayBetweenMs > 0 && i < config.iterations - 1 && !signal.aborted) {
-          await this.delay(config.delayBetweenMs);
+          await this.delay(config.delayBetweenMs, signal);
         }
       }
     } else {
@@ -47,7 +48,7 @@ export class BenchmarkService {
         if (signal.aborted) break;
         const chunkSize = Math.min(config.concurrency, config.iterations - i);
         const chunkStartTime = Date.now();
-        const promises: Promise<BenchmarkIteration>[] = [];
+        const promises: Promise<BenchmarkIteration | null>[] = [];
         for (let j = 0; j < chunkSize; j++) {
           if (signal.aborted) break;
           promises.push(this.executeSingle(request, envData, i + j + 1, signal, colVars));
@@ -57,6 +58,7 @@ export class BenchmarkService {
         for (const result of results) {
           completed++;
           if (result.status === 'fulfilled') {
+            if (!result.value) continue; // cancelled while in flight
             iterations.push(result.value);
             onIteration(result.value);
           } else {
@@ -95,6 +97,7 @@ export class BenchmarkService {
       statistics,
       iterations,
       distribution,
+      ...(signal.aborted ? { cancelled: true } : {}),
     };
   }
 
@@ -111,7 +114,7 @@ export class BenchmarkService {
     iteration: number,
     signal?: AbortSignal,
     collectionVariables: EnvironmentVariable[] = [],
-  ): Promise<BenchmarkIteration> {
+  ): Promise<BenchmarkIteration | null> {
     const startTime = Date.now();
     try {
       const url = this.substituteVariables(request.url, envData, collectionVariables);
@@ -182,6 +185,8 @@ export class BenchmarkService {
         timestamp: startTime,
       };
     } catch (error: any) {
+      // A request aborted by cancel() is not a failed iteration
+      if (signal?.aborted) return null;
       const duration = Date.now() - startTime;
       return {
         iteration,
@@ -296,7 +301,16 @@ export class BenchmarkService {
     return Buffer.byteLength(JSON.stringify(data || ''), 'utf8');
   }
 
-  private delay(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+  /** Wait between iterations; resolves early when the run is cancelled */
+  private delay(ms: number, signal?: AbortSignal): Promise<void> {
+    return new Promise(resolve => {
+      if (signal?.aborted) { resolve(); return; }
+      const timer = setTimeout(() => {
+        signal?.removeEventListener('abort', onAbort);
+        resolve();
+      }, ms);
+      const onAbort = () => { clearTimeout(timer); resolve(); };
+      signal?.addEventListener('abort', onAbort, { once: true });
+    });
   }
 }

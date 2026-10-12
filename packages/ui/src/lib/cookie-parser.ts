@@ -1,6 +1,7 @@
 /**
  * Cookie parsing utilities
  */
+import { splitSetCookieHeader } from '@nouto/core';
 
 export interface Cookie {
   name: string;
@@ -17,8 +18,8 @@ export function parseCookies(headers: Record<string, string>): Cookie[] {
   // Look for Set-Cookie header (case-insensitive)
   for (const [key, value] of Object.entries(headers)) {
     if (key.toLowerCase() === 'set-cookie') {
-      // Handle multiple cookies (could be comma-separated or array)
-      const cookieStrings = value.split(/,(?=\s*\w+=)/);
+      // Several cookies may be joined into one header value
+      const cookieStrings = splitSetCookieHeader(value);
       for (const cookieStr of cookieStrings) {
         const cookie = parseSingleCookie(cookieStr.trim());
         if (cookie) {

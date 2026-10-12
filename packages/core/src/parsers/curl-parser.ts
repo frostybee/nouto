@@ -91,7 +91,8 @@ export function parseCurl(input: string): ParsedRequest {
       }
 
       case '-F':
-      case '--form': {
+      case '--form':
+      case '--form-string': {
         const val = tokens[++i];
         if (val) {
           const eqIdx = val.indexOf('=');

@@ -22,14 +22,14 @@
     const currentDirFiles = untrack(() => dirFiles);
     for (const dir of importDirs) {
       if (!(dir in currentDirFiles)) {
-        postMessage({ type: 'scanProtoDir', data: { dir } } as any);
+        postMessage({ type: 'scanProtoDir', data: { dir } });
       }
     }
   });
 
   function handleLoadSchema() {
     // Invalidate cached pool so re-loading forces a fresh parse
-    postMessage({ type: 'grpcInvalidatePool' } as any);
+    postMessage({ type: 'grpcInvalidatePool' });
     setGrpcProtoLoading();
     patchGrpc({ useReflection, protoPaths, protoImportDirs: importDirs });
 
@@ -48,18 +48,18 @@
         tlsKeyPath: request.grpc?.tlsKeyPath,
         tlsCaCertPath: request.grpc?.tlsCaCertPath,
         tlsPassphrase: request.grpc?.tlsPassphrase,
-      } } as any);
+      } });
     } else {
-      postMessage({ type: 'grpcLoadProto', data: { protoPaths, importDirs } } as any);
+      postMessage({ type: 'grpcLoadProto', data: { protoPaths, importDirs } });
     }
   }
 
   function handleAddProtoFiles() {
-    postMessage({ type: 'pickProtoFile' } as any);
+    postMessage({ type: 'pickProtoFile' });
   }
 
   function handleAddImportDir() {
-    postMessage({ type: 'pickProtoImportDir' } as any);
+    postMessage({ type: 'pickProtoImportDir' });
   }
 
   function removeProtoPath(index: number) {
