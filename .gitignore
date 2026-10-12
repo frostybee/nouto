@@ -61,6 +61,7 @@ nul
 test-results/
 playwright-report/
 packages/ui/tests/media/output/
+packages/ui/tests/desktop/output/
 .playwright-mcp/
 
 # Vite writes these next to vite.config.ts while bundling the config

@@ -6,6 +6,7 @@ use crate::models::types::{
     GrpcConnection, GrpcEvent, GrpcMethodDescriptor, GrpcProtoDescriptor, GrpcServiceDescriptor,
 };
 use prost::Message;
+#[cfg(test)]
 use prost_reflect::prost_types::FileDescriptorSet;
 use prost_reflect::{
     DescriptorPool, DynamicMessage, FieldDescriptor, Kind, MessageDescriptor, MethodDescriptor,
@@ -294,6 +295,148 @@ enum StartFailure {
     Message(String),
 }
 
+/// Build a descriptor pool from the files a server's reflection service returned.
+///
+/// Starts from the global pool, which holds the google well-known types, so a file that
+/// imports `google/protobuf/any.proto` (or Timestamp, Empty, and so on) resolves even when
+/// the server does not send those descriptors. Duplicates of files already in the pool are
+/// skipped by prost-reflect.
+fn pool_from_reflected_files(
+    files: Vec<prost_reflect::prost_types::FileDescriptorProto>,
+) -> Result<DescriptorPool, prost_reflect::DescriptorError> {
+    let mut pool = DescriptorPool::global();
+    // A server's own copy of a well-known file (sent by grpc-js reflection, for example)
+    // rarely matches the bundled one byte for byte, and prost-reflect rejects a second
+    // definition of the same symbol. Keep the bundled copy.
+    let mut files: Vec<_> = files
+        .into_iter()
+        .filter(|file| !is_well_known_duplicate(&pool, file))
+        .collect();
+    repair_dependencies(&pool, &mut files);
+    pool.add_file_descriptor_protos(files)?;
+    Ok(pool)
+}
+
+/// grpc-js reflection (proto-loader descriptors) sends files with an empty dependency
+/// list and relative type names such as `google.protobuf.Any`. prost-reflect only resolves
+/// a type through a declared dependency, so add one for every file that defines a type the
+/// file refers to, whether that file is bundled (well-known types) or reflected alongside.
+fn repair_dependencies(
+    pool: &DescriptorPool,
+    files: &mut [prost_reflect::prost_types::FileDescriptorProto],
+) {
+    use prost_reflect::prost_types::DescriptorProto;
+
+    fn defined_types(
+        prefix: &str,
+        messages: &[DescriptorProto],
+        enums: &[prost_reflect::prost_types::EnumDescriptorProto],
+        out: &mut Vec<String>,
+    ) {
+        for e in enums {
+            out.push(format!("{}{}", prefix, e.name()));
+        }
+        for m in messages {
+            let full = format!("{}{}", prefix, m.name());
+            defined_types(&format!("{}.", full), &m.nested_type, &m.enum_type, out);
+            out.push(full);
+        }
+    }
+
+    fn referenced_types(messages: &[DescriptorProto], out: &mut Vec<String>) {
+        for m in messages {
+            for f in &m.field {
+                if let Some(t) = &f.type_name {
+                    out.push(t.clone());
+                }
+            }
+            referenced_types(&m.nested_type, out);
+        }
+    }
+
+    // Full type name -> defining file, over the pool and the incoming files
+    let mut owner: HashMap<String, String> = HashMap::new();
+    for m in pool.all_messages() {
+        owner.insert(
+            m.full_name().to_string(),
+            m.parent_file().name().to_string(),
+        );
+    }
+    for e in pool.all_enums() {
+        owner.insert(
+            e.full_name().to_string(),
+            e.parent_file().name().to_string(),
+        );
+    }
+    for file in files.iter() {
+        let prefix = if file.package().is_empty() {
+            String::new()
+        } else {
+            format!("{}.", file.package())
+        };
+        let mut defined = Vec::new();
+        defined_types(&prefix, &file.message_type, &file.enum_type, &mut defined);
+        for name in defined {
+            owner.insert(name, file.name().to_string());
+        }
+    }
+
+    for file in files.iter_mut() {
+        let own_name = file.name().to_string();
+        let package = file.package().to_string();
+        let mut refs = Vec::new();
+        referenced_types(&file.message_type, &mut refs);
+        for service in &file.service {
+            for method in &service.method {
+                refs.extend(method.input_type.iter().cloned());
+                refs.extend(method.output_type.iter().cloned());
+            }
+        }
+        for reference in refs {
+            let bare = reference.trim_start_matches('.').to_string();
+            // Relative names resolve from the innermost scope outwards; try the file's
+            // package scopes first, then the root
+            let mut scope = package.clone();
+            let mut candidates = Vec::new();
+            loop {
+                candidates.push(if scope.is_empty() {
+                    bare.clone()
+                } else {
+                    format!("{}.{}", scope, bare)
+                });
+                match scope.rfind('.') {
+                    Some(idx) => scope.truncate(idx),
+                    None if !scope.is_empty() => scope.clear(),
+                    None => break,
+                }
+            }
+            if let Some(file_name) = candidates.iter().find_map(|c| owner.get(c)) {
+                if *file_name != own_name && !file.dependency.contains(file_name) {
+                    file.dependency.push(file_name.clone());
+                }
+            }
+        }
+    }
+}
+
+fn is_well_known_duplicate(
+    pool: &DescriptorPool,
+    file: &prost_reflect::prost_types::FileDescriptorProto,
+) -> bool {
+    if pool.get_file_by_name(file.name()).is_some() {
+        return true;
+    }
+    file.package() == "google.protobuf"
+        && file.message_type.iter().all(|m| {
+            pool.get_message_by_name(&format!("google.protobuf.{}", m.name()))
+                .is_some()
+        })
+        && file.enum_type.iter().all(|e| {
+            pool.get_enum_by_name(&format!("google.protobuf.{}", e.name()))
+                .is_some()
+        })
+}
+
 /// Add grpc-status and grpc-message when the server did not send them, as the Node host does.
 fn ensure_grpc_status(trailers: &mut HashMap<String, String>, code: i32, message: &str) {
     trailers
@@ -446,11 +589,7 @@ impl GrpcClient {
         }
 
         // Rebuild pool from combined set
-        let combined_fds = FileDescriptorSet {
-            file: all_fd_protos,
-        };
-
-        let new_pool = DescriptorPool::from_file_descriptor_set(combined_fds)
+        let new_pool = pool_from_reflected_files(all_fd_protos)
             .map_err(|e| format!("Failed to rebuild pool with Any types: {}", e))?;
 
         // Update cache
@@ -605,11 +744,7 @@ impl GrpcClient {
             file_descriptor_protos.push(fd_proto);
         }
 
-        let fds = FileDescriptorSet {
-            file: file_descriptor_protos,
-        };
-
-        let pool = DescriptorPool::from_file_descriptor_set(fds)
+        let pool = pool_from_reflected_files(file_descriptor_protos)
             .map_err(|e| format!("Failed to create descriptor pool from reflection: {}", e))?;
 
         // Cache the pool
@@ -1890,6 +2025,119 @@ impl GrpcClient {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    // --- Reflection pools ---
+
+    #[test]
+    fn reflected_files_resolve_well_known_types() {
+        use prost_reflect::prost_types::{
+            field_descriptor_proto, DescriptorProto, FieldDescriptorProto, FileDescriptorProto,
+            MethodDescriptorProto, ServiceDescriptorProto,
+        };
+        let field = |name: &str, type_name: &str| FieldDescriptorProto {
+            name: Some(name.to_string()),
+            number: Some(if name == "payload" { 1 } else { 2 }),
+            r#type: Some(field_descriptor_proto::Type::Message as i32),
+            type_name: Some(type_name.to_string()),
+            json_name: Some(name.to_string()),
+            ..Default::default()
+        };
+        // What grpc-js reflection sends: no dependency list, relative type names, and a
+        // synthesized copy of the well-known file under its own name
+        let common = FileDescriptorProto {
+            name: Some("common.proto".to_string()),
+            package: Some("common".to_string()),
+            message_type: vec![DescriptorProto {
+                name: Some("Status".to_string()),
+                ..Default::default()
+            }],
+            syntax: Some("proto3".to_string()),
+            ..Default::default()
+        };
+        let api = FileDescriptorProto {
+            name: Some("api.proto".to_string()),
+            package: Some("api.v1".to_string()),
+            message_type: vec![
+                DescriptorProto {
+                    name: Some("Holder".to_string()),
+                    field: vec![
+                        field("payload", "google.protobuf.Any"),
+                        field("status", "common.Status"),
+                    ],
+                    ..Default::default()
+                },
+                DescriptorProto {
+                    name: Some("Empty".to_string()),
+                    ..Default::default()
+                },
+            ],
+            service: vec![ServiceDescriptorProto {
+                name: Some("Api".to_string()),
+                method: vec![MethodDescriptorProto {
+                    name: Some("Get".to_string()),
+                    input_type: Some("api.v1.Empty".to_string()),
+                    output_type: Some("Holder".to_string()),
+                    ..Default::default()
+                }],
+                ..Default::default()
+            }],
+            syntax: Some("proto3".to_string()),
+            ..Default::default()
+        };
+        let servers_any = FileDescriptorProto {
+            name: Some("google_protobuf.proto".to_string()),
+            package: Some("google.protobuf".to_string()),
+            message_type: vec![DescriptorProto {
+                name: Some("Any".to_string()),
+                field: vec![FieldDescriptorProto {
+                    name: Some("type_url".to_string()),
+                    number: Some(1),
+                    r#type: Some(field_descriptor_proto::Type::String as i32),
+                    ..Default::default()
+                }],
+                ..Default::default()
+            }],
+            syntax: Some("proto3".to_string()),
+            ..Default::default()
+        };
+
+        assert!(
+            DescriptorPool::from_file_descriptor_set(FileDescriptorSet {
+                file: vec![api.clone(), common.clone(), servers_any.clone()]
+            })
+            .is_err(),
+            "without repaired dependencies the files do not load"
+        );
+
+        let pool = pool_from_reflected_files(vec![api, common, servers_any])
+            .expect("reflected files load");
+        let holder = pool
+            .get_message_by_name("api.v1.Holder")
+            .expect("api.v1.Holder");
+        assert_eq!(
+            holder
+                .get_field_by_name("payload")
+                .unwrap()
+                .kind()
+                .as_message()
+                .unwrap()
+                .full_name(),
+            "google.protobuf.Any"
+        );
+        assert_eq!(
+            holder
+                .get_field_by_name("status")
+                .unwrap()
+                .kind()
+                .as_message()
+                .unwrap()
+                .full_name(),
+            "common.Status"
+        );
+        assert!(pool.get_service_by_name("api.v1.Api").is_some());
+        // The bundled any.proto is used, not the server's copy
+        assert!(pool.get_file_by_name("google_protobuf.proto").is_none());
+    }
 
     // --- Call outcomes ---
 

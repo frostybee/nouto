@@ -33,6 +33,7 @@ All notable changes to the Nouto desktop app will be documented in this file.
 - Cancelling a benchmark shows the statistics and distribution for the iterations that finished, next to the **Cancelled** badge
 - cURL snippets send the body with `--data-raw` and text form fields with `--form-string`, so a value that starts with `@` is sent as text, and a new **cURL (cmd.exe)** target produces a command for the Windows Command Prompt
 - The gRPC Timeline places **Received trailers** and **Connection complete** at the time the call ended, shows the response metadata row for streams, and the schema badge says "1 proto file"
+- gRPC server reflection works against servers built with grpc-js, whose descriptors list no file dependencies and use relative type names, and against protos that import well-known types such as `google.protobuf.Any`. Before, loading the schema failed with "name 'google.protobuf.Any' is not defined"
 - gRPC calls report the trailers the server actually sent, for unary and streaming methods alike; before, a successful call showed only `grpc-status` and `grpc-message`. Binary (`-bin`) metadata values are shown base64-encoded
 - A gRPC stream that fails or is cancelled ends with its real status, for example `CANCELLED 1` or `RESOURCE_EXHAUSTED 8`, instead of `OK 0`, and **Cancel** now stops an open stream
 - A gRPC stream started while the schema is still loading gets **Send** and **Commit**, because the backend reports the method type as the call opens. Unary calls show as in flight while they run

@@ -13,7 +13,8 @@
     "check": "svelte-check --tsconfig ./tsconfig.check.json",
     "media:gifs": "playwright test -c playwright.media.config.ts",
     "media:vscode-gifs": "playwright test -c playwright.vscode-media.config.ts vscode-gifs",
-    "media:docs-shots": "playwright test -c playwright.vscode-media.config.ts vscode-docs"
+    "media:docs-shots": "playwright test -c playwright.vscode-media.config.ts vscode-docs",
+    "smoke:desktop-grpc": "node tests/desktop/grpc-smoke.mjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.61.1",
