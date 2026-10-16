@@ -52,6 +52,7 @@ export const workspace = {
   getWorkspaceFolder: jest.fn(),
   getConfiguration: jest.fn().mockReturnValue({
     get: jest.fn(),
+    inspect: jest.fn(),
     update: jest.fn(),
   }),
   onDidChangeConfiguration: jest.fn().mockReturnValue({ dispose: jest.fn() }),

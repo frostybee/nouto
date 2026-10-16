@@ -58,7 +58,7 @@ The Drafts collection, environments, history, and trash stay in global storage i
 
 ### Repositories that already use workspace storage
 
-When you open a workspace that already contains `.nouto/collections/`, for example after cloning a repository, Nouto switches to workspace storage automatically.
+When you open a folder that already contains `.nouto/collections/`, for example after cloning a repository, Nouto uses workspace storage for that folder without changing any setting. Opening a folder never creates `.nouto/`. Nouto writes to it only when you save a collection in workspace storage or switch to workspace storage.
 
 ### File watching
 
@@ -72,13 +72,15 @@ To move your collections into the workspace, run **Nouto: Switch to Workspace St
 
 To move them back, run **Nouto: Switch to Global Storage** and confirm. Nouto merges the request files back into `collections.json` in global storage.
 
-You can also switch with the **Storage Mode** setting in **Settings > Storage**, or set `nouto.storage.mode` in your VS Code settings:
+The storage mode is a per-folder setting. Both commands, and the **Storage Mode** setting in **Settings > Storage**, write `nouto.storage.mode` to the folder's `.vscode/settings.json`, so other folders keep their own mode. You can also set it there by hand:
 
-```jsonc title="settings.json"
+```jsonc title=".vscode/settings.json"
 {
   "nouto.storage.mode": "workspace" // or "global"
 }
 ```
+
+A value in your user settings acts as the default for folders that have no folder-level value.
 
 ## Desktop app
 

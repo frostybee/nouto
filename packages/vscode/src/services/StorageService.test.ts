@@ -342,33 +342,149 @@ describe('StorageService', () => {
     });
   });
 
-  describe('getStorageMode', () => {
-    it('should return the current storage mode from configuration', () => {
+  describe('storage mode resolution', () => {
+    const workspaceFolder = { uri: { fsPath: '/test/workspace' }, name: 'test', index: 0 } as any;
+
+    const mockConfig = (inspect: Record<string, unknown>) => {
       const vscode = require('vscode');
-      const mockGet = jest.fn().mockReturnValue('global');
+      const update = jest.fn().mockResolvedValue(undefined);
       vscode.workspace.getConfiguration.mockReturnValue({
-        get: mockGet,
-        update: jest.fn(),
+        get: jest.fn(),
+        inspect: jest.fn().mockReturnValue(inspect),
+        update,
       });
+      return update;
+    };
 
-      const mode = storageService.getStorageMode();
+    it('defaults to global when nothing is configured and no .nouto/collections exists', () => {
+      mockConfig({});
+      mockExistsSync.mockReturnValue(false);
 
-      expect(vscode.workspace.getConfiguration).toHaveBeenCalledWith('nouto');
-      expect(mockGet).toHaveBeenCalledWith('storage.mode', 'global');
-      expect(mode).toBe('global');
+      const service = new StorageService(workspaceFolder);
+
+      expect(service.getStorageMode()).toBe('global');
     });
 
-    it('should return workspace when configured as such', () => {
+    it('uses an explicit workspace-level value', () => {
+      mockConfig({ workspaceValue: 'workspace' });
+      mockExistsSync.mockReturnValue(false);
+
+      const service = new StorageService(workspaceFolder);
+
+      expect(service.getStorageMode()).toBe('workspace');
+    });
+
+    it('uses a user-level value as the default for folders without their own', () => {
+      mockConfig({ globalValue: 'workspace' });
+      mockExistsSync.mockReturnValue(false);
+
+      const service = new StorageService(workspaceFolder);
+
+      expect(service.getStorageMode()).toBe('workspace');
+    });
+
+    it('auto-detects .nouto/collections without writing any setting', () => {
+      const update = mockConfig({});
+      mockExistsSync.mockImplementation((p) => String(p).endsWith(path.join('.nouto', 'collections')));
+
+      const service = new StorageService(workspaceFolder);
+
+      expect(service.getStorageMode()).toBe('workspace');
+      expect(update).not.toHaveBeenCalled();
+    });
+
+    it('honours an explicit global value even when .nouto/collections exists', () => {
+      mockConfig({ workspaceValue: 'global' });
+      mockExistsSync.mockReturnValue(true);
+
+      const service = new StorageService(workspaceFolder);
+
+      expect(service.getStorageMode()).toBe('global');
+    });
+
+    it('is global without a workspace folder', () => {
+      mockConfig({ globalValue: 'workspace' });
+
+      const service = new StorageService(undefined, '/global');
+
+      expect(service.getStorageMode()).toBe('global');
+    });
+  });
+
+  describe('workspace mode file writes', () => {
+    const workspaceFolder = { uri: { fsPath: '/test/workspace' }, name: 'test', index: 0 } as any;
+
+    beforeEach(() => {
       const vscode = require('vscode');
-      const mockGet = jest.fn().mockReturnValue('workspace');
       vscode.workspace.getConfiguration.mockReturnValue({
-        get: mockGet,
-        update: jest.fn(),
+        get: jest.fn(),
+        inspect: jest.fn().mockReturnValue({ workspaceValue: 'workspace' }),
+        update: jest.fn().mockResolvedValue(undefined),
+      });
+      mockExistsSync.mockReturnValue(false);
+      mockFs.readdir.mockResolvedValue([] as any);
+    });
+
+    it('loadCollections does not create .nouto or .gitignore', async () => {
+      const service = new StorageService(workspaceFolder);
+
+      await service.loadCollections();
+
+      expect(mockFs.mkdir).not.toHaveBeenCalled();
+      expect(mockFs.writeFile).not.toHaveBeenCalled();
+    });
+
+    it('saveCollections with workspace collections writes .gitignore', async () => {
+      const service = new StorageService(workspaceFolder);
+
+      const result = await service.saveCollections([createMockCollection('col-1', 'Test')]);
+
+      expect(result).toBe(true);
+      const gitignoreWrites = (mockFs.writeFile as jest.Mock).mock.calls.filter(
+        (call: any[]) => typeof call[0] === 'string' && call[0].endsWith('.gitignore')
+      );
+      expect(gitignoreWrites).toHaveLength(1);
+    });
+
+    it('saveCollections with only builtin collections leaves the workspace untouched', async () => {
+      const service = new StorageService(workspaceFolder);
+
+      await service.saveCollections([{ ...createMockCollection('drafts', 'Drafts'), builtin: 'drafts' } as any]);
+
+      const workspaceWrites = (mockFs.writeFile as jest.Mock).mock.calls.filter(
+        (call: any[]) => typeof call[0] === 'string' && call[0].includes(path.join('test', 'workspace'))
+      );
+      expect(workspaceWrites).toHaveLength(0);
+    });
+  });
+
+  describe('migrateLegacyGlobalMode', () => {
+    it('clears a user-level workspace value', async () => {
+      const vscode = require('vscode');
+      const update = jest.fn().mockResolvedValue(undefined);
+      vscode.workspace.getConfiguration.mockReturnValue({
+        get: jest.fn(),
+        inspect: jest.fn().mockReturnValue({ globalValue: 'workspace' }),
+        update,
       });
 
-      const mode = storageService.getStorageMode();
+      await StorageService.migrateLegacyGlobalMode();
 
-      expect(mode).toBe('workspace');
+      expect(update).toHaveBeenCalledWith('storage.mode', undefined, vscode.ConfigurationTarget.Global);
+    });
+
+    it.each([{ globalValue: 'global' }, {}])('leaves %o alone', async (inspect) => {
+      const vscode = require('vscode');
+      const update = jest.fn().mockResolvedValue(undefined);
+      vscode.workspace.getConfiguration.mockReturnValue({
+        get: jest.fn(),
+        inspect: jest.fn().mockReturnValue(inspect),
+        update,
+      });
+
+      await StorageService.migrateLegacyGlobalMode();
+
+      expect(update).not.toHaveBeenCalled();
     });
   });
 
@@ -377,6 +493,7 @@ describe('StorageService', () => {
       const vscode = require('vscode');
       vscode.workspace.getConfiguration.mockReturnValue({
         get: jest.fn().mockReturnValue('global'),
+        inspect: jest.fn().mockReturnValue(undefined),
         update: jest.fn().mockResolvedValue(undefined),
       });
     });
@@ -392,6 +509,7 @@ describe('StorageService', () => {
       const mockUpdate = jest.fn().mockResolvedValue(undefined);
       vscode.workspace.getConfiguration.mockReturnValue({
         get: jest.fn().mockReturnValue('global'),
+        inspect: jest.fn().mockReturnValue(undefined),
         update: mockUpdate,
       });
 
@@ -408,7 +526,7 @@ describe('StorageService', () => {
       expect(mockUpdate).toHaveBeenCalledWith(
         'storage.mode',
         'workspace',
-        expect.anything()
+        vscode.ConfigurationTarget.Workspace
       );
     });
 
@@ -417,6 +535,7 @@ describe('StorageService', () => {
       const mockUpdate = jest.fn().mockResolvedValue(undefined);
       vscode.workspace.getConfiguration.mockReturnValue({
         get: jest.fn().mockReturnValue('global'),
+        inspect: jest.fn().mockReturnValue(undefined),
         update: mockUpdate,
       });
 
@@ -440,6 +559,7 @@ describe('StorageService', () => {
       const vscode = require('vscode');
       vscode.workspace.getConfiguration.mockReturnValue({
         get: jest.fn().mockReturnValue('global'),
+        inspect: jest.fn().mockReturnValue(undefined),
         update: jest.fn().mockRejectedValue(new Error('Config update failed')),
       });
 
@@ -468,6 +588,7 @@ describe('StorageService', () => {
 
       vscode.workspace.getConfiguration.mockReturnValue({
         get: jest.fn().mockReturnValue('workspace'),
+        inspect: jest.fn().mockReturnValue({ workspaceValue: 'workspace' }),
         update: mockUpdate,
       });
 
@@ -489,7 +610,7 @@ describe('StorageService', () => {
       expect(mockUpdate).toHaveBeenCalledWith(
         'storage.mode',
         'global',
-        expect.anything()
+        vscode.ConfigurationTarget.Workspace
       );
     });
   });

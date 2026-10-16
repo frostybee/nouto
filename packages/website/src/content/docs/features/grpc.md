@@ -48,6 +48,8 @@ Click the **Service / Method** dropdown and select a method. Methods are grouped
 
 The input and output message types appear below the dropdown. If the **Message** editor is empty or contains `{}`, Nouto fills it with a JSON object that lists every field of the input message with a default value, for example `""` for strings, `0` for numbers, `[]` for repeated fields, and `{}` for map fields. Map fields are JSON objects whether the schema comes from reflection or from proto files.
 
+Messages follow the protobuf JSON mapping in both directions. A `bytes` field is a base64 string, and a `google.protobuf.Any` field is an object with an `@type` key that holds the type URL, for example `{"@type": "type.googleapis.com/my.pkg.Item", "name": "x"}`, followed by the fields of that type. When the schema comes from reflection, Nouto fetches the types named in `@type` from the server before it sends the request.
+
 ![The gRPC panel for localhost:50051: Schema Loaded from Reflection, UserService / GetUser selected with its input and output types, and the Message tab with a scaffold for the id field](../../../assets/screenshots/features/grpc-panel.png)
 
 ## Write the message
@@ -118,7 +120,7 @@ While a stream is open, the URL bar shows **Cancel**, which cancels the call.
 
 For client streaming and bidirectional streaming, **Start Stream** sends the contents of the **Message** editor as the first message, unless the message is empty (`{}`). While the stream is open, the URL bar also shows:
 
-- **Send** sends the current contents of the **Message** editor. Edit the message between sends to vary the payload.
+- **Send** sends the current contents of the **Message** editor. Edit the message between sends to vary the payload. `Ctrl+Enter` sends it too.
 - **Commit** half-closes the client side of the stream, telling the server that no more messages are coming.
 
 In VS Code, messages sent while the call is still starting are delivered as soon as the stream opens.

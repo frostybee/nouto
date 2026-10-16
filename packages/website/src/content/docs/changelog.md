@@ -8,6 +8,14 @@ Release history for the Nouto VS Code extension. The desktop app and the standal
 - [Desktop app changelog](https://github.com/frostybee/nouto/blob/main/packages/desktop/CHANGELOG.md)
 - [JSON Explorer extension changelog](https://github.com/frostybee/nouto/blob/main/packages/json-explorer-ext/CHANGELOG.md)
 
+## 1.6.7
+
+Released October 2026.
+
+### Fixed
+
+- Opening a folder no longer creates a `.nouto/` directory in it. Nouto only writes there when you save a collection in workspace storage or switch to workspace storage. The storage mode is now saved per folder in `.vscode/settings.json` instead of in user settings, and a `"workspace"` value that earlier versions wrote to user settings is removed once on startup
+
 ## 1.6.6
 
 Released October 2026.

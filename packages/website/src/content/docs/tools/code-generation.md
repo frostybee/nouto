@@ -56,7 +56,7 @@ Snippets include a body only for `POST`, `PUT`, and `PATCH` requests. When the r
 | Text | Body text with `Content-Type: text/plain` |
 | XML | Body text with `Content-Type: application/xml` |
 | URL-encoded | Encoded `key=value` pairs from the enabled rows |
-| Form data | Multipart form built with the target library, including file fields |
+| Form data | Multipart form built with the target library, including file fields. cURL sends text fields with `--form-string`, so a value that starts with `@` or `<` is sent as text. |
 | GraphQL | JSON payload with `query`, plus `variables` and `operationName` when set |
 | Binary | cURL only, as `--data-binary @<file>`. Other targets omit the body. |
 

@@ -2,7 +2,7 @@
   "name": "nouto",
   "displayName": "Nouto",
   "description": "Open-source API client for REST, GraphQL, WebSockets, SSE and gRPC. Runs inside VS Code or as a standalone desktop app.",
-  "version": "1.6.6",
+  "version": "1.6.7",
   "publisher": "frostybee-dev",
   "license": "MIT",
   "repository": {
@@ -979,7 +979,8 @@
             "workspace"
           ],
           "default": "global",
-          "description": "Storage mode: 'global' stores all collections in VS Code global storage, 'workspace' stores each request as an individual file in .nouto/collections/ for clean git diffs"
+          "scope": "resource",
+          "description": "Where this folder's collections are stored. 'global' keeps them in VS Code global storage. 'workspace' writes each request as its own file in .nouto/collections/ for clean git diffs. Set per folder; a folder that already contains .nouto/collections/ uses workspace storage automatically."
         }
       }
     }

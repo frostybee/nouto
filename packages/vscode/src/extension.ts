@@ -14,6 +14,7 @@ import { OpenApiCodeLensProvider } from './providers/OpenApiCodeLensProvider';
 import { OpenApiOutlineProvider } from './providers/OpenApiOutlineProvider';
 import { createOpenApiActionService } from './services/OpenApiActionService';
 import { EnvironmentStatusBar } from './services/EnvironmentStatusBar';
+import { StorageService } from './services/StorageService';
 import { OpenApiDocsSnapshotManager } from './services/openapi';
 import { VscodeFileResolver } from './services/openapi/vscodeFileResolver';
 import {
@@ -37,6 +38,9 @@ import { registerOpenApiOutlineEditCommands } from './commands/openapi-outline-e
 
 export async function activate(context: vscode.ExtensionContext) {
   console.log('Nouto extension is now active!');
+
+  // Must run before any StorageService is constructed (sidebar + panel manager)
+  await StorageService.migrateLegacyGlobalMode();
 
   // Global storage path - correct in both normal and portable VS Code
   const globalStorageDir = context.globalStorageUri.fsPath;

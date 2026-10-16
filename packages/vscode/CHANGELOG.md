@@ -4,6 +4,12 @@ All notable changes to the Nouto VS Code extension will be documented in this fi
 
 ## [Unreleased]
 
+## [1.6.7] - 2026-10-15
+
+### Fixed
+
+- Opening a folder no longer creates a `.nouto/` directory in it. Nouto only writes there when you save a collection in workspace storage or switch to workspace storage. The storage mode is now saved per folder in `.vscode/settings.json` instead of in user settings, and a `"workspace"` value that earlier versions wrote to user settings is removed once on startup.
+
 ## [1.6.6] - 2026-10-12
 
 ### Added

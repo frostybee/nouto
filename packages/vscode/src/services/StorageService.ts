@@ -21,6 +21,7 @@ export class StorageService {
   private workspaceStrategy: PerRequestStorageStrategy | null = null;
   private readonly baseDir: string;
   private readonly workspaceRoot: string | null;
+  private readonly workspaceFolder: vscode.WorkspaceFolder | null;
 
   constructor(workspaceFolder?: vscode.WorkspaceFolder, globalStorageDir?: string) {
     if (globalStorageDir) {
@@ -30,27 +31,47 @@ export class StorageService {
     }
 
     this.workspaceRoot = workspaceFolder?.uri.fsPath ?? null;
+    this.workspaceFolder = workspaceFolder ?? null;
     this.globalStrategy = new MonolithicStorageStrategy(this.baseDir);
 
     if (this.workspaceRoot) {
       const noutoDir = path.join(this.workspaceRoot, '.nouto');
-      const configMode = this.readStorageMode();
+      const configMode = this.readConfiguredMode();
 
       if (configMode === 'workspace') {
         this.workspaceStrategy = new PerRequestStorageStrategy(noutoDir);
-      } else if (existsSync(path.join(noutoDir, 'collections'))) {
-        // Auto-detect: workspace has .nouto/collections/ (e.g. cloned repo)
+      } else if (configMode === undefined && existsSync(path.join(noutoDir, 'collections'))) {
+        // Auto-detect: workspace has .nouto/collections/ (e.g. cloned repo).
+        // Detection is in-memory only; nothing is written to settings or disk
+        // until the user saves a collection or switches modes explicitly.
         this.workspaceStrategy = new PerRequestStorageStrategy(noutoDir);
-        // Update config to match the detected workspace storage
-        const config = vscode.workspace.getConfiguration('nouto');
-        config.update('storage.mode', 'workspace', vscode.ConfigurationTarget.Global);
       }
     }
   }
 
-  private readStorageMode(): StorageMode {
+  /**
+   * The explicitly configured storage mode, or undefined when no value is set
+   * at any level. The default from package.json is deliberately ignored so the
+   * constructor can tell "user chose global" apart from "nothing chosen".
+   */
+  private readConfiguredMode(): StorageMode | undefined {
+    const config = vscode.workspace.getConfiguration('nouto', this.workspaceFolder?.uri);
+    const info = config.inspect<StorageMode>('storage.mode');
+    return info?.workspaceFolderValue ?? info?.workspaceValue ?? info?.globalValue;
+  }
+
+  /**
+   * One-time cleanup: earlier versions wrote `storage.mode: "workspace"` to
+   * user settings whenever a folder containing .nouto/collections/ was opened,
+   * which turned workspace storage on for every folder. Clear that value so
+   * the mode is decided per folder again. Call before constructing instances.
+   */
+  static async migrateLegacyGlobalMode(): Promise<void> {
     const config = vscode.workspace.getConfiguration('nouto');
-    return config.get<StorageMode>('storage.mode', 'global') ?? 'global';
+    const info = config.inspect<StorageMode>('storage.mode');
+    if (info?.globalValue === 'workspace') {
+      await config.update('storage.mode', undefined, vscode.ConfigurationTarget.Global);
+    }
   }
 
   private stripSource(collections: Collection[]): Collection[] {
@@ -66,9 +87,6 @@ export class StorageService {
     let collections: Collection[] = [];
 
     if (this.workspaceStrategy) {
-      // Ensure .gitignore exists on every load (handles new workspaces)
-      await this.workspaceStrategy.ensureGitignore();
-
       // Workspace mode: regular collections from workspace, Recent from global
       const workspace = await this.workspaceStrategy.loadCollections();
       workspace.forEach(c => c.source = 'workspace');
@@ -115,6 +133,11 @@ export class StorageService {
         this.globalStrategy.saveCollections(this.stripSource(builtinCols)),
         this.workspaceStrategy.saveCollections(this.stripSource(workspaceCols)),
       ]);
+      // First real write into a workspace (auto-detected or configured) also
+      // lays down .nouto/.gitignore. Loads never create files.
+      if (w && workspaceCols.length > 0) {
+        await this.workspaceStrategy.ensureGitignore();
+      }
       return g && w;
     }
 
@@ -173,8 +196,9 @@ export class StorageService {
     return this.globalStrategy.getStorageDir();
   }
 
+  /** The mode in effect for this instance (explicit setting or auto-detected). */
   getStorageMode(): StorageMode {
-    return this.readStorageMode();
+    return this.workspaceStrategy ? 'workspace' : 'global';
   }
 
   getWorkspaceRoot(): string | null {
@@ -188,7 +212,7 @@ export class StorageService {
   // ── Mode switching ───────────────────────────────────────────────
 
   async switchStorageMode(newMode: StorageMode): Promise<boolean> {
-    const currentMode = this.readStorageMode();
+    const currentMode = this.getStorageMode();
     if (currentMode === newMode) {
       return true;
     }
@@ -228,22 +252,14 @@ export class StorageService {
         this.workspaceStrategy = null;
       }
 
-      const config = vscode.workspace.getConfiguration('nouto');
-      await config.update('storage.mode', newMode, vscode.ConfigurationTarget.Global);
+      // Per-folder setting: lands in .vscode/settings.json of the open workspace
+      const config = vscode.workspace.getConfiguration('nouto', this.workspaceFolder?.uri);
+      await config.update('storage.mode', newMode, vscode.ConfigurationTarget.Workspace);
 
       return true;
     } catch (error) {
       console.error('Failed to switch storage mode:', error);
       return false;
-    }
-  }
-
-  /**
-   * Ensure the workspace .nouto/.gitignore exists.
-   */
-  async ensureWorkspaceGitignore(): Promise<void> {
-    if (this.workspaceStrategy) {
-      await this.workspaceStrategy.ensureGitignore();
     }
   }
 
